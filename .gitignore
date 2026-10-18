@@ -1,0 +1,6 @@
+node_modules
+dist
+.vercel
+.env*
+# design references stay on this laptop, never shipped or uploaded
+reference/

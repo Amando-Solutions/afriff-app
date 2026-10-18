@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Placeholder AFRIFF-style emblem. Swap for the official logo file. -->
+  <g fill="none">
+    <circle cx="32" cy="32" r="29" stroke="#2E7FD9" stroke-width="3" stroke-dasharray="3 2.2"/>
+    <circle cx="32" cy="32" r="23" stroke="#5BC8F0" stroke-width="2.5" stroke-dasharray="2 2"/>
+    <circle cx="32" cy="32" r="17" fill="#0E2A6B"/>
+    <circle cx="32" cy="32" r="13" stroke="#3CCFB8" stroke-width="2.5"/>
+    <circle cx="32" cy="32" r="8.5" fill="#1E9E4A"/>
+    <circle cx="32" cy="32" r="5.5" fill="#D92B2B"/>
+    <circle cx="32" cy="32" r="2.5" fill="#0A0A0A"/>
+  </g>
+</svg>
