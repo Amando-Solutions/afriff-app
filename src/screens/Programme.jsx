@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3, CalendarDays, Check, Clapperboard, Eye, Film, List, ListChecks, MapPin, Minus, Search, X } from 'lucide-react';
+import { BarChart3, CalendarDays, Check, Clapperboard, Eye, Film, List, ListChecks, MapPin, Minus, Search, Sparkles, X } from 'lucide-react';
 import { FESTIVAL, FILMS, SCREENINGS, SECTIONS, VENUES, filmById, venueById } from '../data/programme.js';
 import { dateParts, fromMinutes, time12, timeLabel, toMinutes } from '../lib/format.js';
 import { lagosDate, lagosMinutes } from '../lib/now.js';
@@ -7,6 +7,9 @@ import { AddButton, PageTitle, Poster, QueueTag, VenueDot } from '../components/
 import BottomSheet from '../components/BottomSheet.jsx';
 import { useFestival } from '../lib/store.jsx';
 import { queueAt, useLiveClock } from '../lib/queues.js';
+import { EVENTS, EVENT_FILTERS, EVENT_TYPES, isMultiDay, eventsOn } from '../data/events.js';
+import { EventRow, EventThumb } from '../components/EventBits.jsx';
+import { planForDay } from '../lib/plan.js';
 
 const TAG_FILTERS = ['All', 'Public', 'Industry'];
 const endOf = (s) => toMinutes(s.time) + filmById(s.film).runtime;
@@ -18,6 +21,7 @@ const memory = {
   venues: [],
   tag: 'All',
   view: 'list',
+  eventFilter: 'all',
 };
 function useRemembered(key) {
   const [value, setValue] = useState(memory[key]);
@@ -41,7 +45,7 @@ function DayPicker({ value, onChange }) {
       {FESTIVAL.days.map((d) => {
         const p = dateParts(d);
         const on = d === value;
-        const planned = SCREENINGS.filter((s) => s.date === d && scheduled.has(s.id)).length;
+        const planned = planForDay(scheduled, d).length;
         return (
           <button key={d} type="button" role="tab" aria-selected={on} className={`day${on ? ' on' : ''}`} onClick={() => onChange(d)}>
             <span className="day-name">
@@ -181,27 +185,25 @@ function Timeline({ list, day }) {
 function MyPlanSheet({ day, onClose }) {
   const { scheduled, toggleScheduled } = useFestival();
   const p = dateParts(day);
-  const mine = SCREENINGS.filter((s) => s.date === day && scheduled.has(s.id)).sort((a, b) => a.time.localeCompare(b.time));
+  const mine = planForDay(scheduled, day);
   return (
     <BottomSheet title="My plan" onClose={onClose}>
       <div className="plan-card">
         <div className="plan-day">{p.day} {p.month} {p.date}</div>
-        {mine.length === 0 && <p className="muted small">Nothing planned for this day yet. Tap + on any screening to add it.</p>}
-        {mine.map((s) => {
-          const film = filmById(s.film);
-          return (
-            <div key={s.id} className="plan-row">
-              <span className="plan-time">{timeLabel(s.time)}</span>
-              <a href={`#/film/${film.id}`} className="plan-body" onClick={onClose}>
-                <span className="plan-title">{film.title}</span>
-                <span className="venue-line"><VenueDot venueId={s.venue} /> {venueById(s.venue).name} · {s.screen}</span>
-              </a>
-              <button type="button" className="round-btn small" onClick={() => toggleScheduled(s.id)} aria-label={`Remove ${film.title} from your plan`}>
-                <Minus size={18} />
-              </button>
-            </div>
-          );
-        })}
+        {mine.length === 0 && <p className="muted small">Nothing planned for this day yet. Tap + on any screening or event to add it.</p>}
+        {mine.map((item) => (
+          <div key={item.id} className="plan-row">
+            <span className="plan-time">{timeLabel(item.time)}</span>
+            <a href={item.href} className="plan-body" onClick={onClose}>
+              <span className="plan-title">{item.title}</span>
+              {item.typeLabel && <span className="row-cat gold">{item.typeLabel}</span>}
+              <span className="venue-line">{item.venue && <VenueDot venueId={item.venue} />} {item.where}</span>
+            </a>
+            <button type="button" className="round-btn small" onClick={() => toggleScheduled(item.id)} aria-label={`Remove ${item.title} from your plan`}>
+              <Minus size={18} />
+            </button>
+          </div>
+        ))}
       </div>
       <p className="muted small" style={{ marginTop: 14 }}>Leave time between films for the queue and travel across Lagos.</p>
       <a href="#/my" className="link" style={{ marginTop: 12 }} onClick={onClose}>See your whole festival →</a>
@@ -226,7 +228,8 @@ function ScheduleTab() {
         .sort((a, b) => a.time.localeCompare(b.time)),
     [day, venues, tag]
   );
-  const plannedToday = SCREENINGS.filter((s) => s.date === day && scheduled.has(s.id)).length;
+  const plannedToday = planForDay(scheduled, day).length;
+  const eventsToday = eventsOn(day).length;
   const nextTag = () => setTag(TAG_FILTERS[(TAG_FILTERS.indexOf(tag) + 1) % TAG_FILTERS.length]);
   const emptyWord = tag === 'Public' ? 'public' : tag === 'Industry' ? 'for industry' : 'showing';
 
@@ -254,6 +257,11 @@ function ScheduleTab() {
         <Timeline list={list} day={day} />
       )}
       {/* extra bottom space so the floating My plan button never covers a row */}
+      {eventsToday > 0 && (
+        <a href="#/programme/events" className="events-pointer">
+          <Sparkles size={18} /> {eventsToday} masterclass{eventsToday === 1 ? '' : 'es'} & event{eventsToday === 1 ? '' : 's'} this day <span>See events →</span>
+        </a>
+      )}
       <p className="footnote" style={{ marginBottom: 64 }}>Times can change. Check the bell for updates.</p>
 
       <button type="button" className="fab" onClick={() => setPlanOpen(true)}>
@@ -303,6 +311,44 @@ function AllFilmsTab() {
   );
 }
 
+// ---------- Events tab ----------
+
+function EventsTab() {
+  const [filter, setFilter] = useRemembered('eventFilter');
+  const show = (e) => filter === 'all' || EVENT_TYPES[e.type].group === filter;
+  const allWeek = EVENTS.filter((e) => isMultiDay(e) && show(e));
+  return (
+    <div className="events-tab">
+      <p className="muted small events-intro">Masterclasses, workshops, the AFCM market, galas and parties. Masterclasses are free; register on afriff.com.</p>
+      <div className="chips" role="group" aria-label="Event type">
+        {EVENT_FILTERS.map((f) => (
+          <button key={f.id} type="button" aria-pressed={filter === f.id} className={`chip${filter === f.id ? ' on' : ''}`} onClick={() => setFilter(f.id)}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+      {allWeek.length > 0 && (
+        <section className="ev-day">
+          <h2 className="ev-day-head">All week</h2>
+          {allWeek.map((e) => <EventRow key={e.id} event={e} />)}
+        </section>
+      )}
+      {FESTIVAL.days.map((d) => {
+        const list = eventsOn(d).filter(show);
+        if (list.length === 0) return null;
+        const p = dateParts(d);
+        return (
+          <section key={d} className="ev-day">
+            <h2 className="ev-day-head">{p.day} {p.date} {p.month}</h2>
+            {list.map((e) => <EventRow key={e.id} event={e} />)}
+          </section>
+        );
+      })}
+      <p className="footnote" style={{ marginBottom: 24 }}>Times and rooms are samples until AFRIFF publishes the schedule.</p>
+    </div>
+  );
+}
+
 // ---------- Search ----------
 
 function SearchScreen({ onClose }) {
@@ -311,17 +357,29 @@ function SearchScreen({ onClose }) {
   const results = query
     ? FILMS.filter((f) => f.title.toLowerCase().includes(query) || f.director.toLowerCase().includes(query))
     : [];
+  const eventResults = query
+    ? EVENTS.filter((e) => e.title.toLowerCase().includes(query) || (e.speaker || '').toLowerCase().includes(query))
+    : [];
   return (
-    <div className="search-screen" role="dialog" aria-label="Search films and directors">
+    <div className="search-screen" role="dialog" aria-label="Search films, directors and events">
       <div className="search-bar">
         <div className="search-box">
           <Search size={20} />
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search films and directors" />
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search films, directors, events" />
         </div>
         <button type="button" className="icon-btn" onClick={onClose} aria-label="Close search"><X size={22} /></button>
       </div>
       <div className="search-body">
-        {query && results.length === 0 && <p className="empty">No films or directors match “{q}”.</p>}
+        {query && results.length + eventResults.length === 0 && <p className="empty">Nothing matches “{q}”.</p>}
+        {eventResults.map((e) => (
+          <a key={e.id} href={`#/event/${e.id}`} className="search-result" onClick={onClose}>
+            <EventThumb event={e} />
+            <span>
+              <span className="row-title">{e.title}</span>
+              <span className="muted small">{EVENT_TYPES[e.type].label}{e.speaker ? ` · ${e.speaker}` : ''}</span>
+            </span>
+          </a>
+        ))}
         {results.map((f) => (
           <a key={f.id} href={`#/film/${f.id}`} className="search-result" onClick={onClose}>
             <Poster film={f} className="poster-thumb" />
@@ -339,14 +397,14 @@ function SearchScreen({ onClose }) {
 // ---------- Page ----------
 
 export default function Programme({ param }) {
-  const tab = param === 'films' ? 'films' : 'schedule';
+  const tab = param === 'films' || param === 'events' ? param : 'schedule';
   const [searching, setSearching] = useState(false);
 
   return (
     <div className="page">
       <div className="title-row">
         <PageTitle icon={Clapperboard}>Programme</PageTitle>
-        <button type="button" className="icon-btn big" onClick={() => setSearching(true)} aria-label="Search films and directors">
+        <button type="button" className="icon-btn big" onClick={() => setSearching(true)} aria-label="Search films, directors and events">
           <Search size={24} />
         </button>
       </div>
@@ -362,9 +420,12 @@ export default function Programme({ param }) {
         <a href="#/programme/films" role="tab" aria-selected={tab === 'films'} className={tab === 'films' ? 'on' : ''}>
           <Film size={18} /> All films
         </a>
+        <a href="#/programme/events" role="tab" aria-selected={tab === 'events'} className={tab === 'events' ? 'on' : ''}>
+          <Sparkles size={18} /> Events
+        </a>
       </div>
 
-      {tab === 'schedule' ? <ScheduleTab /> : <AllFilmsTab />}
+      {tab === 'schedule' ? <ScheduleTab /> : tab === 'films' ? <AllFilmsTab /> : <EventsTab />}
 
       {searching && <SearchScreen onClose={() => setSearching(false)} />}
     </div>

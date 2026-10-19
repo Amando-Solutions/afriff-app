@@ -175,7 +175,7 @@ function buildTimetable() {
 export const SCREENINGS = buildTimetable();
 
 export const NEWS = [
-  { id: 'n1', urgent: true, time: '2026-10-18T09:00:00+01:00', title: 'Times are samples for now', body: 'AFRIFF has not published screening times yet. The times in this app are placeholders until the official schedule is out.' },
+  { id: 'n1', urgent: true, time: '2026-10-18T09:00:00+01:00', title: 'Times are samples for now', body: 'AFRIFF has not published times for screenings, masterclasses or events yet. The times in this app are placeholders until the official schedule is out.' },
   { id: 'n2', urgent: false, time: '2026-10-15T10:00:00+01:00', title: 'AFRIFF 2026 announces its international jury', body: 'Voices from filmmaking, criticism, production and entertainment strategy make up this year\'s jury.', url: 'https://afriff.com/news/afriff-2026-international-jury' },
   { id: 'n3', urgent: false, time: '2026-10-10T10:00:00+01:00', title: 'AFRIFF 15: Lagos awaits', body: 'The fifteenth edition runs 1–7 November 2026, with the AFCM market at Twinwaters from 2–5 November.', url: 'https://afriff.com/news/afriff-15-lagos-awaits' },
 ];

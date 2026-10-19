@@ -7,6 +7,8 @@ import { Poster } from '../components/Bits.jsx';
 import { openQueues, queueAt, useLiveClock } from '../lib/queues.js';
 import { now as clockNow } from '../lib/now.js';
 import { useFestival } from '../lib/store.jsx';
+import { EVENTS, EVENT_TYPES, isMultiDay } from '../data/events.js';
+import { EventCard } from '../components/EventBits.jsx';
 
 function useCountdown(target) {
   const [now, setNow] = useState(() => clockNow().getTime());
@@ -142,6 +144,25 @@ export function ListingCard({ screening }) {
   );
 }
 
+// Masterclasses first (free, registration needed), then the big festival moments
+function EventsStrip() {
+  const byTime = (a, b) => (a.date + a.time).localeCompare(b.date + b.time);
+  const learn = EVENTS.filter((e) => EVENT_TYPES[e.type].group === 'learn').sort(byTime);
+  const other = EVENTS.filter((e) => EVENT_TYPES[e.type].group !== 'learn' && !isMultiDay(e) && e.type !== 'market').sort(byTime);
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2 className="section-title">Masterclasses & events</h2>
+        <a href="#/programme/events" className="link">All events <ChevronRight size={18} /></a>
+      </div>
+      <p className="muted small" style={{ marginTop: -6, marginBottom: 12 }}>{learn.length} free masterclasses and workshops. Register on afriff.com.</p>
+      <div className="event-strip">
+        {[...learn, ...other].map((e) => <EventCard key={e.id} event={e} />)}
+      </div>
+    </section>
+  );
+}
+
 function OpeningDay() {
   const day = FESTIVAL.days[0];
   const p = dateParts(day);
@@ -178,6 +199,7 @@ export default function Home() {
       <Tiles />
       <HowToAttendCard />
       <OpeningDay />
+      <EventsStrip />
       <Sponsors />
     </div>
   );

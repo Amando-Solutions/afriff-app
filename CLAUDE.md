@@ -129,11 +129,17 @@ director(s), country, language, genre, programme section (replaces
 "category"), running time, year.
 Screening fields: film, venue, screen, date, start time, tag
 (Public/Industry), seat capacity.
+Event fields (masterclasses, workshops, market, panels, galas, awards,
+parties, networking): type, title, date (+ optional end date for
+all-week events), start and end time, venue (or free-text place),
+room/place, speaker, speaker role, speaker bio, about, access text
+(e.g. "Free · registration required"), tag (Public/Industry),
+link (label + URL, e.g. registration on afriff.com).
 "How to attend" text: a list of sections, each with a heading, body
 text and an optional link (label + URL). Editors can add, edit, reorder
 and remove sections; needs approval like other edits.
 (Shapes match `FILMS`, `SCREENINGS` and `HOW_TO_ATTEND` in
-`src/data/programme.js`.)
+`src/data/programme.js`, and `EVENTS` in `src/data/events.js`.)
 
 ## Build order (one at a time, show me each working on my phone)
 1. Look and layout: Home, Programme, Film page and My Festival with
@@ -290,6 +296,27 @@ heavy libraries) apply everywhere.
   free Hobby plan, account tithera14-7328, project "afriff-app").
   Hobby is for non-commercial use: decide on Vercel Pro before the
   official launch (user was warned about cost).
+
+### Masterclasses & events (added 19 Oct 2026, user request)
+- Everything that isn't a screening lives in `src/data/events.js`:
+  10 masterclasses/workshops (speakers from afriff.com/program/
+  masterclasses: Obinna Okerekeocha, RMD, Femi Adebayo, Hilda Dokubo,
+  Angel Kristi Williams, Kirby Griffin, Esther Kemi Gbadamosi, Yolanda
+  Okereke, Steve Sodiya, Alakpa Uduoghene), 4 AFCM market days (2–5 Nov,
+  Twinwaters, Market Badge), Opening Gala, Women in Film panels,
+  AFRIFF x CANEX WKND, Globe Awards, Closing Party, all-week meetups.
+- Descriptions/bios are short summaries written for the app. Dates of
+  market, gala, awards, party and day themes are from afriff.com; ALL
+  EVENT TIMES AND ROOMS ARE SAMPLES (masterclass dates too).
+- Registration stays on afriff.com (their form collects personal
+  details); the app links to it, it doesn't collect anything itself.
+- Where events show: Programme "Events" tab (by day, filter chips:
+  masterclasses & workshops / market & panels / galas & parties), event
+  page `#/event/<id>`, "Masterclasses & events" strip on Home, a pointer
+  under the day's screenings, and search (titles + speakers).
+- Events can be added to My Festival like screenings (multi-day meetups
+  can't). `src/lib/plan.js` merges screenings + events for My Festival,
+  the My plan sheet, day badges and Share my day.
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`

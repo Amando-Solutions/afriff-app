@@ -1,19 +1,17 @@
 import { useRef } from 'react';
 import { ArrowUpRight, Check, Download, ListChecks, Share2, Star } from 'lucide-react';
-import { FILMS, SCREENINGS, filmById, venueById } from '../data/programme.js';
-import { dateParts, fromMinutes, timeLabel, toMinutes } from '../lib/format.js';
+import { FILMS } from '../data/programme.js';
+import { dateParts, timeLabel } from '../lib/format.js';
 import { PageTitle, Poster, VenueDot } from '../components/Bits.jsx';
+import { EventThumb } from '../components/EventBits.jsx';
+import { planItems } from '../lib/plan.js';
 import { useFestival } from '../lib/store.jsx';
 
 const LETTERBOXD_IMPORT = 'https://letterboxd.com/import/';
-const endTime = (s) => fromMinutes(toMinutes(s.time) + filmById(s.film).runtime);
 
 function shareDay(date, list) {
   const p = dateParts(date);
-  const lines = list.map((s) => {
-    const v = venueById(s.venue);
-    return `• ${timeLabel(s.time)}: ${filmById(s.film).title} (${v.name}, ${s.screen})`;
-  });
+  const lines = list.map((item) => `• ${timeLabel(item.time)}: ${item.title} (${item.where})`);
   const text = `My AFRIFF day, ${p.day} ${p.date} ${p.month}:\n${lines.join('\n')}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
 }
@@ -102,7 +100,9 @@ function Diary({ sectionRef }) {
 export default function MyFestival() {
   const { scheduled, watched, queuesChecked, toggleScheduled } = useFestival();
   const diaryRef = useRef(null);
-  const mine = SCREENINGS.filter((s) => scheduled.has(s.id)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const mine = planItems(scheduled);
+  const nFilms = mine.filter((i) => i.kind === 'screening').length;
+  const nEvents = mine.length - nFilms;
   const byDay = mine.reduce((acc, s) => {
     (acc[s.date] ||= []).push(s);
     return acc;
@@ -112,7 +112,9 @@ export default function MyFestival() {
   return (
     <div className="page">
       <PageTitle icon={ListChecks}>My Schedule</PageTitle>
-      <p className="muted">{mine.length} screening{mine.length === 1 ? '' : 's'} over {days.length} day{days.length === 1 ? '' : 's'}</p>
+      <p className="muted">
+        {nFilms} screening{nFilms === 1 ? '' : 's'}{nEvents > 0 ? ` and ${nEvents} event${nEvents === 1 ? '' : 's'}` : ''} over {days.length} day{days.length === 1 ? '' : 's'}
+      </p>
 
       <div className="stat-tiles">
         <button type="button" className="stat-tile" onClick={() => diaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
@@ -121,7 +123,7 @@ export default function MyFestival() {
         </button>
         <div className="stat-tile">
           <span className="stat-n">{mine.length}</span>
-          <span className="stat-l">screenings planned</span>
+          <span className="stat-l">in your plan</span>
         </div>
         <a href="#/queues" className="stat-tile">
           <span className="stat-n">{queuesChecked.size}</span>
@@ -146,20 +148,18 @@ export default function MyFestival() {
                 <Share2 size={18} /> Share my day
               </button>
             </div>
-            {byDay[date].map((s) => {
-              const film = filmById(s.film);
-              const venue = venueById(s.venue);
+            {byDay[date].map((item) => {
               return (
-                <div key={s.id} className="my-row">
-                  <a href={`#/film/${film.id}`} className="my-row-link">
-                    <Poster film={film} className="poster-thumb" />
+                <div key={item.id} className="my-row">
+                  <a href={item.href} className="my-row-link">
+                    {item.kind === 'screening' ? <Poster film={item.film} className="poster-thumb" /> : <EventThumb event={item.event} />}
                     <span className="my-row-body">
-                      <span className="muted small">{timeLabel(s.time)} – {timeLabel(endTime(s))}</span>
-                      <span className="my-row-title">{film.title}</span>
-                      <span className="venue-line"><VenueDot venueId={venue.id} /> {venue.name} · {s.screen}</span>
+                      <span className="muted small">{timeLabel(item.time)} – {timeLabel(item.end)}{item.typeLabel ? ` · ${item.typeLabel}` : ''}</span>
+                      <span className="my-row-title">{item.title}</span>
+                      <span className="venue-line">{item.venue && <VenueDot venueId={item.venue} />} {item.where}</span>
                     </span>
                   </a>
-                  <button type="button" className="round-btn added big" onClick={() => toggleScheduled(s.id)} aria-label={`Remove ${film.title} from My Festival`}>
+                  <button type="button" className="round-btn added big" onClick={() => toggleScheduled(item.id)} aria-label={`Remove ${item.title} from My Festival`}>
                     <Check size={22} strokeWidth={2.4} />
                   </button>
                 </div>
