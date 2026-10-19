@@ -223,8 +223,8 @@ h1, h2, h3, p { margin: 0; }
 .rows { display: flex; flex-direction: column; }
 .row { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--divider); }
 .row-link { display: flex; align-items: flex-start; gap: 14px; flex: 1; min-width: 0; }
-.row-time { width: 58px; flex: none; display: flex; flex-direction: column; }
-.row-time-n { font-size: 26px; font-weight: 600; line-height: 1; color: var(--gold-light); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.row-time { width: 68px; flex: none; display: flex; flex-direction: column; }
+.row-time-n { font-size: 24px; font-weight: 600; line-height: 1; color: var(--gold-light); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
 .row-time-ampm { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 4px; }
 .row-body { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 .row-title { font-weight: 800; font-size: 17px; text-transform: uppercase; letter-spacing: -0.2px; line-height: 1.2; }
@@ -663,3 +663,10 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .speaker-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .speaker-bio { margin-top: 6px; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
 .section-head .link { white-space: nowrap; flex: none; }
+.ad-loading { min-height: 100vh; display: grid; place-items: center; color: var(--muted); }
+
+/* Schedule: All / Films / Events filter */
+.type-filter { display: flex; gap: 8px; margin-top: 12px; }
+.tl-block.event { border-style: dashed; }
+.type-filter { align-items: center; }
+.type-count { margin-left: auto; font-size: 13.5px; white-space: nowrap; }

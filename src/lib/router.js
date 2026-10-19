@@ -5,7 +5,12 @@ import { useEffect, useState } from 'react';
 function parse() {
   const path = window.location.hash.replace(/^#/, '') || '/';
   const parts = path.split('/').filter(Boolean);
-  return { path, name: parts[0] || 'home', param: parts[1] ? decodeURIComponent(parts[1]) : null };
+  return {
+    path,
+    name: parts[0] || 'home',
+    param: parts[1] ? decodeURIComponent(parts[1]) : null,
+    rest: parts.slice(2).map(decodeURIComponent), // deeper parts, e.g. #/admin/data/films/lady
+  };
 }
 
 export function useRoute() {

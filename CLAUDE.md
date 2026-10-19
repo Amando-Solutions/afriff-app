@@ -314,9 +314,67 @@ heavy libraries) apply everywhere.
   masterclasses & workshops / market & panels / galas & parties), event
   page `#/event/<id>`, "Masterclasses & events" strip on Home, a pointer
   under the day's screenings, and search (titles + speakers).
+- SCHEDULE TAB SHOWS EVERYTHING (user request 19 Oct): the selected
+  day lists screenings AND events together in time order, one row per
+  showing (`dayItems()` in Programme.jsx). Chip "All / Films / Events"
+  (remembered while browsing) with the count beside it; venue chips
+  and Public/Industry apply to events too (market = Industry); events
+  without a cinema only show under "All venues". Timeline includes
+  events (lane = room/place; no cinema → "Other places"; dashed
+  border; overnight events handled). The "N masterclasses & events
+  this day → See events" card stays. All-week meetups stay on the
+  Events tab only.
 - Events can be added to My Festival like screenings (multi-day meetups
   can't). `src/lib/plan.js` merges screenings + events for My Festival,
   the My plan sheet, day badges and Share my day.
+
+### Step 2: admin console (in progress, started 19 Oct 2026)
+- Firebase project "afriff-app" (Spark, free). Email/password logins on;
+  authorized domain afriff-app-mu.vercel.app added. Firestore database
+  (London, europe-west2, production mode). Web app "afriff-web"; its
+  public config is in `src/admin/firebase.js`.
+- No poster uploads: Firebase Storage needs the paid Blaze plan, so
+  posters stay an image-link field unless the user chooses to upgrade.
+- Admin console lives at `#/admin` (e.g. afriff-app-mu.vercel.app/#/admin),
+  not linked from the attendee app. It's lazy-loaded: attendees never
+  download admin/Firebase code (checked: attendee bundle ~101 KB gz,
+  admin ~174 KB separate).
+- Roles in Firestore `users/{uid}.role`: pending (default for new
+  sign-ups) / volunteer (+ venue) / editor / admin. Admins assign roles
+  on the Team page and can't change their own role.
+  FIRST ADMIN: sign up, then in Firebase console → Firestore → Data →
+  users → your document, change role from "pending" to "admin".
+- Security rules: `firestore.rules` in this folder. NOT deployed
+  automatically: paste into Firebase console → Firestore → Rules →
+  Publish every time the file changes. Rules already cover the later
+  parts: public read of live data, admin-only writes, editors propose
+  via `changes` (status pending), volunteers write `queues/{screeningId}`
+  only for their venue.
+- Claude can't create accounts or log in for testing (Firebase Auth is
+  an external login service); the user tests logins.
+- Part 1 DONE (logins, roles, Team page); user made themselves admin.
+- Part 2 BUILT 19 Oct 2026 (user to test): Festival data, Approvals,
+  My changes.
+  - `src/admin/schema.js` describes every data type (fields, labels,
+    required, list title/subtitle); lists and forms are generated from
+    it. Add a field = add one line there. Also holds `seedData()`.
+  - `src/admin/data.js`: admin saves write straight to the live
+    collection; editor saves create a `changes` doc (action create/
+    update/delete, data, before, summary, status pending). Approve =
+    one batch that applies the change and marks it approved; Reject
+    stores an optional note the editor sees in My changes.
+  - Saves keep fields the form doesn't show (e.g. film poster colours).
+  - Import: "Load festival data" (admins, on Festival data page) writes
+    199 items (68 films, 90 sample screenings, 20 events, 3 venues,
+    3 news, 9 sponsors, 6 How to attend) using the built-in IDs, so
+    re-running overwrites those items but nothing else.
+  - Queries avoid composite indexes (sorting done in the app).
+  - Admin addresses: #/admin/data, #/admin/data/<collection>,
+    #/admin/data/<collection>/<id or new>, #/admin/approvals,
+    #/admin/mine, #/admin/team.
+  - Attendee app still reads built-in data; build step 3 switches it
+    to the database.
+- Part 3 next: door volunteer counter (+1/−1 queue and seats).
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`

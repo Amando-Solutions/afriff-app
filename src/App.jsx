@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { useRoute } from './lib/router.js';
 import Welcome, { shouldShowWelcome } from './components/Welcome.jsx';
 import { Header, BottomNav } from './components/Chrome.jsx';
@@ -23,10 +23,23 @@ const SCREENS = {
   news: { Screen: News, tab: null },
 };
 
+// The admin console (and Firebase) is only downloaded when #/admin is opened,
+// so attendees' phones never load it.
+const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
+
 export default function App() {
   const route = useRoute();
   const { Screen, tab } = SCREENS[route.name] || SCREENS.home;
   const [welcome, setWelcome] = useState(shouldShowWelcome);
+
+  if (route.name === 'admin') {
+    return (
+      <Suspense fallback={<div className="ad-loading">Loading admin…</div>}>
+        <AdminApp param={route.param} rest={route.rest} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="app">
       <Header />

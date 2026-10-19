@@ -12,7 +12,24 @@ import { EventRow, EventThumb } from '../components/EventBits.jsx';
 import { planForDay } from '../lib/plan.js';
 
 const TAG_FILTERS = ['All', 'Public', 'Industry'];
-const endOf = (s) => toMinutes(s.time) + filmById(s.film).runtime;
+const TYPE_FILTERS = [{ id: 'all', label: 'All' }, { id: 'films', label: 'Films' }, { id: 'events', label: 'Events' }];
+
+// Everything on one day (screenings and events) as one list in time order.
+// type: 'all' | 'films' | 'events'
+function dayItems(day, type = 'all') {
+  const films = type === 'events' ? [] : SCREENINGS.filter((s) => s.date === day).map((s) => {
+    const film = filmById(s.film);
+    const start = toMinutes(s.time);
+    return { kind: 'screening', id: s.id, time: s.time, start, end: start + film.runtime, venue: s.venue, lane: s.screen, title: film.title, href: `#/film/${film.id}`, tag: s.tag, screening: s };
+  });
+  const events = type === 'films' ? [] : eventsOn(day).map((e) => {
+    const start = toMinutes(e.time);
+    let end = toMinutes(e.end);
+    if (end <= start) end += 24 * 60; // runs past midnight
+    return { kind: 'event', id: e.id, time: e.time, start, end, venue: e.venue, lane: e.place || 'Event', title: e.title, href: `#/event/${e.id}`, tag: e.tag || 'Public', event: e };
+  });
+  return [...films, ...events].sort((a, b) => a.start - b.start || (a.kind === 'screening' ? -1 : 1));
+}
 
 // Remembers your day, venues, filter and view while you open films and come back.
 const today = lagosDate();
@@ -22,6 +39,7 @@ const memory = {
   tag: 'All',
   view: 'list',
   eventFilter: 'all',
+  type: 'all',
 };
 function useRemembered(key) {
   const [value, setValue] = useState(memory[key]);
@@ -64,8 +82,9 @@ function DayPicker({ value, onChange }) {
 }
 
 // Tap venues on and off; more than one can be on. None on = all venues.
-function VenueChips({ day, selected, onChange }) {
-  const count = (vid) => SCREENINGS.filter((s) => s.date === day && s.venue === vid).length;
+function VenueChips({ day, type, selected, onChange }) {
+  const items = dayItems(day, type);
+  const count = (vid) => items.filter((i) => i.venue === vid).length;
   const toggle = (vid) => {
     const next = selected.includes(vid) ? selected.filter((v) => v !== vid) : [...selected, vid];
     onChange(next.length === VENUES.length ? [] : next);
@@ -113,15 +132,15 @@ function ScreeningRow({ screening, clock }) {
   );
 }
 
-function Timeline({ list, day }) {
+function Timeline({ items, day }) {
   const { isScheduled } = useFestival();
   const PX = 120; // pixels per hour
-  const LABEL = 92; // width of the screen-name column
+  const LABEL = 92; // width of the room-name column
   const scroller = useRef(null);
 
   const nowMin = lagosDate() === day ? lagosMinutes() : null;
-  let from = Math.floor(Math.min(...list.map((s) => toMinutes(s.time))) / 60) * 60;
-  let to = Math.ceil(Math.max(...list.map(endOf)) / 60) * 60;
+  let from = Math.floor(Math.min(...items.map((i) => i.start)) / 60) * 60;
+  let to = Math.ceil(Math.max(...items.map((i) => i.end)) / 60) * 60;
   if (nowMin !== null) {
     from = Math.min(from, Math.floor(nowMin / 60) * 60);
     to = Math.max(to, Math.ceil((nowMin + 1) / 60) * 60);
@@ -131,10 +150,14 @@ function Timeline({ list, day }) {
   const trackWidth = ((to - from) / 60) * PX;
   const x = (mins) => ((mins - from) / 60) * PX;
 
-  const groups = VENUES.map((v) => ({
-    venue: v,
-    screens: [...new Set(list.filter((s) => s.venue === v.id).map((s) => s.screen))].sort(),
-  })).filter((g) => g.screens.length);
+  // one group per cinema, plus "Other places" for events away from the cinemas
+  const places = [...VENUES.map((v) => ({ id: v.id, name: v.name, color: v.color })), { id: null, name: 'Other places', color: '#DBA440' }];
+  const groups = places
+    .map((p) => {
+      const here = items.filter((i) => (i.venue || null) === p.id);
+      return { place: p, here, lanes: [...new Set(here.map((i) => i.lane))].sort() };
+    })
+    .filter((g) => g.here.length);
 
   useEffect(() => {
     if (scroller.current) scroller.current.scrollLeft = nowMin !== null ? Math.max(0, x(nowMin) - 120) : 0;
@@ -146,28 +169,27 @@ function Timeline({ list, day }) {
       <div className="tl-grid" style={{ width: LABEL + trackWidth + 16, '--px': `${PX}px` }}>
         <div className="tl-hours" style={{ marginLeft: LABEL }}>
           {hours.map((m) => (
-            <span key={m} className="tl-hour" style={{ left: x(m) }}>{timeLabel(fromMinutes(m)).replace(':00', '').toLowerCase()}</span>
+            <span key={m} className="tl-hour" style={{ left: x(m) }}>{timeLabel(fromMinutes(m % (24 * 60))).replace(':00', '').toLowerCase()}</span>
           ))}
         </div>
-        {groups.map(({ venue, screens }) => (
-          <div key={venue.id} className="tl-group">
-            <div className="tl-group-name" style={{ color: venue.color }}>{venue.name}</div>
-            {screens.map((screen) => (
-              <div key={screen} className="tl-lane">
-                <div className="tl-label" style={{ width: LABEL, borderLeftColor: venue.color }}>{screen}</div>
+        {groups.map(({ place, here, lanes }) => (
+          <div key={place.id || 'other'} className="tl-group">
+            <div className="tl-group-name" style={{ color: place.color }}>{place.name}</div>
+            {lanes.map((lane) => (
+              <div key={lane} className="tl-lane">
+                <div className="tl-label" style={{ width: LABEL, borderLeftColor: place.color }}>{lane}</div>
                 <div className="tl-track" style={{ width: trackWidth }}>
-                  {list.filter((s) => s.venue === venue.id && s.screen === screen).map((s) => {
-                    const film = filmById(s.film);
-                    const mine = isScheduled(s.id);
+                  {here.filter((i) => i.lane === lane).map((i) => {
+                    const mine = isScheduled(i.id);
                     return (
                       <a
-                        key={s.id}
-                        href={`#/film/${film.id}`}
-                        className={`tl-block${mine ? ' mine' : ''}`}
-                        style={{ left: x(toMinutes(s.time)), width: Math.max(64, x(endOf(s)) - x(toMinutes(s.time)) - 4), background: `${venue.color}24`, borderColor: `${venue.color}66` }}
+                        key={i.id}
+                        href={i.href}
+                        className={`tl-block${mine ? ' mine' : ''}${i.kind === 'event' ? ' event' : ''}`}
+                        style={{ left: x(i.start), width: Math.max(64, x(i.end) - x(i.start) - 4), background: `${place.color}24`, borderColor: `${place.color}66` }}
                       >
-                        <span className="tl-block-title">{mine && <Check size={13} strokeWidth={3} />} {film.title}</span>
-                        <span className="tl-block-time">{timeLabel(s.time)} – {timeLabel(fromMinutes(endOf(s)))}</span>
+                        <span className="tl-block-title">{mine && <Check size={13} strokeWidth={3} />} {i.title}</span>
+                        <span className="tl-block-time">{i.kind === 'event' ? `${EVENT_TYPES[i.event.type].label} · ` : ''}{timeLabel(i.time)} – {timeLabel(fromMinutes(i.end % (24 * 60)))}</span>
                       </a>
                     );
                   })}
@@ -216,30 +238,46 @@ function ScheduleTab() {
   const [venues, setVenues] = useRemembered('venues');
   const [tag, setTag] = useRemembered('tag');
   const [view, setView] = useRemembered('view');
+  const [type, setType] = useRemembered('type');
   const [planOpen, setPlanOpen] = useState(false);
   const clock = useLiveClock();
   const { scheduled } = useFestival();
 
-  const list = useMemo(
+  // screenings and events for the day, one row per showing, in time order
+  const items = useMemo(
     () =>
-      SCREENINGS.filter((s) => s.date === day)
-        .filter((s) => venues.length === 0 || venues.includes(s.venue))
-        .filter((s) => tag === 'All' || s.tag === tag)
-        .sort((a, b) => a.time.localeCompare(b.time)),
-    [day, venues, tag]
+      dayItems(day, type)
+        .filter((i) => venues.length === 0 || (i.venue && venues.includes(i.venue)))
+        .filter((i) => tag === 'All' || i.tag === tag),
+    [day, type, venues, tag]
   );
+  const nFilms = items.filter((i) => i.kind === 'screening').length;
+  const nEvents = items.length - nFilms;
   const plannedToday = planForDay(scheduled, day).length;
   const eventsToday = eventsOn(day).length;
   const nextTag = () => setTag(TAG_FILTERS[(TAG_FILTERS.indexOf(tag) + 1) % TAG_FILTERS.length]);
   const emptyWord = tag === 'Public' ? 'public' : tag === 'Industry' ? 'for industry' : 'showing';
+  // short enough to stay on one line on small phones
+  const countText =
+    type === 'films' ? `${nFilms} screening${nFilms === 1 ? '' : 's'}`
+      : type === 'events' ? `${nEvents} event${nEvents === 1 ? '' : 's'}`
+        : `${nFilms} film${nFilms === 1 ? '' : 's'} · ${nEvents} event${nEvents === 1 ? '' : 's'}`;
 
   return (
     <>
       <DayPicker value={day} onChange={setDay} />
-      <VenueChips day={day} selected={venues} onChange={setVenues} />
+      <VenueChips day={day} type={type} selected={venues} onChange={setVenues} />
+
+      <div className="type-filter" role="group" aria-label="Show">
+        {TYPE_FILTERS.map((t) => (
+          <button key={t.id} type="button" aria-pressed={type === t.id} className={`chip small${type === t.id ? ' on' : ''}`} onClick={() => setType(t.id)}>
+            {t.label}
+          </button>
+        ))}
+        <span className="muted type-count">{countText}</span>
+      </div>
 
       <div className="list-tools">
-        <span className="muted">{list.length} screening{list.length === 1 ? '' : 's'}</span>
         <button type="button" className={`chip small${tag !== 'All' ? ' on' : ''}`} onClick={nextTag}>
           {tag === 'All' ? 'Public & Industry' : `${tag} only`}
         </button>
@@ -249,19 +287,23 @@ function ScheduleTab() {
         </div>
       </div>
 
-      {list.length === 0 ? (
+      {items.length === 0 ? (
         <p className="empty">Nothing {emptyWord} at these venues on this day.</p>
       ) : view === 'list' ? (
-        <div className="rows">{list.map((s) => <ScreeningRow key={s.id} screening={s} clock={clock} />)}</div>
+        <div className="rows">
+          {items.map((i) => (i.kind === 'screening'
+            ? <ScreeningRow key={i.id} screening={i.screening} clock={clock} />
+            : <EventRow key={i.id} event={i.event} />))}
+        </div>
       ) : (
-        <Timeline list={list} day={day} />
+        <Timeline items={items} day={day} />
       )}
-      {/* extra bottom space so the floating My plan button never covers a row */}
       {eventsToday > 0 && (
         <a href="#/programme/events" className="events-pointer">
           <Sparkles size={18} /> {eventsToday} masterclass{eventsToday === 1 ? '' : 'es'} & event{eventsToday === 1 ? '' : 's'} this day <span>See events →</span>
         </a>
       )}
+      {/* extra bottom space so the floating My plan button never covers a row */}
       <p className="footnote" style={{ marginBottom: 64 }}>Times can change. Check the bell for updates.</p>
 
       <button type="button" className="fab" onClick={() => setPlanOpen(true)}>

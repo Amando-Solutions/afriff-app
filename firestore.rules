@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// AFRIFF database rules: who can read and change what.
+// Paste this into Firebase console → Firestore → Rules → Publish
+// whenever it changes.
+//
+// Roles live in users/{uid}.role:
+//   pending   – signed up, no access yet (an admin must give a role)
+//   admin     – everything, approves editors' changes, manages the team
+//   editor    – proposes changes (they wait in "changes" for approval)
+//   volunteer – updates queue counts for their own venue only
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function profilePath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function role() {
+      return signedIn() && exists(profilePath()) ? get(profilePath()).data.role : 'none';
+    }
+    function isAdmin() { return role() == 'admin'; }
+    function isEditor() { return role() == 'editor'; }
+    function myVenue() { return get(profilePath()).data.venue; }
+
+    // ---------- Team members ----------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // New sign-ups create their own profile, always with no access.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['email', 'name', 'role', 'venue', 'createdAt'])
+        && request.resource.data.role == 'pending'
+        && request.resource.data.venue == null;
+      // Only admins change roles and venues; people can fix their own name.
+      allow update: if isAdmin()
+        || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
+      allow delete: if isAdmin();
+    }
+
+    // ---------- Live festival data (what attendees see) ----------
+    // Anyone can read. Only admins write directly; editors go through "changes".
+    match /films/{id}       { allow read: if true; allow write: if isAdmin(); }
+    match /screenings/{id}  { allow read: if true; allow write: if isAdmin(); }
+    match /events/{id}      { allow read: if true; allow write: if isAdmin(); }
+    match /venues/{id}      { allow read: if true; allow write: if isAdmin(); }
+    match /news/{id}        { allow read: if true; allow write: if isAdmin(); }
+    match /sponsors/{id}    { allow read: if true; allow write: if isAdmin(); }
+    match /howToAttend/{id} { allow read: if true; allow write: if isAdmin(); }
+
+    // ---------- Changes waiting for an admin's approval ----------
+    match /changes/{id} {
+      allow read: if isAdmin() || (isEditor() && resource.data.submittedBy == request.auth.uid);
+      allow create: if (isEditor() || isAdmin())
+        && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------- Live queue counts ----------
+    // Anyone can read. Volunteers can only update screenings at their own venue.
+    match /queues/{screeningId} {
+      allow read: if true;
+      allow write: if isAdmin()
+        || (role() == 'volunteer'
+            && get(/databases/$(database)/documents/screenings/$(screeningId)).data.venue == myVenue());
+    }
+  }
+}
