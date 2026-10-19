@@ -4,3 +4,5 @@ dist
 .env*
 # design references stay on this laptop, never shipped or uploaded
 reference/
+
+.vercel

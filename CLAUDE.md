@@ -284,7 +284,19 @@ heavy libraries) apply everywhere.
   Picks are NOT saved yet (reset on refresh); saving is step 4.
 - Step 1 approved on the user's phone, then change request 1 built on
   top of it (see above), with real film data from afriff.com.
-- NOT YET DONE: nothing is committed to Git yet; app not deployed.
+- First Git checkpoint saved 18 Oct 2026 (commit f9b7420, branch main,
+  only on this laptop: no GitHub yet).
+- DEPLOYED 19 Oct 2026: https://afriff-app-mu.vercel.app (public, Vercel
+  free Hobby plan, account tithera14-7328, project "afriff-app").
+  Hobby is for non-commercial use: decide on Vercel Pro before the
+  official launch (user was warned about cost).
+
+### How to deploy (publish an update)
+- From this folder: `npx.cmd vercel deploy --prod --yes`
+  (`npx.cmd`, not `npx`: Windows PowerShell blocks npx.ps1 scripts on
+  this laptop. Don't change the execution policy; use .cmd instead.)
+- `.vercelignore` keeps `reference/` and other local files out of the
+  upload. Not connected to GitHub yet, so deploys are manual.
 
 ### How to run it
 - `npm run dev` in this folder, then open http://localhost:5173 on the

@@ -1,0 +1,6 @@
+# Files Vercel should never upload
+reference/
+node_modules/
+dist/
+.claude/
+.env*
