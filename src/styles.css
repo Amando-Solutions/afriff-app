@@ -686,6 +686,9 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
   border-radius: var(--radius); background: var(--card); border: 1px solid var(--border);
 }
 .event-card-thumb { width: 44px; height: 44px; border-radius: 12px; margin-bottom: 6px; }
+.event-card-art { width: 100%; aspect-ratio: 4 / 5; border-radius: 12px; margin-bottom: 8px; }
+.event-thumb.has-image { background: var(--raised); }
+.event-thumb.has-image.poster-thumb { height: auto; aspect-ratio: 4 / 5; }
 .event-card-type { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--gold-light); }
 .event-card-title { font-weight: 700; font-size: 16px; line-height: 1.25; }
 .event-card-when { margin-top: auto; padding-top: 6px; font-size: 12.5px; color: var(--placeholder); }

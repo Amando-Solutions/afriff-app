@@ -93,6 +93,7 @@ export const COLLECTIONS = {
       { key: 'speakerRole', label: 'Speaker\'s role', type: 'text' },
       { key: 'bio', label: 'Speaker bio', type: 'textarea' },
       { key: 'about', label: 'About this event', type: 'textarea', required: true },
+      { key: 'image', label: 'Graphic / poster image link (optional)', type: 'url', hint: 'Tall images work best (e.g. 4:5). Shown whole on the event page.' },
       { key: 'access', label: 'Who can attend', type: 'text', hint: 'e.g. Free · registration required' },
       { key: 'tag', label: 'Public or Industry', type: 'select', options: tagOptions },
       { key: 'link.label', label: 'Button text', type: 'text', hint: 'e.g. Register on afriff.com' },

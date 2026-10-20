@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Briefcase, GraduationCap, Mic, PartyPopper, Sparkles, Trophy, Users, Wrench } from 'lucide-react';
 import { EVENT_TYPES, isMultiDay } from '../data/events.js';
 import { venueById } from '../data/programme.js';
@@ -17,8 +18,18 @@ const LOOK = {
   networking: { Icon: Users, a: '#4DA6FF', b: '#0E2650' },
 };
 
+// The event's graphic if it has one (e.g. masterclass posters), otherwise
+// a colour tile with an icon for its type.
 export function EventThumb({ event, className = 'poster-thumb', size = 24 }) {
   const { Icon, a, b } = LOOK[event.type] || LOOK.networking;
+  const [broken, setBroken] = useState(false);
+  if (event.image && !broken) {
+    return (
+      <div className={`poster event-thumb has-image ${className}`} aria-hidden="true">
+        <img src={event.image} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />
+      </div>
+    );
+  }
   return (
     <div className={`poster event-thumb ${className}`} style={{ background: `linear-gradient(150deg, ${a} 0%, ${b} 100%)` }} aria-hidden="true">
       <Icon size={size} strokeWidth={1.8} />
@@ -62,7 +73,7 @@ export function EventCard({ event }) {
   const p = dateParts(event.date);
   return (
     <a href={`#/event/${event.id}`} className="event-card">
-      <EventThumb event={event} className="event-card-thumb" size={22} />
+      <EventThumb event={event} className={event.image ? 'event-card-art' : 'event-card-thumb'} size={22} />
       <span className="event-card-type">{EVENT_TYPES[event.type].label}</span>
       <span className="event-card-title">{event.title.split(':')[0]}</span>
       {event.speaker && <span className="muted small">{event.speaker}</span>}

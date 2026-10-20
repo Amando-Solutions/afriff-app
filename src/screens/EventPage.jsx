@@ -50,10 +50,17 @@ export default function EventPage({ param }) {
         </div>
       </div>
 
-      <div className="event-hero">
-        <EventThumb event={event} className="event-hero-art" size={56} />
-        <span className="event-hero-type">{type.label}</span>
-      </div>
+      {event.image ? (
+        // the whole graphic, never cropped (same frame as film posters)
+        <div className="hero-poster has-image" key={event.id}>
+          <img src={event.image} alt={event.title} decoding="async" />
+        </div>
+      ) : (
+        <div className="event-hero">
+          <EventThumb event={event} className="event-hero-art" size={56} />
+          <span className="event-hero-type">{type.label}</span>
+        </div>
+      )}
 
       <h1 className={`film-title${event.status === 'cancelled' ? ' struck' : ''}`}>{event.title}</h1>
       <StatusTag status={event.status} />

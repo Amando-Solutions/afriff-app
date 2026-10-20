@@ -587,6 +587,19 @@ heavy libraries) apply everywhere.
   when the image loads); no poster / broken link → tall 2:3 colour card
   with title + director bottom-left (like the prototype). Watch
   trailer button centred near the bottom of the poster.
+  Saved (commit b9d48d3) and DEPLOYED 20 Oct 2026.
+- MASTERCLASS GRAPHICS (user request 20 Oct): the 10 masterclass /
+  workshop posters from afriff.com/program/masterclasses (all 4:5) are
+  LINKED (not downloaded, like film posters) as `image` on those events
+  in `src/data/events.js`. New optional console field on events:
+  "Graphic / poster image link". Shown: event page = whole graphic
+  centred (same `hero-poster` frame as films; events without one keep
+  the colour/icon banner); Home "Masterclasses & events" cards = graphic
+  across the top of the card; Schedule/Events rows = small 4:5 thumb
+  (`EventThumb`, falls back to the icon tile if the link breaks).
+  To reach attendees: Add missing festival data (fills `image` on the
+  existing masterclasses, touches nothing else) → Publish to app.
+  Host these files ourselves before launch, like posters.
 - If new console fields seem missing: reload the console tab (an open
   tab keeps the old code until reloaded). The new film fields are at
   the BOTTOM of the film form, under Synopsis.

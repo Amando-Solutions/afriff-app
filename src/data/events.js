@@ -57,6 +57,7 @@ export let EVENTS = [
   // ---------- Masterclasses & workshops (free, registration required) ----------
   {
     id: 'ai-filmmaking', type: 'masterclass', title: 'AI Filmmaking: Storytelling in the Age of Artificial Intelligence',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/f61d2ef6-e314-49f5-a78f-689479206227/ai-filmmaking-workshop.jpg',
     date: '2026-11-02', time: '10:00', end: '12:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Obinna Okerekeocha', speakerRole: 'Founder, Nigerian AI Film Festival',
     about: 'Practical AI tools for every stage of filmmaking, from script to distribution, and the creative and ethical questions they raise for African storytellers.',
@@ -65,6 +66,7 @@ export let EVENTS = [
   },
   {
     id: 'acting-masterclass', type: 'masterclass', title: 'Acting Masterclass: Craft, Character and Command of the Screen',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/7f158796-7ceb-4f1a-b2e2-d74522d76b87/acting-masterclass-rmd.jpg',
     date: '2026-11-02', time: '14:00', end: '16:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Richard Mofe-Damijo (RMD)', speakerRole: 'Actor and producer',
     about: 'Character preparation, emotional truth and staying compelling across a long career, from one of Nollywood\'s best-known leading men.',
@@ -73,6 +75,7 @@ export let EVENTS = [
   },
   {
     id: 'animation-workshop', type: 'workshop', title: 'Animation Workshop: Building Worlds Frame by Frame',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/6d2de55b-affb-475a-b672-71ba87c50ddd/animation-workshop.jpg',
     date: '2026-11-03', time: '10:00', end: '12:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Esther Kemi Gbadamosi', speakerRole: 'Founder & Creative Director, Radioxicity',
     about: 'Characters, world-building and production pipelines for original African animation. In partnership with TheCOLOREDANIME.',
@@ -81,6 +84,7 @@ export let EVENTS = [
   },
   {
     id: 'directing-workshop', type: 'workshop', title: 'Directing Workshop: Vision, Silence and the Power of the Image',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/31cb0ca8-47c5-48bb-95ce-462ef43327cf/directing-workshop.jpg',
     date: '2026-11-03', time: '12:30', end: '14:30', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Angel Kristi Williams', speakerRole: 'Film and TV director',
     about: 'How a director builds a visual language, works with actors and tells stories through restraint.',
@@ -89,6 +93,7 @@ export let EVENTS = [
   },
   {
     id: 'cinematography-workshop', type: 'workshop', title: 'Cinematography Workshop: Light, Composition and Visual Storytelling',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/010d239f-7f93-45e5-ba45-ae157f169454/cinematography-workshop.jpg',
     date: '2026-11-03', time: '15:00', end: '17:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Kirby Griffin', speakerRole: 'Cinematographer',
     about: 'Using light, framing and camera movement to carry a story, and how to train your eye behind the camera.',
@@ -97,6 +102,7 @@ export let EVENTS = [
   },
   {
     id: 'costume-workshop', type: 'workshop', title: 'Costume Design for Film: Character, Culture and Visual Storytelling',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/6fd4e66b-326a-4784-8987-d89eec367434/costume-design-workshop-2026.jpg',
     date: '2026-11-04', time: '10:00', end: '12:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Yolanda Okereke', speakerRole: 'Costume designer',
     about: 'From script and research to fabric, colour and cultural authenticity: how costumes build character.',
@@ -105,6 +111,7 @@ export let EVENTS = [
   },
   {
     id: 'actors-workshop', type: 'workshop', title: 'Acting for the Screen: Craft, Character and Performance',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/7be2c5c5-9b2f-4b35-970e-d56afb07bd53/actors-workshop-hilda-dokubo.jpg',
     date: '2026-11-04', time: '12:30', end: '14:30', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Hilda Dokubo', speakerRole: 'Actor and producer',
     about: 'A hands-on session for emerging performers on character, emotion, reading a script and believable screen acting.',
@@ -113,6 +120,7 @@ export let EVENTS = [
   },
   {
     id: 'producers-masterclass', type: 'masterclass', title: 'Producing Masterclass: From Idea to Box Office',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/248736bf-a286-4e96-a3ed-315f35ff0ded/producers-masterclass.jpg',
     date: '2026-11-05', time: '10:00', end: '12:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Femi Adebayo', speakerRole: 'Actor, producer and director',
     about: 'The producer\'s path from first idea to a profitable release: scripts, finance, crew, production and delivery.',
@@ -121,6 +129,7 @@ export let EVENTS = [
   },
   {
     id: 'editing-workshop', type: 'workshop', title: 'Film Editing Workshop: Rhythm, Emotion and Finding the Film',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/923196fa-6434-415f-8852-e5063d04879c/film-editing-workshop-2026.jpg',
     date: '2026-11-05', time: '12:30', end: '14:30', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Steve Sodiya', speakerRole: 'Film editor',
     about: 'Shaping performance, structure and pace in the edit, and building a career in the cutting room.',
@@ -129,6 +138,7 @@ export let EVENTS = [
   },
   {
     id: 'makeup-workshop', type: 'workshop', title: 'Makeup for Film and Television',
+    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/d04e34a4-b991-4e4f-9677-1befb0073bf4/makeup-workshop-2026.jpg',
     date: '2026-11-05', time: '15:00', end: '17:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Alakpa Uduoghene', speakerRole: 'CEO, Beautify by UDU Studios',
     about: 'Screen makeup for character, continuity and camera: skin prep, products, lighting and working with costume.',
