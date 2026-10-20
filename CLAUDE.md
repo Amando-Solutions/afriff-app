@@ -496,6 +496,10 @@ heavy libraries) apply everywhere.
   line "Competition films are judged by the International Jury → Meet
   the jury". No new tab.
 
+- Jury page view (user request 20 Oct): GRID by default (2 columns:
+  big round photo, name, roles cut to 2 lines, country), with a
+  grid/list toggle beside the subtitle (same style as the Programme
+  list/timeline toggle). Phone remembers the choice (`afriff-jury-view`).
 - Jury saved (commit 2fb8724) and DEPLOYED 20 Oct 2026. Live relay
   returns 200 with the user's 12:06 UTC publish (no jury/logos yet).
 
@@ -539,6 +543,11 @@ heavy libraries) apply everywhere.
   banner/link, bell unread/cleared, struck + tags, film page tag, My
   Festival warning; usage payload captured (not sent) and switch-off
   clear. NOT tested by Claude: Reports page (needs admin login).
+
+- Saved (commit 927909d) and DEPLOYED 20 Oct 2026. Live: My Festival
+  empty on first visit, sharing switch on, bell unread count works.
+- USER TO DO: republish rules (jury + usage), Add missing festival data,
+  Publish to app; then test an alert end to end and Load reports.
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`

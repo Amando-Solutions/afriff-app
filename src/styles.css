@@ -734,6 +734,13 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .jury-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .jury-card-name { font-weight: 700; font-size: 16px; }
 .jury-card-country { font-size: 12.5px; color: var(--gold-light); font-weight: 600; }
+.jury-tools { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.jury-tools .toggle { margin-top: 2px; }
+.jury-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.jury-tile { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 16px 10px 14px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--border); min-width: 0; }
+.jury-tile .jury-avatar { border-color: var(--gold); margin-bottom: 6px; }
+.jury-tile .jury-card-name { font-size: 15px; line-height: 1.25; }
+.jury-tile-roles { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; }
 .jury-card-chevron { color: var(--muted); flex: none; }
 .jury-links { display: flex; flex-direction: column; gap: 10px; margin: 26px 0 8px; }
 .jury-links .link { color: var(--gold-light); }
