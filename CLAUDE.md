@@ -463,10 +463,38 @@ heavy libraries) apply everywhere.
   "Publish to app".
 - USER MUST: republish firestore.rules (new `published` rule), press
   Publish to app once, and the relay only works after a deploy.
+- Saved (commit dfafe5e) and DEPLOYED 20 Oct 2026. Live relay answers;
+  before the rules update it returns 502 "Database answered 403" and
+  the app falls back to the built-in copy (as designed).
 - Tested: fallback to built-in when nothing published (DB 403 before
   rules publish); fake published copy → edited/new films, new banner,
   sponsors, gala, bad screening dropped, no errors; relay handler with
   pretend DB (404 / 200 cached / 502 no-store).
+
+- User published the rules and pressed Publish to app (20 Oct 12:06
+  UTC): step 3 confirmed working end to end (app picked up the real
+  published copy). That copy's sponsors had no logo fields (published
+  before running the import), so the strips showed names → user must
+  run "Add missing festival data" then Publish again.
+
+### Jury (user request 20 Oct)
+- Data `src/data/jury.js`: 10 International Jury members from
+  afriff.com/festival/jury (name, roles, country, photo linked from
+  AFRIFF's site, `jury` heading, order); bios rewritten short in our own
+  words. JURY_LINKS: press release + past juries (no past juries in app,
+  just the link). `replaceJury()` for published data; `juryGroups()`
+  groups by `jury` name so new juries get their own heading.
+- Console: "Jury" collection (name, roles, country, which jury, bio,
+  photo link, order); included in import (BUILT_IN_JURY), Publish to
+  app and backups. firestore.rules: `match /jury/{id}` public read,
+  admin write → USER MUST REPUBLISH RULES before importing.
+- Screens: Jury page `#/jury` (THE JURY, heading per jury, cards with
+  round photo/initials, tap → bottom-sheet bio, links at bottom).
+  Three doors: Home "Meet the jury" photo row (after Masterclasses &
+  events, before sponsors; tap face → bio, See all → page); Globe
+  Awards event page (type 'awards') "The jury" row; All films tab top
+  line "Competition films are judged by the International Jury → Meet
+  the jury". No new tab.
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`

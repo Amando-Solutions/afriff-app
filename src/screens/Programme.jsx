@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3, CalendarDays, Check, Clapperboard, Eye, Film, List, ListChecks, MapPin, Minus, Search, Sparkles, X } from 'lucide-react';
+import { Award, BarChart3, CalendarDays, Check, Clapperboard, Eye, Film, List, ListChecks, MapPin, Minus, Search, Sparkles, X } from 'lucide-react';
 import { FESTIVAL, FILMS, SCREENINGS, SECTIONS, VENUES, filmById, venueById } from '../data/programme.js';
 import { dateParts, fromMinutes, time12, timeLabel, toMinutes } from '../lib/format.js';
 import { lagosDate, lagosMinutes } from '../lib/now.js';
@@ -321,6 +321,9 @@ function AllFilmsTab() {
   const sections = [...SECTIONS, ...new Set(FILMS.map((f) => f.section).filter((s) => !SECTIONS.includes(s)))];
   return (
     <div className="all-films">
+      <a href="#/jury" className="jury-pointer">
+        <Award size={18} /> Competition films are judged by the International Jury <span>Meet the jury →</span>
+      </a>
       {sections.map((sec) => {
         const films = FILMS.filter((f) => f.section === sec).sort((a, b) => a.title.localeCompare(b.title));
         if (films.length === 0) return null;

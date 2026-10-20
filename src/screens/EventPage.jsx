@@ -6,6 +6,7 @@ import { VenueDot } from '../components/Bits.jsx';
 import { EventThumb } from '../components/EventBits.jsx';
 import { directionsUrl } from '../components/HowToAttend.jsx';
 import { useFestival } from '../lib/store.jsx';
+import { JuryRow } from '../components/JuryBits.jsx';
 
 const durationLabel = (start, end) => {
   let mins = toMinutes(end) - toMinutes(start);
@@ -67,6 +68,9 @@ export default function EventPage({ param }) {
         <h2 className="section-title">About</h2>
         <p className="event-about">{event.about}</p>
       </section>
+
+      {/* awards: show who decides the winners */}
+      {event.type === 'awards' && <JuryRow title="The jury" intro="These are the people choosing this year's Globe Award winners. Tap a face to read about them." />}
 
       <section className="section">
         <h2 className="section-title">When & where</h2>

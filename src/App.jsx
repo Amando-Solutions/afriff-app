@@ -8,6 +8,7 @@ import Home from './screens/Home.jsx';
 import Programme from './screens/Programme.jsx';
 import FilmPage from './screens/FilmPage.jsx';
 import EventPage from './screens/EventPage.jsx';
+import JuryPage from './screens/JuryPage.jsx';
 import MyFestival from './screens/MyFestival.jsx';
 import Queues from './screens/Queues.jsx';
 import Venues from './screens/Venues.jsx';
@@ -19,6 +20,7 @@ const SCREENS = {
   programme: { Screen: Programme, tab: 'programme' },
   film: { Screen: FilmPage, tab: 'programme' },
   event: { Screen: EventPage, tab: 'programme' },
+  jury: { Screen: JuryPage, tab: 'home' },
   my: { Screen: MyFestival, tab: 'my' },
   queues: { Screen: Queues, tab: 'queues' },
   venues: { Screen: Venues, tab: 'home' },

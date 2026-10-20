@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, BookmarkCheck, CalendarDays, ChevronRight, Info, MapPin, Users, X, AlertTriangle } from 'lucide-react';
 import HowToAttend from '../components/HowToAttend.jsx';
 import SponsorMarquee from '../components/SponsorMarquee.jsx';
+import { JuryRow } from '../components/JuryBits.jsx';
 import { FESTIVAL, FILMS, NEWS, SCREENINGS, VENUES, filmById, venueById } from '../data/programme.js';
 import { dateParts, queueLabel, runtimeLabel, timeLabel } from '../lib/format.js';
 import { Poster } from '../components/Bits.jsx';
@@ -199,6 +200,7 @@ export default function Home() {
       <HowToAttendCard />
       <OpeningDay />
       <EventsStrip />
+      <JuryRow />
       <Sponsors />
     </div>
   );

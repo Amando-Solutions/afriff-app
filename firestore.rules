@@ -45,6 +45,7 @@ service cloud.firestore {
     match /news/{id}        { allow read: if true; allow write: if isAdmin(); }
     match /sponsors/{id}    { allow read: if true; allow write: if isAdmin(); }
     match /howToAttend/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /jury/{id}        { allow read: if true; allow write: if isAdmin(); }
 
     // ---------- What attendees' phones download ----------
     // One bundle written by an admin's "Publish to app" button.

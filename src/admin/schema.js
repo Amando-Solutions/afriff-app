@@ -8,6 +8,7 @@
 
 import { BUILT_IN, DAY_THEMES, FESTIVAL, SECTIONS } from '../data/programme.js';
 import { BUILT_IN_EVENTS, EVENT_TYPES } from '../data/events.js';
+import { BUILT_IN_JURY } from '../data/jury.js';
 import { dayLabel, timeLabel } from '../lib/format.js';
 
 const dayOptions = FESTIVAL.days.map((d) => ({ value: d, label: `${dayLabel(d)} · ${DAY_THEMES[d] || ''}` }));
@@ -124,6 +125,22 @@ export const COLLECTIONS = {
     ],
   },
 
+  jury: {
+    title: 'Jury', single: 'jury member', idFrom: 'name',
+    label: (j) => j.name,
+    sub: (j) => [j.jury, j.country].filter(Boolean).join(' · '),
+    sort: (a, b) => `${a.jury}`.localeCompare(`${b.jury}`) || (a.order ?? 99) - (b.order ?? 99),
+    fields: [
+      { key: 'name', label: 'Name', type: 'text', required: true },
+      { key: 'roles', label: 'Roles', type: 'text', hint: 'e.g. Producer · Media executive' },
+      { key: 'country', label: 'Country', type: 'text' },
+      { key: 'jury', label: 'Which jury', type: 'text', required: true, hint: 'e.g. International Jury. Members with the same jury name are shown together under that heading.' },
+      { key: 'bio', label: 'Short bio', type: 'textarea' },
+      { key: 'photo', label: 'Photo link', type: 'url', hint: 'If empty, their initials are shown instead' },
+      { key: 'order', label: 'Position (0 = first)', type: 'number' },
+    ],
+  },
+
   howToAttend: {
     title: 'How to attend', single: 'section',
     label: (h) => h.title,
@@ -139,7 +156,7 @@ export const COLLECTIONS = {
   },
 };
 
-export const COLLECTION_ORDER = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'howToAttend'];
+export const COLLECTION_ORDER = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'jury', 'howToAttend'];
 
 // ---------- Reading and writing dotted keys like "link.url" ----------
 export const getField = (obj, key) => key.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
@@ -193,6 +210,7 @@ export function seedData() {
     venues: BUILT_IN.venues.map((v) => [v.id, strip(v)]),
     news: BUILT_IN.news.map((n) => [n.id, strip(n)]),
     sponsors: BUILT_IN.sponsors.map((s, i) => [slugify(s.name), { ...s, order: i }]),
+    jury: BUILT_IN_JURY.map((j) => [j.id, strip(j)]),
     howToAttend: BUILT_IN.howToAttend.map((h, i) => [h.id, { ...strip(h), order: i }]),
   };
 }

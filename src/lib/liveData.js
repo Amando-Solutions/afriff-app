@@ -11,6 +11,7 @@
 //    update. It checks again every 5 minutes and whenever the app is reopened.
 import { VENUES, replaceProgramme } from '../data/programme.js';
 import { replaceEvents } from '../data/events.js';
+import { replaceJury } from '../data/jury.js';
 
 const CACHE_KEY = 'afriff-data-v1';
 const FIRESTORE_DOC =
@@ -23,6 +24,7 @@ export const currentVersion = () => version;
 function apply(snapshot) {
   replaceProgramme(snapshot);
   if (snapshot.events) replaceEvents(snapshot.events, new Set(VENUES.map((v) => v.id)));
+  if (snapshot.jury?.length) replaceJury(snapshot.jury);
   version = snapshot.version || 0;
 }
 

@@ -139,7 +139,7 @@ export async function importAll(onProgress) {
 }
 
 // Everything in the database as one file, for a backup on your laptop.
-export const BACKUP_COLLECTIONS = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'howToAttend', 'queues'];
+export const BACKUP_COLLECTIONS = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'jury', 'howToAttend', 'queues'];
 export async function downloadBackup() {
   const out = { exportedAt: new Date().toISOString(), project: 'afriff-app' };
   for (const col of BACKUP_COLLECTIONS) {
