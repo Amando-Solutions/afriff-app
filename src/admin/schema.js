@@ -22,6 +22,9 @@ export const STATUS_OPTIONS = [
 ];
 const statusField = { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, hint: 'Leave empty when it is going ahead as planned. Changing it here offers to post an alert.' };
 
+export const PREMIERE_OPTIONS = ['World Premiere', 'International Premiere', 'African Premiere', 'West African Premiere', 'Nigerian Premiere']
+  .map((p) => ({ value: p, label: p }));
+
 export const NEWS_TYPES = [
   { value: 'venue-change', label: 'Venue change' },
   { value: 'time-change', label: 'Time change' },
@@ -48,6 +51,9 @@ export const COLLECTIONS = {
       { key: 'image', label: 'Poster image link', type: 'url', hint: 'Paste a link to the poster image (uploads need a paid Firebase plan)' },
       { key: 'trailer', label: 'Trailer link (YouTube or Vimeo)', type: 'url' },
       { key: 'synopsis', label: 'Synopsis', type: 'textarea' },
+      { key: 'cast', label: 'Cast (optional)', type: 'text', hint: 'Main actors, separated by commas' },
+      { key: 'premiere', label: 'Premiere badge (optional)', type: 'select', options: PREMIERE_OPTIONS, hint: 'Shown as a gold badge on the film page' },
+      { key: 'competition', label: 'In competition for a Globe Award', type: 'checkbox' },
     ],
   },
 
@@ -64,6 +70,7 @@ export const COLLECTIONS = {
       { key: 'time', label: 'Start time', type: 'time', required: true },
       { key: 'tag', label: 'Public or Industry', type: 'select', required: true, options: tagOptions },
       { key: 'capacity', label: 'Seats', type: 'number', required: true },
+      { key: 'qa', label: 'Q&A with the filmmakers after this screening', type: 'checkbox' },
       statusField,
     ],
   },

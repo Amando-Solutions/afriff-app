@@ -505,6 +505,7 @@ heavy libraries) apply everywhere.
   frame, whole photo shown uncropped (object-fit contain, plain band if
   the photo is squarer), text left-aligned under it (`JuryPhoto` in
   JuryBits.jsx). List view, Home row and bio sheet still use circles.
+  Saved (commit 595cd2a) and DEPLOYED 20 Oct 2026.
 - Jury saved (commit 2fb8724) and DEPLOYED 20 Oct 2026. Live relay
   returns 200 with the user's 12:06 UTC publish (no jury/logos yet).
 
@@ -553,6 +554,31 @@ heavy libraries) apply everywhere.
   empty on first visit, sharing switch on, bell unread count works.
 - USER TO DO: republish rules (jury + usage), Add missing festival data,
   Publish to app; then test an alert end to end and Load reports.
+
+### Film page extras (user request 20 Oct, from prototype review)
+- Reviewed old prototype film page vs ours ("Option A" = no ticketing
+  in the app; tickets stay on afriff.com). Out of scope: Tickets
+  buttons/tab, ticket-system "Sold out" / "N seats left", Me tab /
+  accounts, "Save film" (would clash with + Schedule and Seen it).
+- Built in `src/screens/FilmPage.jsx`:
+  - Badges above the title: programme section; premiere (gold) and
+    "In competition" (links to #/jury) only when filled in.
+  - Facts line under the title: year · running time · country. Running
+    time pill removed from the top bar (genre pill stays).
+  - Action row: gold "N screenings ↓" (smooth-scrolls to Showtimes,
+    stops below the sticky header), Seen it, round Share button.
+  - Share: phone's share sheet (navigator.share) or WhatsApp fallback;
+    text = title (year), director, each non-cancelled showing, link.
+  - Showtime cards: "ends 12:47 PM" (start + runtime) and a "Q&A" tag.
+  - Cast line in the facts list (only when filled in).
+  - "More from <section>" sideways poster row (up to 12) + See all →
+    #/programme/films.
+- New OPTIONAL console fields (`schema.js`): film `cast`, `premiere`
+  (World / International / African / West African / Nigerian
+  Premiere), `competition` (checkbox); screening `qa` (checkbox). Built-in
+  data has none of these (not published by AFRIFF), so badges/Q&A/cast
+  stay hidden until the team fills them in and presses Publish to app.
+  No rules change needed.
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`

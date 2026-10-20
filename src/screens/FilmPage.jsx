@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, ChevronLeft, Clock, Eye, Play, Plus } from 'lucide-react';
-import { FESTIVAL, SCREENINGS, filmById, venueById } from '../data/programme.js';
-import { dateParts, initials, queueLabel, runtimeLabel, screeningStart, timeLabel } from '../lib/format.js';
+import { ArrowDown, ArrowRight, Award, Check, ChevronLeft, ChevronRight, Eye, MessageCircle, Play, Plus, Share2 } from 'lucide-react';
+import { FESTIVAL, FILMS, SCREENINGS, filmById, venueById } from '../data/programme.js';
+import { dateParts, fromMinutes, initials, queueLabel, runtimeLabel, screeningStart, timeLabel, toMinutes } from '../lib/format.js';
 import { queueAt, useLiveClock } from '../lib/queues.js';
 import { Poster, StatusTag, VenueDot } from '../components/Bits.jsx';
 import { useFestival } from '../lib/store.jsx';
@@ -20,13 +20,12 @@ function TopBar({ film }) {
       </a>
       <div className="film-topbar-right">
         {film.genre && <span className="pill-btn static">{film.genre}</span>}
-        <span className="pill-btn static"><Clock size={15} /> {runtimeLabel(film.runtime)}</span>
       </div>
     </div>
   );
 }
 
-function Showtime({ screening }) {
+function Showtime({ screening, runtime }) {
   const { isScheduled, toggleScheduled } = useFestival();
   const p = dateParts(screening.date);
   const venue = venueById(screening.venue);
@@ -39,10 +38,14 @@ function Showtime({ screening }) {
           <span className="showtime-mon">{p.monthUpper} {p.day.toUpperCase()}</span>
         </div>
         <span className={`showtime-time${screening.status === 'cancelled' ? ' struck' : ''}`}>{timeLabel(screening.time)}</span>
+        {runtime > 0 && <span className="showtime-end">ends {timeLabel(fromMinutes(toMinutes(screening.time) + runtime))}</span>}
         <StatusTag status={screening.status} />
         <span className="venue-line"><VenueDot venueId={venue.id} /> {venue.name}</span>
         <span className="muted small">{screening.screen}</span>
-        <span className={`pill${screening.tag === 'Industry' ? ' pill-alt' : ''}`}>{screening.tag}</span>
+        <span className="showtime-tags">
+          <span className={`pill${screening.tag === 'Industry' ? ' pill-alt' : ''}`}>{screening.tag}</span>
+          {screening.qa && <span className="pill pill-qa"><MessageCircle size={12} /> Q&amp;A</span>}
+        </span>
       </div>
       <button type="button" className={`btn-schedule${added ? ' added' : ''}`} onClick={() => toggleScheduled(screening.id)} aria-pressed={added}>
         {added ? <><Check size={18} /> Scheduled</> : <><Plus size={18} /> Schedule</>}
@@ -89,6 +92,45 @@ function QueueSection({ film, showings }) {
   );
 }
 
+// Share sheet on phones that have one (WhatsApp, SMS...), otherwise WhatsApp.
+function shareFilm(film, showings) {
+  const url = `${window.location.origin}/#/film/${film.id}`;
+  const when = showings.filter((s) => s.status !== 'cancelled')
+    .map((s) => { const p = dateParts(s.date); return `• ${p.day} ${p.date} ${p.month}, ${timeLabel(s.time)} at ${venueById(s.venue).name}`; });
+  const text = [
+    `${film.title}${film.year ? ` (${film.year})` : ''}, directed by ${film.director}. Showing at AFRIFF 2026:`,
+    ...(when.length ? when : ['Showtimes coming soon']),
+  ].join('\n');
+  if (navigator.share) {
+    navigator.share({ title: film.title, text, url }).catch(() => {});
+  } else {
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`, '_blank', 'noopener');
+  }
+}
+
+// Sideways row of other films in the same programme section
+function MoreFromSection({ film }) {
+  const others = FILMS.filter((f) => f.section === film.section && f.id !== film.id).slice(0, 12);
+  if (others.length === 0) return null;
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2 className="section-title">More from {film.section}</h2>
+        <a href="#/programme/films" className="link">See all <ChevronRight size={18} /></a>
+      </div>
+      <div className="more-row">
+        {others.map((f) => (
+          <a key={f.id} href={`#/film/${f.id}`} className="more-film">
+            <Poster film={f} className="more-poster">{!f.image && <span className="more-poster-title">{f.title}</span>}</Poster>
+            <span className="more-title">{f.title}</span>
+            <span className="muted small">{runtimeLabel(f.runtime)}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function FilmPage({ param }) {
   const film = filmById(param);
   const { isWatched, toggleWatched } = useFestival();
@@ -119,18 +161,33 @@ export default function FilmPage({ param }) {
         )}
       </Poster>
 
-      <h1 className="film-title">{film.title}</h1>
+      <div className="film-badges">
+        {film.section && <span className="film-badge">{film.section}</span>}
+        {film.premiere && <span className="film-badge gold">{film.premiere}</span>}
+        {film.competition && <a href="#/jury" className="film-badge comp"><Award size={13} /> In competition</a>}
+      </div>
 
-      <button type="button" className={`btn-seen${seen ? ' on' : ''}`} onClick={() => toggleWatched(film.id)} aria-pressed={seen}>
-        {seen ? <Check size={20} /> : <Eye size={20} />} Seen it
-      </button>
+      <h1 className="film-title">{film.title}</h1>
+      <p className="film-facts">{[film.year, film.runtime ? runtimeLabel(film.runtime) : '', film.country].filter(Boolean).join(' · ')}</p>
+
+      <div className="film-actions">
+        {showings.length > 0 && (
+          <button type="button" className="btn-jump" onClick={() => document.getElementById('showtimes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            {showings.length} screening{showings.length === 1 ? '' : 's'} <ArrowDown size={16} />
+          </button>
+        )}
+        <button type="button" className={`btn-seen${seen ? ' on' : ''}`} onClick={() => toggleWatched(film.id)} aria-pressed={seen}>
+          {seen ? <Check size={20} /> : <Eye size={20} />} Seen it
+        </button>
+        <button type="button" className="round-btn big" onClick={() => shareFilm(film, showings)} aria-label="Share this film"><Share2 size={20} /></button>
+      </div>
 
       <p className={`synopsis${expanded ? ' open' : ''}`}>{film.synopsis}</p>
       <button type="button" className="read-more" onClick={() => setExpanded(!expanded)}>
         {expanded ? 'Show less' : 'Read more'}
       </button>
 
-      <section className="section">
+      <section className="section" id="showtimes">
         <div className="section-head">
           <h2 className="section-title">Showtimes</h2>
           <a href={FESTIVAL.filmUrl(film.id)} target="_blank" rel="noopener noreferrer" className="underline-link">
@@ -141,7 +198,7 @@ export default function FilmPage({ param }) {
           <p className="muted">Showtimes will appear here once the schedule is published.</p>
         ) : (
           <div className="showtimes">
-            {showings.map((s) => <Showtime key={s.id} screening={s} />)}
+            {showings.map((s) => <Showtime key={s.id} screening={s} runtime={film.runtime} />)}
           </div>
         )}
       </section>
@@ -159,11 +216,14 @@ export default function FilmPage({ param }) {
           ))}
         </div>
         <dl className="facts">
+          {film.cast && <><dt>Cast</dt><dd>{film.cast}</dd></>}
           {film.country && <><dt>Country</dt><dd>{film.country}</dd></>}
           {film.language && <><dt>Language</dt><dd>{film.language}</dd></>}
           <dt>Programme</dt><dd>{film.section}</dd>
         </dl>
       </section>
+
+      <MoreFromSection film={film} />
     </div>
   );
 }
