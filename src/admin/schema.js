@@ -54,6 +54,7 @@ export const COLLECTIONS = {
       { key: 'cast', label: 'Cast (optional)', type: 'text', hint: 'Main actors, separated by commas' },
       { key: 'premiere', label: 'Premiere badge (optional)', type: 'select', options: PREMIERE_OPTIONS, hint: 'Shown as a gold badge on the film page' },
       { key: 'competition', label: 'In competition for a Globe Award', type: 'checkbox' },
+      { key: 'featured', label: 'Feature on Home (daily highlight)', type: 'checkbox', hint: 'On the days this film screens, it goes first in the Home banner collage. Leave unticked and the app picks films by itself.' },
     ],
   },
 

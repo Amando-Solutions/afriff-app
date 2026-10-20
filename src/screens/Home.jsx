@@ -6,11 +6,14 @@ import { activeBanner, newsLink } from '../lib/alerts.js';
 import { FESTIVAL, SCREENINGS, filmById, venueById } from '../data/programme.js';
 import { dateParts, queueLabel, timeLabel } from '../lib/format.js';
 import { AddButton, Poster, StatusTag } from '../components/Bits.jsx';
-import { queueAt } from '../lib/queues.js';
-import { now as clockNow } from '../lib/now.js';
+import { queueAt, useLiveClock } from '../lib/queues.js';
+import { lagosDate, now as clockNow } from '../lib/now.js';
+import { dayInfo, festivalPhase, venueShort } from '../lib/today.js';
+import DailyHighlight from '../components/DailyHighlight.jsx';
+import { openProgrammeDay } from './Programme.jsx';
 import { useFestival } from '../lib/store.jsx';
 import { EVENTS, EVENT_TYPES, isMultiDay } from '../data/events.js';
-import { EventCard } from '../components/EventBits.jsx';
+import { EventCard, EventThumb } from '../components/EventBits.jsx';
 
 // HOME, kept simple: the bottom bar already reaches Programme, Queues and
 // My Festival, so Home only shows the banner, shortcuts to the things the
@@ -78,6 +81,17 @@ function Hero() {
   );
 }
 
+function ThankYou() {
+  return (
+    <section className="hero">
+      <p className="hero-eyebrow">AFRIFF 2026 · That's a wrap</p>
+      <h2 className="hero-title">Thank you for seven days of African stories</h2>
+      <p className="hero-sub" style={{ marginTop: 12 }}>Rate the films you saw and export them to Letterboxd.</p>
+      <a href="#/my" className="btn btn-gold hero-cta">Your watched list</a>
+    </section>
+  );
+}
+
 // Things the bottom bar doesn't reach, one word each
 function Shortcuts() {
   const [howTo, setHowTo] = useState(false);
@@ -115,7 +129,7 @@ function DayRow({ screening }) {
         <span className="home-row-text">
           <span className={`home-row-title${screening.status === 'cancelled' ? ' struck' : ''}`}>{film.title}</span>
           <span className="home-row-meta">
-            {timeLabel(screening.time)} · {venue.name.replace(/^Filmhouse\s+/, '')}
+            {timeLabel(screening.time)} · {venueShort(venue.id)}
             {full && <span className="full"> · Full</span>}
             <StatusTag status={screening.status} />
           </span>
@@ -123,6 +137,49 @@ function DayRow({ screening }) {
       </a>
       <AddButton added={isScheduled(screening.id)} onClick={() => toggleScheduled(screening.id)} title={film.title} />
     </div>
+  );
+}
+
+function EventDayRow({ event }) {
+  const { isScheduled, toggleScheduled } = useFestival();
+  return (
+    <div className="home-row">
+      <a href={`#/event/${event.id}`} className="home-row-link">
+        <EventThumb event={event} className="poster-mini" size={18} />
+        <span className="home-row-text">
+          <span className="home-row-title">{event.title.split(':')[0]}</span>
+          <span className="home-row-meta">
+            {timeLabel(event.time)} · {event.venue ? venueShort(event.venue) : event.place}
+            <StatusTag status={event.status} />
+          </span>
+        </span>
+      </a>
+      <AddButton added={isScheduled(event.id)} onClick={() => toggleScheduled(event.id)} title={event.title} />
+    </div>
+  );
+}
+
+// During the festival: the next 4 things starting today (films and events)
+function Today({ day, t }) {
+  const p = dateParts(day);
+  const { upcoming, tomorrow } = dayInfo(day, t);
+  const next4 = upcoming.slice(0, 4);
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2 className="section-title">Today <span className="section-date">{p.day} {p.date} {p.month}</span></h2>
+        <a href="#/programme" className="link" onClick={() => openProgrammeDay(day)}>See all <ChevronRight size={18} /></a>
+      </div>
+      {next4.length === 0 ? (
+        <p className="muted">Nothing else starts today.{tomorrow && <> <a className="link gold-link" href="#/programme" onClick={() => openProgrammeDay(tomorrow)}>See tomorrow</a></>}</p>
+      ) : (
+        <div className="home-rows">
+          {next4.map((x) => (x.kind === 'screening'
+            ? <DayRow key={x.item.id} screening={x.item} />
+            : <EventDayRow key={x.item.id} event={x.item} />))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -176,12 +233,18 @@ function Sponsors() {
 }
 
 export default function Home() {
+  const t = useLiveClock(60000); // redraw every minute: "Next up" and Today move on
+  const phase = festivalPhase(t);
+  const today = lagosDate(new Date(t));
   return (
     <div className="page">
       <NewsBanner />
-      <Hero />
+      {phase === 'before' && <Hero />}
+      {phase === 'during' && <DailyHighlight day={today} t={t} />}
+      {phase === 'after' && <ThankYou />}
       <Shortcuts />
-      <OpeningDay />
+      {phase === 'before' && <OpeningDay />}
+      {phase === 'during' && <Today day={today} t={t} />}
       <EventsStrip />
       <Sponsors />
     </div>

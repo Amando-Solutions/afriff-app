@@ -41,6 +41,12 @@ const memory = {
   eventFilter: 'all',
   type: 'all',
 };
+// Open the Schedule on a given day (used by Home's "See today")
+export function openProgrammeDay(day) {
+  memory.day = day;
+  memory.type = 'all';
+  memory.venues = [];
+}
 function useRemembered(key) {
   const [value, setValue] = useState(memory[key]);
   const set = (v) => {

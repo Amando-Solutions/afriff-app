@@ -72,12 +72,31 @@ so Home doesn't repeat them, and shortcuts carry no subtext.
   Globe Awards page).
 - Sponsors stay in BOTH places (user decision): top ribbon + bottom strip.
 - Bottom bar: small gold dot on Queues while any queue is open.
+- Also fixed: sideways rows (events strip, "More from", jury row) kept
+  their 16px left margin (scroll-padding). Saved (commit 20b15b5) and
+  DEPLOYED 20 Oct 2026.
 
-NEXT (agreed): daily highlight banner for 1–7 Nov (day N of 7, day
-theme, poster collage of the day's films, counts of screenings /
-masterclasses / events, "Next up", "See today"), and "Opening day"
-becomes "Today". Open questions: team-picked vs automatic collage
-(recommended both), Industry items or public only.
+DAILY HIGHLIGHT (built 20 Oct 2026; collage = team-picked AND automatic,
+user decision). Home's top banner depends on the Lagos date:
+- Before 1 Nov: countdown hero (above) + "Opening day" list.
+- 1–7 Nov: `src/components/DailyHighlight.jsx`, "Today · Day N of 7" +
+  date, day theme (DAY_THEMES) as the headline, poster collage (1 big +
+  up to 4 small, last tile "+N" when more films), count chips
+  (screenings / masterclasses / events, zeros hidden), "Next up" (next
+  film or event to start, links to it; "That's a wrap for today.
+  Tomorrow: <theme>" late; closing line on the last night), gold "See
+  today" (opens the Schedule on today via `openProgrammeDay()` in
+  Programme.jsx, even if another day was picked). The "Opening day"
+  list becomes "Today": the next 4 films AND events still to start,
+  with + buttons; "Nothing else starts today. See tomorrow" when done.
+- After 7 Nov: thank-you banner + "Your watched list"; no day list.
+- Collage order (`src/lib/today.js`): films ticked "Feature on Home
+  (daily highlight)" in the console (new film checkbox) → the Opening
+  Movie → films with a real poster → films still to come, by time.
+  One tile per film; cancelled screenings left out. Counts include
+  Industry items (open question settled by default; easy to change).
+- Home redraws every minute. Test: ?now=2026-11-03T13:00 (day 3),
+  ?now=2026-11-03T23:50 (wrap), ?now=2026-11-08T10:00 (after).
 
 ## Programme / Schedule (copy FilmFest "Schedule of Films" layout)
 - Big title "PROGRAMME" with an icon, subtitle "Full festival
