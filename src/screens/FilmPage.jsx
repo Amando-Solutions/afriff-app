@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowRight, Award, Check, ChevronLeft, ChevronRight, Eye, MessageCircle, Play, Plus, Share2 } from 'lucide-react';
+import { ArrowRight, Award, Check, ChevronLeft, ChevronRight, Eye, MessageCircle, Play, Plus, Share2 } from 'lucide-react';
 import { FESTIVAL, FILMS, SCREENINGS, filmById, venueById } from '../data/programme.js';
 import { dateParts, fromMinutes, initials, queueLabel, runtimeLabel, screeningStart, timeLabel, toMinutes } from '../lib/format.js';
 import { queueAt, useLiveClock } from '../lib/queues.js';
@@ -92,6 +92,38 @@ function QueueSection({ film, showings }) {
   );
 }
 
+// The whole poster, never cropped: tall posters sit centred, wide ones use
+// the full width. No poster (or it fails) → tall colour card with title.
+function HeroPoster({ film }) {
+  const [shape, setShape] = useState(film.image ? 'loading' : 'none');
+  const trailer = film.trailer && (
+    <a href={film.trailer} target="_blank" rel="noopener noreferrer" className="trailer-btn">
+      <span className="play"><Play size={14} fill="currentColor" /></span> Watch trailer
+    </a>
+  );
+  if (shape === 'none') {
+    return (
+      <Poster film={{ ...film, image: '' }} className="hero-poster">
+        <span className="hero-poster-text">
+          <span className="hero-poster-title">{film.title}</span>
+          <span className="hero-poster-director">{film.director}</span>
+        </span>
+        {trailer}
+      </Poster>
+    );
+  }
+  return (
+    <div className={`hero-poster has-image${shape === 'wide' ? ' wide' : ''}`}>
+      <img
+        src={film.image} alt={`${film.title} poster`} decoding="async"
+        onLoad={(e) => setShape(e.currentTarget.naturalWidth > e.currentTarget.naturalHeight ? 'wide' : 'tall')}
+        onError={() => setShape('none')}
+      />
+      {trailer}
+    </div>
+  );
+}
+
 // Share sheet on phones that have one (WhatsApp, SMS...), otherwise WhatsApp.
 function shareFilm(film, showings) {
   const url = `${window.location.origin}/#/film/${film.id}`;
@@ -152,14 +184,7 @@ export default function FilmPage({ param }) {
     <div className="page film-page">
       <TopBar film={film} />
 
-      <Poster film={film} className="poster-hero">
-        {!film.image && <span className="poster-hero-title">{film.title}</span>}
-        {film.trailer && (
-          <a href={film.trailer} target="_blank" rel="noopener noreferrer" className="trailer-btn">
-            <span className="play"><Play size={14} fill="currentColor" /></span> Watch trailer
-          </a>
-        )}
-      </Poster>
+      <HeroPoster key={film.id} film={film} />
 
       <div className="film-badges">
         {film.section && <span className="film-badge">{film.section}</span>}
@@ -173,7 +198,7 @@ export default function FilmPage({ param }) {
       <div className="film-actions">
         {showings.length > 0 && (
           <button type="button" className="btn-jump" onClick={() => document.getElementById('showtimes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-            {showings.length} screening{showings.length === 1 ? '' : 's'} <ArrowDown size={16} />
+            {showings.length} screening{showings.length === 1 ? '' : 's'}
           </button>
         )}
         <button type="button" className={`btn-seen${seen ? ' on' : ''}`} onClick={() => toggleWatched(film.id)} aria-pressed={seen}>

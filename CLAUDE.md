@@ -579,6 +579,17 @@ heavy libraries) apply everywhere.
   data has none of these (not published by AFRIFF), so badges/Q&A/cast
   stay hidden until the team fills them in and presses Publish to app.
   No rules change needed.
+- Saved (commit ace4d26) and DEPLOYED 20 Oct 2026.
+- Follow-up (user, 20 Oct): no arrow on the "N screenings" button.
+  POSTER NOW SHOWN WHOLE (never cropped), replacing the 16:10 cropped
+  hero: `HeroPoster` in FilmPage.jsx. Tall posters centred at
+  min(64%, 270px) wide; wide (landscape) posters full width (detected
+  when the image loads); no poster / broken link → tall 2:3 colour card
+  with title + director bottom-left (like the prototype). Watch
+  trailer button centred near the bottom of the poster.
+- If new console fields seem missing: reload the console tab (an open
+  tab keeps the old code until reloaded). The new film fields are at
+  the BOTTOM of the film form, under Synopsis.
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`
