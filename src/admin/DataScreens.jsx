@@ -85,7 +85,7 @@ export function DataHome({ profile }) {
       <h1 className="ad-title">Festival data</h1>
       <p className="muted">
         {profile.role === 'admin'
-          ? 'Your changes go live in the database straight away.'
+          ? 'Your changes are saved in the database straight away. Attendees see them after you press Publish to app.'
           : 'Your changes are sent to an admin for approval before attendees see them.'}
       </p>
       <p className="ad-info">The attendee app switches to reading this data in build step 3. Until then it shows its built-in copy.</p>
@@ -231,7 +231,7 @@ export function ItemForm({ col, id, profile }) {
       const label = c.label(data, refs);
       const docId = isNew ? `${slugify(c.idFrom ? data[c.idFrom] : label)}-${Math.random().toString(36).slice(2, 6)}` : id;
       const result = await saveItem({ profile, col, id: docId, data, before: strip(existing), summary: `${isNew ? 'New' : 'Edit'} ${c.single}: ${label}` });
-      setStatus({ busy: false, error: '', msg: result === 'saved' ? 'Saved. It\'s live in the database.' : 'Sent for approval. An admin will review it.' });
+      setStatus({ busy: false, error: '', msg: result === 'saved' ? 'Saved in the database. Attendees see it after an admin presses Publish to app.' : 'Sent for approval. An admin will review it.' });
       if (isNew && result === 'saved') window.location.hash = `#/admin/data/${col}/${encodeURIComponent(docId)}`;
     } catch (err) {
       setStatus({ busy: false, msg: '', error: `Couldn't save: ${err.message}` });

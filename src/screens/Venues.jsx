@@ -9,7 +9,7 @@ export default function Venues() {
   return (
     <div className="page">
       <PageTitle icon={MapPin}>Venues</PageTitle>
-      <p className="muted">{VENUES.length} Filmhouse cinemas across Lagos</p>
+      <p className="muted">{VENUES.length} venue{VENUES.length === 1 ? "" : "s"} across Lagos</p>
       <button type="button" className="btn btn-outline btn-small" style={{ marginTop: 14 }} onClick={() => setHowOpen(true)}>
         <Info size={16} /> How to attend
       </button>

@@ -4,6 +4,10 @@ import './theme.css';
 import './styles.css';
 import App from './App.jsx';
 import { FestivalProvider } from './lib/store.jsx';
+import { loadSavedCopy } from './lib/liveData.js';
+
+// use the festival data saved on this phone last time, before anything shows
+loadSavedCopy();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

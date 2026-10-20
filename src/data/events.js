@@ -27,7 +27,7 @@ const MASTERCLASS_URL = 'https://afriff.com/program/masterclasses';
 const FREE = 'Free · registration required';
 const register = { label: 'Register on afriff.com', url: MASTERCLASS_URL };
 
-export const EVENTS = [
+export let EVENTS = [
   // ---------- All week ----------
   {
     id: 'festival-meetups', type: 'networking', title: 'Festival meetups',
@@ -167,3 +167,21 @@ export const eventById = (id) => EVENTS.find((e) => e.id === id);
 export const isMultiDay = (e) => Boolean(e.endDate && e.endDate !== e.date);
 // Single-day events on a given day (multi-day ones are shown under "All week")
 export const eventsOn = (date) => EVENTS.filter((e) => !isMultiDay(e) && e.date === date).sort((a, b) => a.time.localeCompare(b.time));
+
+// ---------- Live data (build step 3) ----------
+export const BUILT_IN_EVENTS = EVENTS;
+
+// Swap in the events an admin published from the console.
+export function replaceEvents(list, venueIds) {
+  EVENTS = list
+    .filter((e) => e.id && e.title && e.date && e.time)
+    .map((e) => ({
+      ...e,
+      type: EVENT_TYPES[e.type] ? e.type : 'networking',
+      venue: venueIds.has(e.venue) ? e.venue : null,
+      end: e.end || e.time,
+      about: e.about || '',
+      access: e.access || '',
+      place: e.place || '',
+    }));
+}

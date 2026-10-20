@@ -408,12 +408,65 @@ heavy libraries) apply everywhere.
   offline taps queue and send on reconnect ("Saving…" shown). Needs
   screenings loaded into Firestore (rules check the screening's venue).
   Attendee Queues screen still uses the sample feed until build step 8.
+- Door counter + safe import + backup + sponsor logos saved (commit
+  6c9e3c5) and DEPLOYED 20 Oct 2026. Step 2 is complete apart from the
+  user's own login tests.
+- Git tip on this laptop: commit with `git commit -F <file>` where the
+  file is written WITHOUT a BOM (PowerShell 5.1's Set-Content utf8 adds
+  one); PowerShell may report exit 1/255 from Git's CRLF warnings even
+  when the commit worked, so check `git log` after.
 - HOW UPDATES FLOW (explained to user 19 Oct): code changes → Claude →
   checkpoint → deploy; festival data → admin console (editor request →
   admin approve) → Firestore → attendee app (from step 3); queue counts
   → volunteers → Firestore → Queues screens (from step 8, no approval).
   Known gap: approving an old request overwrites newer live edits to
   the same item; could add a "changed since" warning later.
+
+### Sponsor marquee (user request 20 Oct)
+- No white tiles. `src/components/SponsorMarquee.jsx`: logos glide LEFT
+  TO RIGHT on a seamless loop (list rendered twice, translateX −50% → 0),
+  ~4–5 s per logo, pause on touch/hover, still swipeable row under
+  prefers-reduced-motion. Placed as a slim ribbon ABOVE the header on
+  every attendee screen (scrolls away) and a larger strip at the bottom
+  of Home.
+- Per-sponsor `logoStyle` (console select): 'white' default (CSS
+  brightness(0) invert(1); for dark artwork), 'original' (MTN, CANEX,
+  Federal Ministry crest), 'knockout' (GIZ jpg with white box:
+  grayscale+invert+mix-blend-mode screen; needs an opaque track
+  background, set in CSS). Not visually verified at the bottom strip
+  (preview pane wasn't repainting); user to check GIZ on phone.
+
+### Step 3: attendee app reads published data (built 20 Oct 2026)
+- WHY a publish step: Firestore Spark allows 50,000 reads/day. Reading
+  ~200 docs per app open would allow only ~250 opens/day. Instead:
+  - Console "Publish to app" (admins only, `src/admin/Publish.jsx`,
+    #/admin/publish) packs all 7 collections into ONE doc
+    `published/current` {version: Date.now(), json: <string>, counts,
+    publishedAt, publishedBy(Name)}; ~<100 KB, limit checked (900 KB).
+  - Vercel relay `api/festival.js` (GET /api/festival) reads that doc
+    via Firestore REST and returns the JSON with Cache-Control
+    s-maxage=60, stale-while-revalidate=600 → ~1 DB read/min total.
+  - Phones (`src/lib/liveData.js`): `loadSavedCopy()` in main.jsx before
+    first render (localStorage key `afriff-data-v1`), then
+    `checkForUpdates()` on start, every 5 min and on reopen; prod uses
+    /api/festival, dev (no relay) or relay failure → Firestore REST
+    direct. Newer version → replaceProgramme()/replaceEvents() swap the
+    data lists (now `export let` in programme.js/events.js) and App
+    re-keys the screens to redraw.
+  - Built-in copy kept as BUILT_IN / BUILT_IN_EVENTS (used by the
+    console import and as first-visit fallback).
+  - Data cleanup on arrival: films without poster colours get them;
+    screenings whose film/venue is missing are dropped; events with an
+    unknown venue get venue null; lists sorted by order/time.
+  - Attendee bundle unchanged size (~104 KB gz, no Firebase SDK).
+- Editors/admin save messages now say attendees see changes after
+  "Publish to app".
+- USER MUST: republish firestore.rules (new `published` rule), press
+  Publish to app once, and the relay only works after a deploy.
+- Tested: fallback to built-in when nothing published (DB 403 before
+  rules publish); fake published copy → edited/new films, new banner,
+  sponsors, gala, bad screening dropped, no errors; relay handler with
+  pretend DB (404 / 200 cached / 502 no-store).
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`

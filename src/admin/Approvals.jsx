@@ -75,7 +75,7 @@ export function Approvals({ profile }) {
   return (
     <div className="ad-page">
       <h1 className="ad-title">Approvals</h1>
-      <p className="muted">Changes from editors. Approving puts the change live in the database; rejecting sends it back with your note.</p>
+      <p className="muted">Changes from editors. Approving saves the change in the database (attendees see it after Publish to app); rejecting sends it back with your note.</p>
       {error && <p className="ad-error">{error}</p>}
       {items == null && <p className="muted">Loading…</p>}
       {items?.length === 0 && <p className="ad-note">Nothing waiting. You're all caught up.</p>}

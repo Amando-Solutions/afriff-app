@@ -673,3 +673,47 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .tl-block.event { border-style: dashed; }
 .type-filter { align-items: center; }
 .type-count { margin-left: auto; font-size: 13.5px; white-space: nowrap; }
+
+/* ---------- Sponsor marquee (moves left to right on a loop) ---------- */
+.marquee {
+  position: relative; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex; width: max-content;
+  animation: marquee-right var(--marquee-duration, 40s) linear infinite;
+  will-change: transform;
+}
+/* two identical copies side by side: sliding from -50% to 0 moves them right forever */
+@keyframes marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+.marquee:hover .marquee-track, .marquee:active .marquee-track { animation-play-state: paused; }
+.marquee-item { flex: none; display: grid; place-items: center; }
+.marquee-item img { display: block; object-fit: contain; }
+.marquee-name { color: var(--muted); font-weight: 700; white-space: nowrap; }
+/* logo styles (set per sponsor in the console) */
+.logo-white { filter: brightness(0) invert(1); opacity: .85; }
+.logo-original { opacity: .95; }
+/* picture with a white box: invert turns the white black, "screen" makes black see-through */
+.logo-knockout { filter: grayscale(1) invert(1); mix-blend-mode: screen; opacity: .9; }
+
+/* slim ribbon above the header, every screen */
+.marquee-ribbon { background: var(--nav-bg); border-bottom: 1px solid var(--divider); }
+.marquee-ribbon .marquee-track { background: var(--nav-bg); }
+.marquee-ribbon .marquee-item { height: 34px; padding: 0 18px; }
+.marquee-ribbon .marquee-item img { max-height: 16px; max-width: 76px; }
+.marquee-ribbon .marquee-name { font-size: 11px; }
+
+/* larger strip at the bottom of Home */
+.marquee-strip { margin: 0 -16px; }
+.marquee-strip .marquee-track { background: var(--bg); }
+.marquee-strip .marquee-item { height: 64px; padding: 0 26px; }
+.marquee-strip .marquee-item img { max-height: 34px; max-width: 120px; }
+.marquee-strip .marquee-name { font-size: 13px; }
+
+/* accessibility: no movement for people who ask their phone to reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .marquee { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: none; mask-image: none; }
+  .marquee-track { animation: none; }
+  .marquee-track > [aria-hidden="true"] { display: none; }
+}

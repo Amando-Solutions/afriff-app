@@ -6,8 +6,8 @@
 // select (fixed options), ref (pick from another collection), checkbox,
 // color, datetime. A key with a dot ("link.url") is stored nested.
 
-import { DAY_THEMES, FESTIVAL, FILMS, HOW_TO_ATTEND, NEWS, SCREENINGS, SECTIONS, SPONSORS, VENUES } from '../data/programme.js';
-import { EVENTS, EVENT_TYPES } from '../data/events.js';
+import { BUILT_IN, DAY_THEMES, FESTIVAL, SECTIONS } from '../data/programme.js';
+import { BUILT_IN_EVENTS, EVENT_TYPES } from '../data/events.js';
 import { dayLabel, timeLabel } from '../lib/format.js';
 
 const dayOptions = FESTIVAL.days.map((d) => ({ value: d, label: `${dayLabel(d)} · ${DAY_THEMES[d] || ''}` }));
@@ -109,7 +109,16 @@ export const COLLECTIONS = {
     sort: (a, b) => (a.order ?? 99) - (b.order ?? 99),
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
-      { key: 'logo', label: 'Logo image link', type: 'url', hint: 'Shown on a light tile, so dark logos work best' },
+      { key: 'logo', label: 'Logo image link', type: 'url' },
+      {
+        key: 'logoStyle', label: 'Logo style on the dark app', type: 'select',
+        options: [
+          { value: 'white', label: 'Show in white (for dark logos)' },
+          { value: 'original', label: 'Keep original colours (logo already works on dark)' },
+          { value: 'knockout', label: 'Remove white background (logo is a picture with a white box)' },
+        ],
+        hint: 'Leave empty to show in white',
+      },
       { key: 'website', label: 'Website (optional, opens when the logo is tapped)', type: 'url' },
       { key: 'order', label: 'Position in the strip (0 = first)', type: 'number' },
     ],
@@ -178,12 +187,12 @@ export const slugify = (s) =>
 const strip = ({ id, ...rest }) => rest;
 export function seedData() {
   return {
-    films: FILMS.map((f) => [f.id, strip(f)]),
-    screenings: SCREENINGS.map((s) => [s.id, strip(s)]),
-    events: EVENTS.map((e) => [e.id, strip(e)]),
-    venues: VENUES.map((v) => [v.id, strip(v)]),
-    news: NEWS.map((n) => [n.id, strip(n)]),
-    sponsors: SPONSORS.map((s, i) => [slugify(s.name), { ...s, order: i }]),
-    howToAttend: HOW_TO_ATTEND.map((h, i) => [h.id, { ...strip(h), order: i }]),
+    films: BUILT_IN.films.map((f) => [f.id, strip(f)]),
+    screenings: BUILT_IN.screenings.map((s) => [s.id, strip(s)]),
+    events: BUILT_IN_EVENTS.map((e) => [e.id, strip(e)]),
+    venues: BUILT_IN.venues.map((v) => [v.id, strip(v)]),
+    news: BUILT_IN.news.map((n) => [n.id, strip(n)]),
+    sponsors: BUILT_IN.sponsors.map((s, i) => [slugify(s.name), { ...s, order: i }]),
+    howToAttend: BUILT_IN.howToAttend.map((h, i) => [h.id, { ...strip(h), order: i }]),
   };
 }

@@ -25,7 +25,7 @@ export const DAY_THEMES = {
 };
 
 // Each venue has its own dot colour, used everywhere that venue appears.
-export const VENUES = [
+export let VENUES = [
   { id: 'landmark', name: 'Filmhouse Landmark', area: 'Victoria Island', address: 'Landmark Village, 4 Water Corporation Drive, Victoria Island, Lagos', color: '#3CCFB8' },
   { id: 'twinwaters', name: 'Filmhouse Twinwaters', area: 'Oniru, Lekki', address: 'Twinwaters Entertainment Centre, Okunde Blue Water Scheme, off Remi Olowude Street, Lekki, Lagos', color: '#8F84FF' },
   { id: 'palms', name: 'Filmhouse The Palms', area: 'Lekki', address: 'The Palms Shopping Mall, Bisway Street, Lekki, Lagos', color: '#4DA6FF' },
@@ -117,7 +117,7 @@ const PALETTE = [
 const STYLES = ['glow', 'stripes', 'split'];
 const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-export const FILMS = RAW.trim().split('\n').map((line) => {
+export let FILMS = RAW.trim().split('\n').map((line) => {
   const [id, title, code, country, runtime, year, director, language, genre, trailer, poster, synopsis] = line.split('|');
   const h = hash(id);
   const [a, b] = PALETTE[h % PALETTE.length];
@@ -172,9 +172,9 @@ function buildTimetable() {
   return list;
 }
 
-export const SCREENINGS = buildTimetable();
+export let SCREENINGS = buildTimetable();
 
-export const NEWS = [
+export let NEWS = [
   { id: 'n1', urgent: true, time: '2026-10-18T09:00:00+01:00', title: 'Times are samples for now', body: 'AFRIFF has not published times for screenings, masterclasses or events yet. The times in this app are placeholders until the official schedule is out.' },
   { id: 'n2', urgent: false, time: '2026-10-15T10:00:00+01:00', title: 'AFRIFF 2026 announces its international jury', body: 'Voices from filmmaking, criticism, production and entertainment strategy make up this year\'s jury.', url: 'https://afriff.com/news/afriff-2026-international-jury' },
   { id: 'n3', urgent: false, time: '2026-10-10T10:00:00+01:00', title: 'AFRIFF 15: Lagos awaits', body: 'The fifteenth edition runs 1–7 November 2026, with the AFCM market at Twinwaters from 2–5 November.', url: 'https://afriff.com/news/afriff-15-lagos-awaits' },
@@ -182,7 +182,7 @@ export const NEWS = [
 
 // "How to attend" sheet. Editable in the admin console later (item 31).
 // Sections marked CONFIRM are placeholders AFRIFF hasn't published yet.
-export const HOW_TO_ATTEND = [
+export let HOW_TO_ATTEND = [
   {
     id: 'tickets', title: 'Tickets',
     body: 'Get a Festival Access pass. It\'s open to everyone and covers screenings from 1–7 November at all three Filmhouse cinemas. Book your seats once the programme opens. Prices and sale dates are coming soon.',
@@ -212,20 +212,22 @@ export const HOW_TO_ATTEND = [
 ];
 
 // Partners from afriff.com/partners (20 Oct 2026). Logos are linked from
-// AFRIFF's site; they're dark artwork made for light backgrounds, so the app
-// shows them on light tiles. Host the files ourselves before launch.
+// AFRIFF's site. Host the files ourselves before launch.
+// logoStyle: 'white' (default; dark artwork shown as white on navy),
+// 'original' (keeps its colours; already works on dark), 'knockout'
+// (a picture with a white background: the white is dropped).
 // Keep names stable: they become the database IDs.
 const LOGO_BASE = 'https://afriff-revival.lovable.app/__l5e/assets-v1/';
-export const SPONSORS = [
-  { name: 'MTN', logo: `${LOGO_BASE}2ff9abc3-f2d4-4ce5-b405-2e79443f0e78/mtn.png` },
+export let SPONSORS = [
+  { name: 'MTN', logo: `${LOGO_BASE}2ff9abc3-f2d4-4ce5-b405-2e79443f0e78/mtn.png`, logoStyle: 'original' },
   { name: 'Filmhouse Group', logo: `${LOGO_BASE}f20b24e7-e2ab-4e76-a61e-f013c21d4f58/filmhouse-group.png` },
   { name: 'Martell', logo: `${LOGO_BASE}0a69fcb3-0dd0-4d67-92c7-a99dee17c23f/martell.png` },
   { name: 'Mikano', logo: `${LOGO_BASE}ea89f8e2-1534-4c9d-927b-f1b5ff0aa118/mikano.png` },
   { name: 'Nigerian Breweries', logo: `${LOGO_BASE}f8d3c956-82f8-49e1-86eb-f18d75c9471f/nigerian-breweries.png` },
-  { name: 'Afreximbank · CANEX', logo: `${LOGO_BASE}f92e7450-271c-4935-bbc2-7b204431854c/canex-wknd-afreximbank.png` },
+  { name: 'Afreximbank · CANEX', logo: `${LOGO_BASE}f92e7450-271c-4935-bbc2-7b204431854c/canex-wknd-afreximbank.png`, logoStyle: 'original' },
   { name: 'Dentsu', logo: `${LOGO_BASE}ba4d870b-7d4b-49fa-823c-42f7a505dca0/dentsu.png` },
-  { name: 'GIZ', logo: `${LOGO_BASE}e5185120-8c4e-4b96-a5a0-0cde9e9481ef/giz.jpg` },
-  { name: 'Federal Ministry of Art, Culture, Tourism & the Creative Economy', logo: 'https://afriff.com/assets/fmactce-BfXnsMTF.png' },
+  { name: 'GIZ', logo: `${LOGO_BASE}e5185120-8c4e-4b96-a5a0-0cde9e9481ef/giz.jpg`, logoStyle: 'knockout' },
+  { name: 'Federal Ministry of Art, Culture, Tourism & the Creative Economy', logo: 'https://afriff.com/assets/fmactce-BfXnsMTF.png', logoStyle: 'original' },
 ];
 
 // Helpers -----------------------------------------------------------------
@@ -238,3 +240,38 @@ export const screeningById = (id) => SCREENINGS.find((x) => x.id === id);
 const firstOf = (filmId) => SCREENINGS.find((s) => s.film === filmId)?.id;
 export const SAMPLE_MY_SCHEDULE = [firstOf('lady'), firstOf('abeni'), firstOf('hope-is-a-word')].filter(Boolean);
 export const SAMPLE_WATCHED = ['the-traitor'];
+
+// ---------- Live data (build step 3) ----------
+// The lists above start as the built-in copy (from afriff.com). When the app
+// receives the version an admin published from the console, replaceProgramme()
+// swaps them in; every screen reads these lists, so they all update.
+export const BUILT_IN = { films: FILMS, screenings: SCREENINGS, venues: VENUES, news: NEWS, sponsors: SPONSORS, howToAttend: HOW_TO_ATTEND };
+
+const byOrder = (a, b) => (a.order ?? 99) - (b.order ?? 99);
+
+export function replaceProgramme(d) {
+  if (d.venues?.length) VENUES = d.venues.map((v) => ({ ...v, color: v.color || '#DBA440' }));
+  if (d.films?.length) {
+    FILMS = d.films.filter((f) => f.id && f.title).map((f) => {
+      // films added in the console get placeholder poster colours like the rest
+      const h = hash(f.id);
+      const [a, b] = PALETTE[h % PALETTE.length];
+      return {
+        ...f, runtime: Number(f.runtime) || 0, image: f.image || '', trailer: f.trailer || '',
+        synopsis: f.synopsis || '', director: f.director || '', section: f.section || '',
+        poster: f.poster?.style ? f.poster : { style: STYLES[h % STYLES.length], a, b },
+      };
+    });
+  }
+  const filmIds = new Set(FILMS.map((f) => f.id));
+  const venueIds = new Set(VENUES.map((v) => v.id));
+  // a screening whose film or venue was deleted is left out rather than breaking the page
+  if (d.screenings) {
+    SCREENINGS = d.screenings
+      .filter((s) => filmIds.has(s.film) && venueIds.has(s.venue) && s.date && s.time)
+      .map((s) => ({ ...s, capacity: Number(s.capacity) || 0, tag: s.tag || 'Public', screen: s.screen || '' }));
+  }
+  if (d.news) NEWS = [...d.news].sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+  if (d.sponsors) SPONSORS = [...d.sponsors].sort(byOrder);
+  if (d.howToAttend) HOW_TO_ATTEND = [...d.howToAttend].sort(byOrder);
+}

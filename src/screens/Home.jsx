@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, BookmarkCheck, CalendarDays, ChevronRight, Info, MapPin, Users, X, AlertTriangle } from 'lucide-react';
 import HowToAttend from '../components/HowToAttend.jsx';
-import { FESTIVAL, FILMS, NEWS, SCREENINGS, SPONSORS, VENUES, filmById, venueById } from '../data/programme.js';
+import SponsorMarquee from '../components/SponsorMarquee.jsx';
+import { FESTIVAL, FILMS, NEWS, SCREENINGS, VENUES, filmById, venueById } from '../data/programme.js';
 import { dateParts, queueLabel, runtimeLabel, timeLabel } from '../lib/format.js';
 import { Poster } from '../components/Bits.jsx';
 import { openQueues, queueAt, useLiveClock } from '../lib/queues.js';
@@ -54,7 +55,7 @@ function Hero() {
       <h2 className="hero-title">Seven days of African stories on the big screen.</h2>
       <div className="hero-meta">
         <span><CalendarDays size={18} /> 1–7 November 2026</span>
-        <span><MapPin size={18} /> {VENUES.length} venues across Lagos</span>
+        <span><MapPin size={18} /> {VENUES.length} venue{VENUES.length === 1 ? "" : "s"} across Lagos</span>
       </div>
       <hr className="hero-rule" />
       {c.done ? (
@@ -180,25 +181,11 @@ function OpeningDay() {
   );
 }
 
-// One sponsor tile: the logo on a light tile (the logos are dark artwork).
-// If a logo can't load, the sponsor's name shows instead.
-function SponsorTile({ sponsor }) {
-  const [broken, setBroken] = useState(false);
-  const body = sponsor.logo && !broken
-    ? <img src={sponsor.logo} alt={sponsor.name} loading="lazy" decoding="async" onError={() => setBroken(true)} />
-    : <span className="sponsor-name">{sponsor.name}</span>;
-  return sponsor.website
-    ? <a className="sponsor" href={sponsor.website} target="_blank" rel="noopener noreferrer">{body}</a>
-    : <div className="sponsor">{body}</div>;
-}
-
 function Sponsors() {
   return (
     <section className="section sponsors">
       <p className="eyebrow">Supported by</p>
-      <div className="sponsor-strip">
-        {SPONSORS.map((s) => <SponsorTile key={s.name} sponsor={s} />)}
-      </div>
+      <SponsorMarquee variant="strip" />
     </section>
   );
 }
