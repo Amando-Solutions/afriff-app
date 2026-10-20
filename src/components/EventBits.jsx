@@ -68,16 +68,14 @@ export function EventRow({ event }) {
   );
 }
 
-// Small card used in the Home strip
+// Poster-style card used in the Home strip: graphic (or colour tile), short title, day
 export function EventCard({ event }) {
   const p = dateParts(event.date);
   return (
     <a href={`#/event/${event.id}`} className="event-card">
-      <EventThumb event={event} className={event.image ? 'event-card-art' : 'event-card-thumb'} size={22} />
-      <span className="event-card-type">{EVENT_TYPES[event.type].label}</span>
+      <EventThumb event={event} className="event-card-art" size={30} />
       <span className="event-card-title">{event.title.split(':')[0]}</span>
-      {event.speaker && <span className="muted small">{event.speaker}</span>}
-      <span className="event-card-when">{isMultiDay(event) ? 'All week' : `${p.day} ${p.date} ${p.month} · ${timeLabel(event.time)}`}</span>
+      <span className="event-card-when">{isMultiDay(event) ? 'All week' : `${p.day} ${p.date} ${p.month}`}</span>
     </a>
   );
 }

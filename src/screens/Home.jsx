@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BookmarkCheck, CalendarDays, ChevronRight, Info, MapPin, Users, X, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Award, ChevronRight, GraduationCap, MapPin, Ticket, X } from 'lucide-react';
 import HowToAttend from '../components/HowToAttend.jsx';
 import SponsorMarquee from '../components/SponsorMarquee.jsx';
-import { JuryRow } from '../components/JuryBits.jsx';
-import { activeBanner, newsLink, statusTag } from '../lib/alerts.js';
-import { FESTIVAL, FILMS, NEWS, SCREENINGS, VENUES, filmById, venueById } from '../data/programme.js';
-import { dateParts, queueLabel, runtimeLabel, timeLabel } from '../lib/format.js';
-import { Poster } from '../components/Bits.jsx';
-import { openQueues, queueAt, useLiveClock } from '../lib/queues.js';
+import { activeBanner, newsLink } from '../lib/alerts.js';
+import { FESTIVAL, SCREENINGS, filmById, venueById } from '../data/programme.js';
+import { dateParts, queueLabel, timeLabel } from '../lib/format.js';
+import { AddButton, Poster, StatusTag } from '../components/Bits.jsx';
+import { queueAt } from '../lib/queues.js';
 import { now as clockNow } from '../lib/now.js';
 import { useFestival } from '../lib/store.jsx';
 import { EVENTS, EVENT_TYPES, isMultiDay } from '../data/events.js';
 import { EventCard } from '../components/EventBits.jsx';
+
+// HOME, kept simple: the bottom bar already reaches Programme, Queues and
+// My Festival, so Home only shows the banner, shortcuts to the things the
+// bottom bar doesn't reach, a taste of the day, events and sponsors.
 
 function useCountdown(target) {
   const [now, setNow] = useState(() => clockNow().getTime());
@@ -25,7 +28,6 @@ function useCountdown(target) {
     days: Math.floor(sec / 86400),
     hours: Math.floor((sec % 86400) / 3600),
     mins: Math.floor((sec % 3600) / 60),
-    secs: sec % 60,
     done: diff === 0,
   };
 }
@@ -53,101 +55,96 @@ function NewsBanner() {
 
 function Hero() {
   const c = useCountdown(FESTIVAL.openingNight);
-  const units = [
-    [c.days, 'Days'], [c.hours, 'Hours'], [c.mins, 'Mins'], [c.secs, 'Secs'],
-  ];
+  const units = [[c.days, 'd', 'days'], [c.hours, 'h', 'hours'], [c.mins, 'm', 'minutes']];
   return (
     <section className="hero">
-      <h2 className="hero-title">Seven days of African stories on the big screen.</h2>
-      <div className="hero-meta">
-        <span><CalendarDays size={18} /> 1–7 November 2026</span>
-        <span><MapPin size={18} /> {VENUES.length} venue{VENUES.length === 1 ? "" : "s"} across Lagos</span>
-      </div>
-      <hr className="hero-rule" />
+      <p className="hero-eyebrow">1–7 Nov 2026 · Lagos</p>
+      <h2 className="hero-title">Seven days of African stories on the big screen</h2>
       {c.done ? (
         <p className="hero-sub">The festival is on. Enjoy the films!</p>
       ) : (
-        <>
-          <p className="hero-sub">Opening night in</p>
-          <div className="countdown">
-            {units.map(([n, l]) => (
-              <div key={l} className="count-box">
-                <span className="count-n">{String(n).padStart(2, '0')}</span>
-                <span className="count-l">{l}</span>
-              </div>
-            ))}
-          </div>
-        </>
+        <div className="countdown" aria-label={`Opening night in ${c.days} days, ${c.hours} hours and ${c.mins} minutes`}>
+          <span className="countdown-label">Opening night in</span>
+          {units.map(([n, short]) => (
+            <span key={short} className="count-box" aria-hidden="true">
+              <span className="count-n">{String(n).padStart(2, '0')}</span>
+              <span className="count-l">{short}</span>
+            </span>
+          ))}
+        </div>
       )}
-      <div className="hero-actions">
-        <a href="#/my" className="btn btn-gold">My Festival</a>
-        <a href="#/programme" className="btn btn-outline">Programme <ArrowRight size={20} /></a>
-      </div>
+      <a href="#/programme" className="btn btn-gold hero-cta">Explore the programme</a>
     </section>
   );
 }
 
-function Tiles() {
-  const { scheduled } = useFestival();
-  const t = useLiveClock();
-  const today = openQueues(t).length;
-  const tiles = [
-    { href: '#/programme', Icon: CalendarDays, title: 'Programme', sub: `${FILMS.length} films, 7 days` },
-    { href: '#/queues', Icon: Users, title: 'Queues', sub: `${today} open now` },
-    { href: '#/my', Icon: BookmarkCheck, title: 'My Festival', sub: `${scheduled.size} in your plan` },
-    { href: '#/venues', Icon: MapPin, title: 'Venues', sub: `${VENUES.length} across Lagos` },
+// Things the bottom bar doesn't reach, one word each
+function Shortcuts() {
+  const [howTo, setHowTo] = useState(false);
+  const items = [
+    { label: 'Venues', Icon: MapPin, href: '#/venues' },
+    { label: 'How to attend', Icon: Ticket, onClick: () => setHowTo(true) },
+    { label: 'Events', Icon: GraduationCap, href: '#/programme/events' },
+    { label: 'Jury', Icon: Award, href: '#/jury' },
   ];
   return (
-    <div className="tiles">
-      {tiles.map(({ href, Icon, title, sub }) => (
-        <a key={title} href={href} className="tile">
-          <span className="icon-box"><Icon size={24} strokeWidth={1.8} /></span>
-          <span className="tile-text">
-            <span className="tile-title">{title}</span>
-            <span className="tile-sub">{sub}</span>
-          </span>
-        </a>
-      ))}
-    </div>
-  );
-}
-
-function HowToAttendCard() {
-  const [open, setOpen] = useState(false);
-  return (
     <>
-      <button type="button" className="hta-card" onClick={() => setOpen(true)}>
-        <span className="icon-box"><Info size={22} strokeWidth={1.8} /></span>
-        <span className="tile-text">
-          <span className="tile-title">How to attend</span>
-          <span className="tile-sub">Tickets, refunds, Q&amp;As and venues</span>
-        </span>
-        <ChevronRight size={20} className="hta-card-arrow" />
-      </button>
-      {open && <HowToAttend onClose={() => setOpen(false)} />}
+      <nav className="shortcuts" aria-label="Shortcuts">
+        {items.map(({ label, Icon, href, onClick }) => {
+          const inner = <><span className="shortcut-icon"><Icon size={22} strokeWidth={1.8} /></span><span className="shortcut-label">{label}</span></>;
+          return href
+            ? <a key={label} href={href} className="shortcut">{inner}</a>
+            : <button key={label} type="button" className="shortcut" onClick={onClick}>{inner}</button>;
+        })}
+      </nav>
+      {howTo && <HowToAttend onClose={() => setHowTo(false)} />}
     </>
   );
 }
 
-export function ListingCard({ screening }) {
+// One light row: poster, title, time · venue, and + to add to My Festival
+function DayRow({ screening }) {
+  const { isScheduled, toggleScheduled } = useFestival();
   const film = filmById(screening.film);
   const venue = venueById(screening.venue);
-  const label = queueLabel(queueAt(screening));
+  const full = queueLabel(queueAt(screening))?.text === 'Full';
   return (
-    <a href={`#/film/${film.id}`} className="listing">
-      <Poster film={film} className="poster-sm" />
-      <div className="listing-body">
-        <div className="listing-top">
-          <span className="listing-time">{timeLabel(screening.time)} · {runtimeLabel(film.runtime)}</span>
-          {label?.text === 'Full' && <span className="full">Full</span>}
-        </div>
-        <span className={`listing-title${screening.status === 'cancelled' ? ' struck' : ''}`}>{film.title} {statusTag(screening.status) && <span className={`status-tag tone-${statusTag(screening.status).tone}`}>{statusTag(screening.status).text}</span>}</span>
-        <span className="listing-venue">
-          <span className="dot" style={{ background: venue.color }} /> {venue.name}, {screening.screen}
+    <div className="home-row">
+      <a href={`#/film/${film.id}`} className="home-row-link">
+        <Poster film={film} className="poster-mini" />
+        <span className="home-row-text">
+          <span className={`home-row-title${screening.status === 'cancelled' ? ' struck' : ''}`}>{film.title}</span>
+          <span className="home-row-meta">
+            {timeLabel(screening.time)} · {venue.name.replace(/^Filmhouse\s+/, '')}
+            {full && <span className="full"> · Full</span>}
+            <StatusTag status={screening.status} />
+          </span>
         </span>
-        <span className="cat-tag">{film.section}</span>
+      </a>
+      <AddButton added={isScheduled(screening.id)} onClick={() => toggleScheduled(screening.id)} title={film.title} />
+    </div>
+  );
+}
+
+function OpeningDay() {
+  const day = FESTIVAL.days[0];
+  const p = dateParts(day);
+  // the opening film always makes the cut, then the rest of the day; shown in time order
+  const opening = (s) => (filmById(s.film)?.section === 'Opening Movie' ? 0 : 1);
+  const list = SCREENINGS.filter((s) => s.date === day)
+    .sort((a, b) => opening(a) - opening(b) || a.time.localeCompare(b.time))
+    .slice(0, 4)
+    .sort((a, b) => a.time.localeCompare(b.time));
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2 className="section-title">Opening day <span className="section-date">{p.day} {p.date} {p.month}</span></h2>
+        <a href="#/programme" className="link">See all <ChevronRight size={18} /></a>
       </div>
-    </a>
+      <div className="home-rows">
+        {list.map((s) => <DayRow key={s.id} screening={s} />)}
+      </div>
+    </section>
   );
 }
 
@@ -160,28 +157,10 @@ function EventsStrip() {
     <section className="section">
       <div className="section-head">
         <h2 className="section-title">Masterclasses & events</h2>
-        <a href="#/programme/events" className="link">All events <ChevronRight size={18} /></a>
+        <a href="#/programme/events" className="link">See all <ChevronRight size={18} /></a>
       </div>
-      <p className="muted small" style={{ marginTop: -6, marginBottom: 12 }}>{learn.length} free masterclasses and workshops. Register on afriff.com.</p>
       <div className="event-strip">
         {[...learn, ...other].map((e) => <EventCard key={e.id} event={e} />)}
-      </div>
-    </section>
-  );
-}
-
-function OpeningDay() {
-  const day = FESTIVAL.days[0];
-  const p = dateParts(day);
-  const list = SCREENINGS.filter((s) => s.date === day).slice(0, 4);
-  return (
-    <section className="section">
-      <div className="section-head">
-        <h2 className="section-title">Opening day <span className="section-date">{p.day} {p.date} {p.month}</span></h2>
-        <a href="#/programme" className="link">Full schedule <ChevronRight size={18} /></a>
-      </div>
-      <div className="stack">
-        {list.map((s) => <ListingCard key={s.id} screening={s} />)}
       </div>
     </section>
   );
@@ -201,11 +180,9 @@ export default function Home() {
     <div className="page">
       <NewsBanner />
       <Hero />
-      <Tiles />
-      <HowToAttendCard />
+      <Shortcuts />
       <OpeningDay />
       <EventsStrip />
-      <JuryRow />
       <Sponsors />
     </div>
   );

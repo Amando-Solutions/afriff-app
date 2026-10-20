@@ -1,5 +1,6 @@
 import { Bell, CalendarDays, Home, Users, BookmarkCheck } from 'lucide-react';
 import { useUnreadCount } from '../lib/alerts.js';
+import { openQueues, useLiveClock } from '../lib/queues.js';
 
 // Header and bottom navigation shown on every screen.
 
@@ -27,13 +28,15 @@ const TABS = [
 ];
 
 export function BottomNav({ active }) {
+  // gold dot on Queues while any queue is open (no words needed)
+  const queuesLive = openQueues(useLiveClock()).length > 0;
   return (
     <nav className="bottom-nav" aria-label="Main">
       {TABS.map(({ name, label, href, Icon }) => {
         const on = active === name;
         return (
           <a key={name} href={href} className={`tab${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined}>
-            <span className="tab-icon"><Icon size={24} strokeWidth={1.8} /></span>
+            <span className="tab-icon"><Icon size={24} strokeWidth={1.8} />{name === 'queues' && queuesLive && <span className="tab-dot" aria-label="Queues open now" />}</span>
             <span className="tab-label">{label}</span>
           </a>
         );

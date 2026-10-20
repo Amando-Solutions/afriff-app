@@ -53,13 +53,31 @@ tell me which).
 - Bottom nav (from prototype, 4 tabs): Home, Programme, Queues,
   My Festival. No Tickets tab: there's no ticketing in this version.
 
-## Home (copy the prototype)
-Hero card "Seven days of African stories on the big screen", 1–7
-November 2026, 4 venues across Lagos, countdown to opening night; gold
-"My Festival" button and outlined "Programme" button; 2x2 tiles
-(Programme, Queues, My Festival, Venues); "Opening day" listings with
-"Full schedule" link; news banner at the top when there's an urgent
-update; sponsors strip at the bottom.
+## Home (SIMPLIFIED 20 Oct 2026, user decision; replaces the prototype copy)
+Rule: the bottom bar already reaches Programme, Queues and My Festival,
+so Home doesn't repeat them, and shortcuts carry no subtext.
+- News banner at the top when there's an urgent update.
+- Hero: small gold eyebrow "1–7 Nov 2026 · Lagos", headline "Seven days
+  of African stories on the big screen", "Opening night in" + compact
+  d / h / m countdown (no seconds), ONE gold button "Explore the
+  programme". (From 1 Nov this spot becomes the daily highlight, next.)
+- 4 one-word icon shortcuts to things NOT in the bottom bar: Venues,
+  How to attend (opens the sheet), Events, Jury.
+- "Opening day" light rows: poster, title, time · venue (no
+  "Filmhouse"), + to add to My Festival; opening film always included,
+  shown in time order; "See all".
+- "Masterclasses & events": poster-style cards (graphic or colour
+  tile, short title, day); "See all". No subtext line.
+- Jury row removed from Home (Jury shortcut instead; row stays on the
+  Globe Awards page).
+- Sponsors stay in BOTH places (user decision): top ribbon + bottom strip.
+- Bottom bar: small gold dot on Queues while any queue is open.
+
+NEXT (agreed): daily highlight banner for 1–7 Nov (day N of 7, day
+theme, poster collage of the day's films, counts of screenings /
+masterclasses / events, "Next up", "See today"), and "Opening day"
+becomes "Today". Open questions: team-picked vs automatic collage
+(recommended both), Industry items or public only.
 
 ## Programme / Schedule (copy FilmFest "Schedule of Films" layout)
 - Big title "PROGRAMME" with an icon, subtitle "Full festival
