@@ -14,6 +14,19 @@ export function JuryAvatar({ member, size = 56 }) {
   return <span className="jury-avatar initials" style={style} aria-hidden="true">{initials(member.name.replace(/^Dr\.?\s+/, ''))}</span>;
 }
 
+// Rectangular portrait for the Jury page grid: the whole photo is shown
+// (never cropped) inside a 4:5 frame; initials if there's no photo.
+export function JuryPhoto({ member }) {
+  const [broken, setBroken] = useState(false);
+  return (
+    <span className="jury-photo">
+      {member.photo && !broken
+        ? <img src={member.photo} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />
+        : <span className="jury-photo-initials" aria-hidden="true">{initials(member.name.replace(/^Dr\.?\s+/, ''))}</span>}
+    </span>
+  );
+}
+
 // Bio that slides up when someone is tapped
 export function JurySheet({ member, onClose }) {
   return (

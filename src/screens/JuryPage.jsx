@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowUpRight, Award, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import { JURY_LINKS, juryGroups } from '../data/jury.js';
 import { PageTitle } from '../components/Bits.jsx';
-import { JuryAvatar, JurySheet } from '../components/JuryBits.jsx';
+import { JuryAvatar, JuryPhoto, JurySheet } from '../components/JuryBits.jsx';
 
 // THE JURY: one heading per jury (e.g. International Jury), a card per
 // member; tapping a card slides up their bio. Grid view by default, with a
@@ -42,7 +42,7 @@ export default function JuryPage() {
             <div className="jury-grid">
               {g.members.map((m) => (
                 <button key={m.id} type="button" className="jury-tile" onClick={() => setOpen(m)}>
-                  <JuryAvatar member={m} size={84} />
+                  <JuryPhoto member={m} />
                   <span className="jury-card-name">{m.name}</span>
                   <span className="muted small jury-tile-roles">{m.roles}</span>
                   <span className="jury-card-country">{m.country}</span>

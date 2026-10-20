@@ -500,6 +500,11 @@ heavy libraries) apply everywhere.
   big round photo, name, roles cut to 2 lines, country), with a
   grid/list toggle beside the subtitle (same style as the Programme
   list/timeline toggle). Phone remembers the choice (`afriff-jury-view`).
+  Saved (commit d032fb1) and DEPLOYED 20 Oct 2026.
+  Then (user request): grid photos are RECTANGULAR, not circles: 4:5
+  frame, whole photo shown uncropped (object-fit contain, plain band if
+  the photo is squarer), text left-aligned under it (`JuryPhoto` in
+  JuryBits.jsx). List view, Home row and bio sheet still use circles.
 - Jury saved (commit 2fb8724) and DEPLOYED 20 Oct 2026. Live relay
   returns 200 with the user's 12:06 UTC publish (no jury/logos yet).
 
