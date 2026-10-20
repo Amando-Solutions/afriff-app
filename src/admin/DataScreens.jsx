@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, DownloadCloud, Plus, Save, Search } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, DownloadCloud, Plus, Save, Search } from 'lucide-react';
+import { dayLabel, timeLabel } from '../lib/format.js';
 import { COLLECTIONS, COLLECTION_ORDER, fromForm, slugify, toForm } from './schema.js';
 import { deleteItem, downloadBackup, importAll, saveItem, useCollection } from './data.js';
 
@@ -100,10 +101,69 @@ export function DataHome({ profile }) {
 // ---------- List of one kind of data ----------
 
 function useRefs(colName) {
-  // screenings show film titles and venue names; other lists need venues at most
+  // screenings show film titles and venue names; news can link to a screening or event
   const films = useCollection('films');
   const venues = useCollection('venues');
-  return useMemo(() => ({ films: films.map, venues: venues.map }), [films.map, venues.map, colName]); // eslint-disable-line react-hooks/exhaustive-deps
+  const screenings = useCollection(colName === 'news' ? 'screenings' : null);
+  const events = useCollection(colName === 'news' ? 'events' : null);
+  return useMemo(
+    () => ({ films: films.map, venues: venues.map, screenings: screenings.map, events: events.map }),
+    [films.map, venues.map, screenings.map, events.map, colName] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+}
+
+// ---------- "Tell attendees?" after changing a screening or event ----------
+
+const CHANGE_KEYS = ['date', 'time', 'venue', 'screen', 'place', 'status'];
+
+// If an admin/editor changed when or where something happens, suggest an alert.
+function suggestAlert(col, before, after, refs) {
+  if (!before || (col !== 'screenings' && col !== 'events')) return null;
+  if (!CHANGE_KEYS.some((k) => (before[k] || '') !== (after[k] || ''))) return null;
+  const title = col === 'screenings' ? refs.films?.[after.film]?.title || 'Screening' : after.title;
+  const where = [refs.venues?.[after.venue]?.name, after.screen || after.place].filter(Boolean).join(', ');
+  const when = `${after.date ? dayLabel(after.date) : ''} at ${after.time ? timeLabel(after.time) : ''}`;
+  let draft;
+  if (after.status === 'cancelled' && before.status !== 'cancelled') {
+    draft = { type: 'cancelled', title: `${title} cancelled`, body: `${title} (${when}${where ? `, ${where}` : ''}) has been cancelled.` };
+  } else if ((before.venue || '') !== (after.venue || '') || (before.screen || before.place || '') !== (after.screen || after.place || '') || after.status === 'moved') {
+    draft = { type: 'venue-change', title: `${title} moved`, body: `${title} is now at ${where}, ${when}.` };
+  } else {
+    draft = { type: 'time-change', title: `${title}: new time`, body: `${title} is now ${when}${where ? `, ${where}` : ''}.` };
+  }
+  return { ...draft, [col === 'screenings' ? 'screening' : 'event']: after.__id };
+}
+
+function AlertSuggestion({ draft, profile, onDone }) {
+  const [d, setD] = useState(draft);
+  const [state, setState] = useState({ busy: false, msg: '', error: '' });
+  const post = async () => {
+    setState({ busy: true, msg: '', error: '' });
+    try {
+      const { __id, ...clean } = d; // eslint-disable-line no-unused-vars
+      const news = { ...clean, urgent: true, time: new Date().toISOString(), url: '', until: '' };
+      const id = `alert-${Date.now().toString(36)}`;
+      const result = await saveItem({ profile, col: 'news', id, data: news, before: null, summary: `New alert: ${news.title}` });
+      setState({ busy: false, error: '', msg: result === 'saved' ? 'Alert saved. Press Publish to app so attendees see it.' : 'Alert sent for approval.' });
+      setTimeout(onDone, 2500);
+    } catch (e) {
+      setState({ busy: false, msg: '', error: e.message });
+    }
+  };
+  return (
+    <div className="ad-card ad-suggest">
+      <h2 className="ad-h2"><Bell size={18} /> Tell attendees?</h2>
+      <p className="muted small">You changed when or where this happens. Post an urgent alert? It shows as a banner on Home and in News, linked to this item.</p>
+      <label className="ad-field">Headline<input value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} /></label>
+      <label className="ad-field">Message<textarea rows={3} value={d.body} onChange={(e) => setD({ ...d, body: e.target.value })} /></label>
+      {state.error && <p className="ad-error">{state.error}</p>}
+      {state.msg && <p className="ad-note">{state.msg}</p>}
+      <div className="ad-actions">
+        <button type="button" className="btn btn-gold btn-small" onClick={post} disabled={state.busy || !!state.msg}>{state.busy ? 'Posting…' : 'Post alert'}</button>
+        <button type="button" className="btn btn-outline btn-small" onClick={onDone} disabled={state.busy}>No thanks</button>
+      </div>
+    </div>
+  );
 }
 
 export function DataList({ col }) {
@@ -169,11 +229,14 @@ function Field({ f, value, onChange, refs }) {
       </select>
     );
   } else if (f.type === 'ref') {
-    const opts = Object.values(refs[f.ref] || {}).sort((a, b) => (a.title || a.name || '').localeCompare(b.title || b.name || ''));
+    // label each option the way its own list does (e.g. a screening shows film · day · time)
+    const rc = COLLECTIONS[f.ref];
+    const labelOf = (o) => (rc ? [rc.label(o, refs), f.ref === 'screenings' ? rc.sub(o, refs) : ''].filter(Boolean).join(' · ') : o.title || o.name);
+    const opts = Object.values(refs[f.ref] || {}).sort(rc?.sort || ((a, b) => labelOf(a).localeCompare(labelOf(b))));
     input = (
       <select {...common}>
         <option value="">{f.required ? 'Choose…' : '— none —'}</option>
-        {opts.map((o) => <option key={o.id} value={o.id}>{o.title || o.name}</option>)}
+        {opts.map((o) => <option key={o.id} value={o.id}>{labelOf(o)}</option>)}
       </select>
     );
   } else {
@@ -197,6 +260,7 @@ export function ItemForm({ col, id, profile }) {
   const existing = isNew ? null : map[id];
   const [values, setValues] = useState(null);
   const [status, setStatus] = useState({ busy: false, msg: '', error: '' });
+  const [alertDraft, setAlertDraft] = useState(null);
 
   // fill the form once the item has loaded
   if (values == null && (isNew || existing)) {
@@ -232,6 +296,7 @@ export function ItemForm({ col, id, profile }) {
       const docId = isNew ? `${slugify(c.idFrom ? data[c.idFrom] : label)}-${Math.random().toString(36).slice(2, 6)}` : id;
       const result = await saveItem({ profile, col, id: docId, data, before: strip(existing), summary: `${isNew ? 'New' : 'Edit'} ${c.single}: ${label}` });
       setStatus({ busy: false, error: '', msg: result === 'saved' ? 'Saved in the database. Attendees see it after an admin presses Publish to app.' : 'Sent for approval. An admin will review it.' });
+      setAlertDraft(suggestAlert(col, strip(existing), { ...data, __id: docId }, refs));
       if (isNew && result === 'saved') window.location.hash = `#/admin/data/${col}/${encodeURIComponent(docId)}`;
     } catch (err) {
       setStatus({ busy: false, msg: '', error: `Couldn't save: ${err.message}` });
@@ -266,6 +331,7 @@ export function ItemForm({ col, id, profile }) {
           {!isNew && <button type="button" className="btn btn-outline ad-danger" onClick={remove} disabled={status.busy}>Delete</button>}
         </div>
       </form>
+      {alertDraft && <AlertSuggestion draft={alertDraft} profile={profile} onDone={() => setAlertDraft(null)} />}
     </div>
   );
 }

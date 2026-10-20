@@ -1,5 +1,5 @@
 import { signOut } from 'firebase/auth';
-import { CheckSquare, ClipboardList, Database, LogOut, Send, Users, UserCheck } from 'lucide-react';
+import { BarChart3, CheckSquare, ClipboardList, Database, LogOut, Send, Users, UserCheck } from 'lucide-react';
 import { auth } from './firebase.js';
 import { ROLES, createProfile, useAdminAuth } from './useAdminAuth.js';
 import Login from './Login.jsx';
@@ -10,6 +10,7 @@ import { useChanges } from './data.js';
 import { COLLECTIONS } from './schema.js';
 import DoorCounter from './DoorCounter.jsx';
 import Publish from './Publish.jsx';
+import Reports from './Reports.jsx';
 import { venueById } from '../data/programme.js';
 import './admin.css';
 
@@ -18,6 +19,7 @@ const SECTIONS = [
   { id: 'team', title: 'Team', text: 'Give people roles and venues', Icon: Users, roles: ['admin'] },
   { id: 'data', title: 'Festival data', text: 'Films, screenings, events, venues, news, sponsors, How to attend', Icon: Database, roles: ['admin', 'editor'] },
   { id: 'publish', title: 'Publish to app', text: 'Send the latest data to attendees\' phones', Icon: Send, roles: ['admin'] },
+  { id: 'reports', title: 'Reports', text: 'Most planned, ratings and app usage', Icon: BarChart3, roles: ['admin'] },
   { id: 'approvals', title: 'Approvals', text: 'Check editors\' changes before attendees see them', Icon: CheckSquare, roles: ['admin'] },
   { id: 'mine', title: 'My changes', text: 'Changes you sent for approval', Icon: ClipboardList, roles: ['editor'] },
   { id: 'door', title: 'Door counter', text: 'Big +1 / −1 buttons for queue and seats', Icon: UserCheck, roles: ['admin', 'volunteer'] },
@@ -123,6 +125,8 @@ function Section({ section, rest, profile }) {
       return <Team me={profile} />;
     case 'approvals':
       return <Approvals profile={profile} />;
+    case 'reports':
+      return <Reports />;
     case 'publish':
       return <Publish profile={profile} />;
     case 'door':

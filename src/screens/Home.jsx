@@ -3,6 +3,7 @@ import { ArrowRight, BookmarkCheck, CalendarDays, ChevronRight, Info, MapPin, Us
 import HowToAttend from '../components/HowToAttend.jsx';
 import SponsorMarquee from '../components/SponsorMarquee.jsx';
 import { JuryRow } from '../components/JuryBits.jsx';
+import { activeBanner, newsLink, statusTag } from '../lib/alerts.js';
 import { FESTIVAL, FILMS, NEWS, SCREENINGS, VENUES, filmById, venueById } from '../data/programme.js';
 import { dateParts, queueLabel, runtimeLabel, timeLabel } from '../lib/format.js';
 import { Poster } from '../components/Bits.jsx';
@@ -30,14 +31,18 @@ function useCountdown(target) {
 }
 
 function NewsBanner() {
-  const urgent = NEWS.find((n) => n.urgent);
+  // newest urgent alert that hasn't passed its "show until" time
+  const urgent = activeBanner();
   const [hidden, setHidden] = useState(false);
   if (!urgent || hidden) return null;
+  const link = newsLink(urgent);
+  const title = /[.!?:]$/.test(urgent.title) ? urgent.title : `${urgent.title}.`;
   return (
     <div className="news-banner" role="status">
       <AlertTriangle size={20} className="news-banner-icon" />
-      <a href="#/news" className="news-banner-text">
-        <strong>{urgent.title}.</strong> {urgent.body}
+      <a href={link?.href || '#/news'} className="news-banner-text">
+        <strong>{title}</strong> {urgent.body}
+        {link && <span className="news-banner-cta"> {link.label} →</span>}
       </a>
       <button type="button" className="icon-btn" aria-label="Dismiss" onClick={() => setHidden(true)}>
         <X size={18} />
@@ -136,7 +141,7 @@ export function ListingCard({ screening }) {
           <span className="listing-time">{timeLabel(screening.time)} · {runtimeLabel(film.runtime)}</span>
           {label?.text === 'Full' && <span className="full">Full</span>}
         </div>
-        <span className="listing-title">{film.title}</span>
+        <span className={`listing-title${screening.status === 'cancelled' ? ' struck' : ''}`}>{film.title} {statusTag(screening.status) && <span className={`status-tag tone-${statusTag(screening.status).tone}`}>{statusTag(screening.status).text}</span>}</span>
         <span className="listing-venue">
           <span className="dot" style={{ background: venue.color }} /> {venue.name}, {screening.screen}
         </span>

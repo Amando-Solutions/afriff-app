@@ -11,15 +11,14 @@ import { seedData } from './schema.js';
 // Live list of one collection, e.g. useCollection('films')
 export function useCollection(name) {
   const [state, setState] = useState({ items: null, error: '' });
-  useEffect(
-    () =>
-      onSnapshot(
-        collection(db, name),
-        (snap) => setState({ items: snap.docs.map((d) => ({ id: d.id, ...d.data() })), error: '' }),
-        (e) => setState({ items: [], error: e.message })
-      ),
-    [name]
-  );
+  useEffect(() => {
+    if (!name) return undefined; // nothing to load (saves database reads)
+    return onSnapshot(
+      collection(db, name),
+      (snap) => setState({ items: snap.docs.map((d) => ({ id: d.id, ...d.data() })), error: '' }),
+      (e) => setState({ items: [], error: e.message })
+    );
+  }, [name]);
   const map = Object.fromEntries((state.items || []).map((i) => [i.id, i]));
   return { ...state, map };
 }

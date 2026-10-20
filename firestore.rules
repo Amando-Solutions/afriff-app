@@ -60,6 +60,18 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ---------- Anonymous counts from attendees' phones (for Reports) ----------
+    // Phones (not logged in) can write only their own small record with these
+    // fields; only admins can read them.
+    match /usage/{deviceId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if deviceId.size() <= 64
+        && request.resource.data.keys().hasOnly(['v', 'updatedAt', 'planned', 'seen', 'days'])
+        && request.resource.data.planned is list && request.resource.data.planned.size() <= 400
+        && request.resource.data.seen is map && request.resource.data.seen.size() <= 300
+        && request.resource.data.days is list && request.resource.data.days.size() <= 60;
+    }
+
     // ---------- Live queue counts ----------
     // Anyone can read. Volunteers can only update screenings at their own venue.
     match /queues/{screeningId} {

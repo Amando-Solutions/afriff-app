@@ -14,6 +14,22 @@ import { dayLabel, timeLabel } from '../lib/format.js';
 const dayOptions = FESTIVAL.days.map((d) => ({ value: d, label: `${dayLabel(d)} · ${DAY_THEMES[d] || ''}` }));
 const tagOptions = [{ value: 'Public', label: 'Public' }, { value: 'Industry', label: 'Industry' }];
 
+// Shown as a tag on the item everywhere attendees see it
+export const STATUS_OPTIONS = [
+  { value: 'moved', label: 'Moved (new venue or room)' },
+  { value: 'time-changed', label: 'Time changed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+const statusField = { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, hint: 'Leave empty when it is going ahead as planned. Changing it here offers to post an alert.' };
+
+export const NEWS_TYPES = [
+  { value: 'venue-change', label: 'Venue change' },
+  { value: 'time-change', label: 'Time change' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'sold-out', label: 'Sold out' },
+  { value: 'news', label: 'News' },
+];
+
 export const COLLECTIONS = {
   films: {
     title: 'Films', single: 'film', idFrom: 'title',
@@ -48,6 +64,7 @@ export const COLLECTIONS = {
       { key: 'time', label: 'Start time', type: 'time', required: true },
       { key: 'tag', label: 'Public or Industry', type: 'select', required: true, options: tagOptions },
       { key: 'capacity', label: 'Seats', type: 'number', required: true },
+      statusField,
     ],
   },
 
@@ -73,6 +90,7 @@ export const COLLECTIONS = {
       { key: 'tag', label: 'Public or Industry', type: 'select', options: tagOptions },
       { key: 'link.label', label: 'Button text', type: 'text', hint: 'e.g. Register on afriff.com' },
       { key: 'link.url', label: 'Button link', type: 'url' },
+      statusField,
     ],
   },
 
@@ -97,7 +115,11 @@ export const COLLECTIONS = {
     fields: [
       { key: 'title', label: 'Headline', type: 'text', required: true },
       { key: 'body', label: 'Message', type: 'textarea', required: true },
+      { key: 'type', label: 'Type', type: 'select', options: NEWS_TYPES, hint: 'Shown as a coloured tag. Leave empty for general news.' },
       { key: 'urgent', label: 'Urgent (shows as a banner at the top of Home)', type: 'checkbox' },
+      { key: 'until', label: 'Show the banner until (optional)', type: 'datetime', hint: 'After this time the banner disappears, but the item stays in News.' },
+      { key: 'screening', label: 'About this screening (optional)', type: 'ref', ref: 'screenings' },
+      { key: 'event', label: 'About this event (optional)', type: 'ref', ref: 'events' },
       { key: 'time', label: 'Date and time (Lagos)', type: 'datetime', required: true },
       { key: 'url', label: 'Link for more (optional)', type: 'url' },
     ],

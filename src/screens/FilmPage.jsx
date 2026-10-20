@@ -3,7 +3,7 @@ import { ArrowRight, Check, ChevronLeft, Clock, Eye, Play, Plus } from 'lucide-r
 import { FESTIVAL, SCREENINGS, filmById, venueById } from '../data/programme.js';
 import { dateParts, initials, queueLabel, runtimeLabel, screeningStart, timeLabel } from '../lib/format.js';
 import { queueAt, useLiveClock } from '../lib/queues.js';
-import { Poster, VenueDot } from '../components/Bits.jsx';
+import { Poster, StatusTag, VenueDot } from '../components/Bits.jsx';
 import { useFestival } from '../lib/store.jsx';
 
 function TopBar({ film }) {
@@ -38,7 +38,8 @@ function Showtime({ screening }) {
           <span className="big-num">{String(p.date).padStart(2, '0')}</span>
           <span className="showtime-mon">{p.monthUpper} {p.day.toUpperCase()}</span>
         </div>
-        <span className="showtime-time">{timeLabel(screening.time)}</span>
+        <span className={`showtime-time${screening.status === 'cancelled' ? ' struck' : ''}`}>{timeLabel(screening.time)}</span>
+        <StatusTag status={screening.status} />
         <span className="venue-line"><VenueDot venueId={venue.id} /> {venue.name}</span>
         <span className="muted small">{screening.screen}</span>
         <span className={`pill${screening.tag === 'Industry' ? ' pill-alt' : ''}`}>{screening.tag}</span>

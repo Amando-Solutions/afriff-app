@@ -496,6 +496,50 @@ heavy libraries) apply everywhere.
   line "Competition films are judged by the International Jury → Meet
   the jury". No new tab.
 
+- Jury saved (commit 2fb8724) and DEPLOYED 20 Oct 2026. Live relay
+  returns 200 with the user's 12:06 UTC publish (no jury/logos yet).
+
+### Step 4 + alerts (step 5) + reports (built 20 Oct 2026)
+- STEP 4: `src/lib/store.jsx` saves plans (screenings + events), Seen it
+  (date + 1–5 stars) and queues checked on the phone (localStorage key
+  `afriff-my-v1`). First visit starts EMPTY (demo sample picks removed).
+- ALERTS (step 5, no push notifications):
+  - Console: screenings/events have `status` ('' / moved / time-changed
+    / cancelled). News has `type` (venue-change, time-change, cancelled,
+    sold-out, news), `urgent`, `until` (banner end time), optional
+    linked `screening` / `event`. After saving a screening/event whose
+    date/time/venue/screen/place/status changed, the form offers
+    "Tell attendees?" with a prefilled urgent alert (editors → approval).
+  - App (`src/lib/alerts.js`): Home banner = newest urgent alert before
+    its `until`, links to the item; bell = unread count per phone
+    (`afriff-news-seen`), cleared on opening News; News shows type tags
+    and "View screening/event"; `StatusTag` on schedule rows, timeline
+    (cancelled faded), film showtimes, event page, Home opening day,
+    My plan sheet, My Festival rows; My Festival "N of your plans
+    changed" card; cancelled screenings get no queue.
+- REPORTS (user chose: sharing ON by default with a switch; all three
+  reports):
+  - Phones (`src/lib/usage.js`) PATCH `usage/{randomDeviceId}` via
+    Firestore REST: planned IDs, seen {filmId: rating}, active days,
+    updatedAt. Only if changed, at most every 30 min. No personal info.
+    Switch in My Festival (`afriff-share`); turning off sends an empty
+    record (clears). Laptop dev build never sends unless `?share=1`.
+  - Rules: anyone may write their own usage doc with exactly those
+    fields and size caps; only admins read. USER MUST REPUBLISH RULES.
+  - Admin Reports page (`src/admin/Reports.jsx`, #/admin/reports,
+    admins): Load reports button (reads 1 doc per phone + published
+    bundle for names). Tiles (phones sharing, active today, plans,
+    ratings), Most planned by day with "May sell out" flag (planned ≥
+    80% of seats), Highest rated (≥3 ratings) and Most seen, App usage
+    bars per festival day; CSV download per table.
+  - Free-plan note: ~1–3 writes per phone per day; Spark allows 20,000
+    writes/day, so roughly 7–10k sharing phones/day before limits.
+    Reports page reads one doc per phone per load.
+- Tested on laptop: persistence across reload; fake published alert →
+  banner/link, bell unread/cleared, struck + tags, film page tag, My
+  Festival warning; usage payload captured (not sent) and switch-off
+  clear. NOT tested by Claude: Reports page (needs admin login).
+
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`
   (`npx.cmd`, not `npx`: Windows PowerShell blocks npx.ps1 scripts on

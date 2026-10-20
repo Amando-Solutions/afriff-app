@@ -2,7 +2,8 @@ import { useRef } from 'react';
 import { ArrowUpRight, Check, Download, ListChecks, Share2, Star } from 'lucide-react';
 import { FILMS } from '../data/programme.js';
 import { dateParts, timeLabel } from '../lib/format.js';
-import { PageTitle, Poster, VenueDot } from '../components/Bits.jsx';
+import { PageTitle, Poster, StatusTag, VenueDot } from '../components/Bits.jsx';
+import { statusTag } from '../lib/alerts.js';
 import { EventThumb } from '../components/EventBits.jsx';
 import { planItems } from '../lib/plan.js';
 import { useFestival } from '../lib/store.jsx';
@@ -98,11 +99,12 @@ function Diary({ sectionRef }) {
 }
 
 export default function MyFestival() {
-  const { scheduled, watched, queuesChecked, toggleScheduled } = useFestival();
+  const { scheduled, watched, queuesChecked, toggleScheduled, sharing, setSharing } = useFestival();
   const diaryRef = useRef(null);
   const mine = planItems(scheduled);
   const nFilms = mine.filter((i) => i.kind === 'screening').length;
   const nEvents = mine.length - nFilms;
+  const changed = mine.filter((i) => statusTag(i.status));
   const byDay = mine.reduce((acc, s) => {
     (acc[s.date] ||= []).push(s);
     return acc;
@@ -115,6 +117,17 @@ export default function MyFestival() {
       <p className="muted">
         {nFilms} screening{nFilms === 1 ? '' : 's'}{nEvents > 0 ? ` and ${nEvents} event${nEvents === 1 ? '' : 's'}` : ''} over {days.length} day{days.length === 1 ? '' : 's'}
       </p>
+
+      {changed.length > 0 && (
+        <div className="plan-changed" role="status">
+          <strong>{changed.length} of your plans changed</strong>
+          {changed.map((i) => (
+            <a key={i.id} href={i.href} className="plan-changed-row">
+              <StatusTag status={i.status} /> {i.title}
+            </a>
+          ))}
+        </div>
+      )}
 
       <div className="stat-tiles">
         <button type="button" className="stat-tile" onClick={() => diaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
@@ -155,7 +168,8 @@ export default function MyFestival() {
                     {item.kind === 'screening' ? <Poster film={item.film} className="poster-thumb" /> : <EventThumb event={item.event} />}
                     <span className="my-row-body">
                       <span className="muted small">{timeLabel(item.time)} – {timeLabel(item.end)}{item.typeLabel ? ` · ${item.typeLabel}` : ''}</span>
-                      <span className="my-row-title">{item.title}</span>
+                      <span className={`my-row-title${item.status === 'cancelled' ? ' struck' : ''}`}>{item.title}</span>
+                      <StatusTag status={item.status} />
                       <span className="venue-line">{item.venue && <VenueDot venueId={item.venue} />} {item.where}</span>
                     </span>
                   </a>
@@ -172,6 +186,13 @@ export default function MyFestival() {
       <Diary sectionRef={diaryRef} />
 
       <p className="footnote">Kept on this phone. No account needed.</p>
+      <label className="share-row">
+        <span className="share-text">
+          <span className="share-title">Share anonymous counts with AFRIFF</span>
+          <span className="muted small">No names or contact details: just which screenings are planned and how films are rated, to help plan the festival.</span>
+        </span>
+        <input type="checkbox" role="switch" className="switch" checked={sharing} onChange={(e) => setSharing(e.target.checked)} />
+      </label>
     </div>
   );
 }

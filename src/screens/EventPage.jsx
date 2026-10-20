@@ -2,7 +2,7 @@ import { ArrowUpRight, Check, ChevronLeft, Clock, Navigation, Plus, Ticket } fro
 import { EVENT_TYPES, eventById, isMultiDay } from '../data/events.js';
 import { venueById } from '../data/programme.js';
 import { dateParts, initials, timeLabel, toMinutes } from '../lib/format.js';
-import { VenueDot } from '../components/Bits.jsx';
+import { StatusTag, VenueDot } from '../components/Bits.jsx';
 import { EventThumb } from '../components/EventBits.jsx';
 import { directionsUrl } from '../components/HowToAttend.jsx';
 import { useFestival } from '../lib/store.jsx';
@@ -55,7 +55,8 @@ export default function EventPage({ param }) {
         <span className="event-hero-type">{type.label}</span>
       </div>
 
-      <h1 className="film-title">{event.title}</h1>
+      <h1 className={`film-title${event.status === 'cancelled' ? ' struck' : ''}`}>{event.title}</h1>
+      <StatusTag status={event.status} />
       <p className="muted small"><Ticket size={14} style={{ verticalAlign: '-2px' }} /> {event.access}</p>
 
       {event.link && (

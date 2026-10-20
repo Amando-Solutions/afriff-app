@@ -3,7 +3,7 @@ import { EVENT_TYPES, isMultiDay } from '../data/events.js';
 import { venueById } from '../data/programme.js';
 import { dateParts, time12, timeLabel } from '../lib/format.js';
 import { useFestival } from '../lib/store.jsx';
-import { AddButton, VenueDot } from './Bits.jsx';
+import { AddButton, StatusTag, VenueDot } from './Bits.jsx';
 
 // Icon and colours for each kind of event (used where films show a poster)
 const LOOK = {
@@ -43,9 +43,9 @@ export function EventRow({ event }) {
           )}
         </div>
         <div className="row-body">
-          <span className="row-title">{event.title}</span>
+          <span className={`row-title${event.status === 'cancelled' ? ' struck' : ''}`}>{event.title}</span>
           {event.speaker && <span className="event-speaker">with {event.speaker}</span>}
-          <span className="venue-line">{event.venue && <VenueDot venueId={event.venue} />} {eventWhere(event)}</span>
+          <span className="venue-line">{event.venue && <VenueDot venueId={event.venue} />} {eventWhere(event)} <StatusTag status={event.status} /></span>
           <span className="row-cat gold">{EVENT_TYPES[event.type].label}{event.access?.startsWith('Free') ? ' · Free' : ''}</span>
         </div>
         <EventThumb event={event} />

@@ -18,6 +18,7 @@ const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)
 
 // The count posted at or before time t, or null if the queue isn't open.
 export function queueAt(screening, t = now().getTime()) {
+  if (screening.status === 'cancelled') return null;
   const startMs = screeningStart(screening).getTime();
   const slot = POST_EVERY_MINUTES * 60000;
   const postedAt = Math.floor(t / slot) * slot;

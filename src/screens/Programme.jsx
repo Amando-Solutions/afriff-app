@@ -3,7 +3,7 @@ import { Award, BarChart3, CalendarDays, Check, Clapperboard, Eye, Film, List, L
 import { FESTIVAL, FILMS, SCREENINGS, SECTIONS, VENUES, filmById, venueById } from '../data/programme.js';
 import { dateParts, fromMinutes, time12, timeLabel, toMinutes } from '../lib/format.js';
 import { lagosDate, lagosMinutes } from '../lib/now.js';
-import { AddButton, PageTitle, Poster, QueueTag, VenueDot } from '../components/Bits.jsx';
+import { AddButton, PageTitle, Poster, QueueTag, StatusTag, VenueDot } from '../components/Bits.jsx';
 import BottomSheet from '../components/BottomSheet.jsx';
 import { useFestival } from '../lib/store.jsx';
 import { queueAt, useLiveClock } from '../lib/queues.js';
@@ -20,13 +20,13 @@ function dayItems(day, type = 'all') {
   const films = type === 'events' ? [] : SCREENINGS.filter((s) => s.date === day).map((s) => {
     const film = filmById(s.film);
     const start = toMinutes(s.time);
-    return { kind: 'screening', id: s.id, time: s.time, start, end: start + film.runtime, venue: s.venue, lane: s.screen, title: film.title, href: `#/film/${film.id}`, tag: s.tag, screening: s };
+    return { kind: 'screening', id: s.id, time: s.time, start, end: start + film.runtime, venue: s.venue, lane: s.screen, title: film.title, href: `#/film/${film.id}`, tag: s.tag, status: s.status, screening: s };
   });
   const events = type === 'films' ? [] : eventsOn(day).map((e) => {
     const start = toMinutes(e.time);
     let end = toMinutes(e.end);
     if (end <= start) end += 24 * 60; // runs past midnight
-    return { kind: 'event', id: e.id, time: e.time, start, end, venue: e.venue, lane: e.place || 'Event', title: e.title, href: `#/event/${e.id}`, tag: e.tag || 'Public', event: e };
+    return { kind: 'event', id: e.id, time: e.time, start, end, venue: e.venue, lane: e.place || 'Event', title: e.title, href: `#/event/${e.id}`, tag: e.tag || 'Public', status: e.status, event: e };
   });
   return [...films, ...events].sort((a, b) => a.start - b.start || (a.kind === 'screening' ? -1 : 1));
 }
@@ -120,8 +120,8 @@ function ScreeningRow({ screening, clock }) {
           <span className="row-time-ampm">{t.ampm}</span>
         </div>
         <div className="row-body">
-          <span className="row-title">{film.title}</span>
-          <span className="venue-line"><VenueDot venueId={venue.id} /> {venue.name}</span>
+          <span className={`row-title${screening.status === 'cancelled' ? ' struck' : ''}`}>{film.title}</span>
+          <span className="venue-line"><VenueDot venueId={venue.id} /> {venue.name} <StatusTag status={screening.status} /></span>
           {queue && <QueueTag queue={queue} />}
           <span className="row-cat">{film.section}{screening.tag === 'Industry' ? ' · Industry' : ''}</span>
         </div>
@@ -185,7 +185,7 @@ function Timeline({ items, day }) {
                       <a
                         key={i.id}
                         href={i.href}
-                        className={`tl-block${mine ? ' mine' : ''}${i.kind === 'event' ? ' event' : ''}`}
+                        className={`tl-block${mine ? ' mine' : ''}${i.kind === 'event' ? ' event' : ''}${i.status === 'cancelled' ? ' cancelled' : ''}`}
                         style={{ left: x(i.start), width: Math.max(64, x(i.end) - x(i.start) - 4), background: `${place.color}24`, borderColor: `${place.color}66` }}
                       >
                         <span className="tl-block-title">{mine && <Check size={13} strokeWidth={3} />} {i.title}</span>
@@ -217,7 +217,7 @@ function MyPlanSheet({ day, onClose }) {
           <div key={item.id} className="plan-row">
             <span className="plan-time">{timeLabel(item.time)}</span>
             <a href={item.href} className="plan-body" onClick={onClose}>
-              <span className="plan-title">{item.title}</span>
+              <span className="plan-title">{item.title} <StatusTag status={item.status} /></span>
               {item.typeLabel && <span className="row-cat gold">{item.typeLabel}</span>}
               <span className="venue-line">{item.venue && <VenueDot venueId={item.venue} />} {item.where}</span>
             </a>

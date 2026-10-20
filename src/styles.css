@@ -747,3 +747,35 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 }
 .jury-pointer svg { color: var(--gold-light); flex: none; }
 .jury-pointer span { margin-left: auto; color: var(--gold-light); white-space: nowrap; }
+
+/* My Festival: anonymous sharing switch */
+.share-row { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 14px; border-radius: var(--radius-sm); background: var(--card); border: 1px solid var(--border); }
+.share-text { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.share-title { font-weight: 700; font-size: 14.5px; }
+.switch { appearance: none; -webkit-appearance: none; flex: none; width: 46px; height: 28px; border-radius: 14px; background: var(--raised); border: 1px solid var(--border); position: relative; cursor: pointer; transition: background .15s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.switch:checked { background: var(--gold); border-color: var(--gold); }
+.switch:checked::after { transform: translateX(18px); background: #1a1205; }
+.switch:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+
+/* ---------- Alerts: status tags, changed plans, news ---------- */
+.status-tag {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 800;
+  letter-spacing: .4px; text-transform: uppercase; background: var(--raised); vertical-align: 1px; white-space: nowrap; align-self: flex-start;
+}
+.status-tag.tone-alert { color: var(--alert); background: rgba(243, 123, 107, 0.14); }
+.status-tag.tone-gold { color: var(--gold-light); background: rgba(219, 164, 64, 0.14); }
+.struck { text-decoration: line-through; text-decoration-color: var(--alert); opacity: .75; }
+.tl-block.cancelled { opacity: .45; }
+.tl-block.cancelled .tl-block-title { text-decoration: line-through; }
+.plan-changed {
+  display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding: 14px;
+  border-radius: var(--radius-sm); background: rgba(243, 123, 107, 0.1); border: 1px solid rgba(243, 123, 107, 0.45);
+}
+.plan-changed strong { color: var(--alert); }
+.plan-changed-row { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.news-tags { display: flex; gap: 6px; }
+.news-tags:empty { display: none; }
+.label.tone-muted { color: var(--muted); }
+.news-card .btn { align-self: flex-start; }
+.news-banner-cta { color: var(--gold-light); font-weight: 700; white-space: nowrap; }

@@ -1,10 +1,10 @@
 import { Bell, CalendarDays, Home, Users, BookmarkCheck } from 'lucide-react';
-import { NEWS } from '../data/programme.js';
+import { useUnreadCount } from '../lib/alerts.js';
 
 // Header and bottom navigation shown on every screen.
 
 export function Header() {
-  const unread = NEWS.length;
+  const unread = useUnreadCount(); // news this phone hasn't seen yet
   return (
     <header className="header">
       <a href="#/" className="brand" aria-label="AFRIFF home">

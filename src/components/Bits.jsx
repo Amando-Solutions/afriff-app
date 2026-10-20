@@ -1,6 +1,7 @@
 import { Check, Plus } from 'lucide-react';
 import { venueById } from '../data/programme.js';
 import { queueLabel } from '../lib/format.js';
+import { statusTag } from '../lib/alerts.js';
 
 // Small building blocks reused across screens.
 
@@ -72,4 +73,11 @@ export function PageTitle({ icon: Icon, children }) {
       {Icon && <Icon size={30} strokeWidth={1.8} className="page-title-icon" />}
     </h1>
   );
+}
+
+// "Cancelled" / "Moved" / "Time changed", set on a screening or event in the console
+export function StatusTag({ status }) {
+  const t = statusTag(status);
+  if (!t) return null;
+  return <span className={`status-tag tone-${t.tone}`}>{t.text}</span>;
 }

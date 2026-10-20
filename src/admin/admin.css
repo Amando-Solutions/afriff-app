@@ -130,3 +130,22 @@
 .door-btn:disabled { opacity: .35; }
 .door-btn:active { transform: scale(0.96); }
 .door-full { width: 100%; height: 52px; }
+
+.ad-suggest { max-width: none; margin-top: 16px; border-color: var(--gold); }
+
+/* ---------- Reports ---------- */
+.rep-tiles { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); margin-top: 14px; }
+.rep-section { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; }
+.rep-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rep-select { align-self: flex-start; height: 42px; padding: 0 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font: inherit; }
+.rep-sub { font-size: 15px; font-weight: 700; margin-top: 6px; }
+.rep-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rep-row { display: flex; align-items: center; gap: 14px; padding: 10px 2px; border-bottom: 1px solid var(--divider); }
+.rep-count { width: 56px; flex: none; font-size: 20px; font-weight: 800; color: var(--gold-light); font-variant-numeric: tabular-nums; }
+.rep-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rep-title { font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rep-bars { display: flex; flex-direction: column; gap: 8px; }
+.rep-bar-row { display: grid; grid-template-columns: 90px 1fr 44px; align-items: center; gap: 10px; font-size: 13px; }
+.rep-bar-track { height: 12px; border-radius: 6px; background: var(--raised); overflow: hidden; }
+.rep-bar { display: block; height: 100%; background: var(--gold); border-radius: 6px; }
+.rep-bar-n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
