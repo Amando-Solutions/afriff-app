@@ -600,6 +600,9 @@ heavy libraries) apply everywhere.
   To reach attendees: Add missing festival data (fills `image` on the
   existing masterclasses, touches nothing else) → Publish to app.
   Host these files ourselves before launch, like posters.
+  Saved (commit def61e8) and DEPLOYED 20 Oct 2026. Live published copy
+  doesn't have the graphics yet → USER: Add missing festival data, then
+  Publish to app.
 - If new console fields seem missing: reload the console tab (an open
   tab keeps the old code until reloaded). The new film fields are at
   the BOTTOM of the film form, under Synopsis.
