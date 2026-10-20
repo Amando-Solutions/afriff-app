@@ -109,6 +109,8 @@ export const COLLECTIONS = {
     sort: (a, b) => (a.order ?? 99) - (b.order ?? 99),
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
+      { key: 'logo', label: 'Logo image link', type: 'url', hint: 'Shown on a light tile, so dark logos work best' },
+      { key: 'website', label: 'Website (optional, opens when the logo is tapped)', type: 'url' },
       { key: 'order', label: 'Position in the strip (0 = first)', type: 'number' },
     ],
   },
@@ -181,7 +183,7 @@ export function seedData() {
     events: EVENTS.map((e) => [e.id, strip(e)]),
     venues: VENUES.map((v) => [v.id, strip(v)]),
     news: NEWS.map((n) => [n.id, strip(n)]),
-    sponsors: SPONSORS.map((name, i) => [slugify(name), { name, order: i }]),
+    sponsors: SPONSORS.map((s, i) => [slugify(s.name), { ...s, order: i }]),
     howToAttend: HOW_TO_ATTEND.map((h, i) => [h.id, { ...strip(h), order: i }]),
   };
 }

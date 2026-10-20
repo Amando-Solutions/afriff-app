@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, DownloadCloud, Plus, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, DownloadCloud, Plus, Save, Search } from 'lucide-react';
 import { COLLECTIONS, COLLECTION_ORDER, fromForm, slugify, toForm } from './schema.js';
-import { deleteItem, importAll, saveItem, useCollection } from './data.js';
+import { deleteItem, downloadBackup, importAll, saveItem, useCollection } from './data.js';
 
 // ---------- Festival data home: one card per kind of data ----------
 
@@ -19,36 +19,62 @@ function CountCard({ name }) {
   );
 }
 
+const listCounts = (counts) =>
+  Object.entries(counts).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${(COLLECTIONS[k]?.title || k).toLowerCase()}`).join(', ');
+
 function ImportPanel() {
   const [state, setState] = useState({ busy: false, done: null, error: '', progress: '' });
   const run = async () => {
-    const ok = window.confirm(
-      'Load the built-in festival data into the database?\n\nThis copies the 68 films, sample screenings, events, venues, news, sponsors and How to attend text. Items with the same name are replaced, so any edits made to those items here will be overwritten.'
-    );
-    if (!ok) return;
-    setState({ busy: true, done: null, error: '', progress: 'Starting…' });
+    setState({ busy: true, done: null, error: '', progress: 'Checking what\'s already there…' });
     try {
-      const done = await importAll((n, total) => setState((s) => ({ ...s, progress: `${n} of ${total} saved…` })));
+      const done = await importAll((n, total) => setState((s) => ({ ...s, progress: `${n} of ${total} added…` })));
       setState({ busy: false, done, error: '', progress: '' });
     } catch (e) {
       setState({ busy: false, done: null, error: e.message, progress: '' });
     }
   };
+  const added = state.done && listCounts(state.done.added);
+  const kept = state.done && Object.values(state.done.kept).reduce((a, b) => a + b, 0);
   return (
     <div className="ad-card ad-import">
-      <h2 className="ad-h2"><DownloadCloud size={20} /> Load the current festival data</h2>
+      <h2 className="ad-h2"><DownloadCloud size={20} /> Festival data from afriff.com</h2>
       <p className="muted small">
-        One-time setup: copies everything the attendee app shows today (films from afriff.com, sample times, events, venues, news, sponsors, How to attend) into the database, so your team can start editing.
+        Copies the films, events, venues, partners and How to attend text collected from afriff.com (plus sample times) into the database. It only adds what's missing (whole items, or new fields like sponsor logos): anything already filled in, including your team's edits, is never overwritten, so it's safe to press again.
       </p>
       <button type="button" className="btn btn-gold btn-small" onClick={run} disabled={state.busy}>
-        {state.busy ? state.progress : 'Load festival data'}
+        {state.busy ? state.progress : 'Add missing festival data'}
       </button>
       {state.done && (
         <p className="ad-note">
-          Done: {Object.entries(state.done).map(([k, n]) => `${n} ${COLLECTIONS[k].title.toLowerCase()}`).join(', ')}.
+          {added ? `Added ${added}.` : 'No items were missing.'}{' '}
+          {state.done.filled ? `Filled in ${state.done.filled} new field${state.done.filled === 1 ? '' : 's'} (such as sponsor logos) on existing items. ` : ''}
+          {kept ? `Everything your team already entered was left as it is.` : ''}
         </p>
       )}
       {state.error && <p className="ad-error">Couldn't load: {state.error}</p>}
+    </div>
+  );
+}
+
+function BackupPanel() {
+  const [state, setState] = useState({ busy: false, done: null, error: '' });
+  const run = async () => {
+    setState({ busy: true, done: null, error: '' });
+    try {
+      setState({ busy: false, done: await downloadBackup(), error: '' });
+    } catch (e) {
+      setState({ busy: false, done: null, error: e.message });
+    }
+  };
+  return (
+    <div className="ad-card ad-import">
+      <h2 className="ad-h2"><Save size={20} /> Backup</h2>
+      <p className="muted small">Saves a copy of everything in the database (films, screenings, events, venues, news, sponsors, How to attend, queue counts) as a file on this device. Do this before launch and before big edit days.</p>
+      <button type="button" className="btn btn-outline btn-small" onClick={run} disabled={state.busy}>
+        {state.busy ? 'Preparing…' : 'Download backup'}
+      </button>
+      {state.done && <p className="ad-note">Downloaded: {listCounts(state.done)}.</p>}
+      {state.error && <p className="ad-error">Couldn't make the backup: {state.error}</p>}
     </div>
   );
 }
@@ -63,7 +89,7 @@ export function DataHome({ profile }) {
           : 'Your changes are sent to an admin for approval before attendees see them.'}
       </p>
       <p className="ad-info">The attendee app switches to reading this data in build step 3. Until then it shows its built-in copy.</p>
-      {profile.role === 'admin' && <ImportPanel />}
+      {profile.role === 'admin' && <><ImportPanel /><BackupPanel /></>}
       <div className="ad-tiles">
         {COLLECTION_ORDER.map((name) => <CountCard key={name} name={name} />)}
       </div>

@@ -3,7 +3,7 @@
 // that wait for an admin to approve them (enforced by firestore.rules too).
 import { useEffect, useState } from 'react';
 import {
-  addDoc, collection, doc, onSnapshot, query, serverTimestamp, where, writeBatch,
+  addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, where, writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase.js';
 import { seedData } from './schema.js';
@@ -97,17 +97,61 @@ export async function rejectChange(change, admin, note) {
   await batch.commit();
 }
 
-// Copy all the built-in festival data into the database (admins only).
-// Overwrites items with the same ID; leaves anything else alone.
+// Copy the built-in festival data (from afriff.com) into the database (admins only).
+// SAFE TO RE-RUN:
+//  - adds items that aren't in the database yet
+//  - for items already there, only adds fields they don't have at all
+//    (e.g. a newly introduced "logo" field). A field your team filled in or
+//    cleared is never changed.
 export async function importAll(onProgress) {
   const seed = seedData();
-  const writes = Object.entries(seed).flatMap(([col, rows]) => rows.map(([id, data]) => ({ col, id, data })));
+  const added = {};
+  const kept = {};
+  let filled = 0;
+  const writes = [];
+  for (const [col, rows] of Object.entries(seed)) {
+    const existing = new Map((await getDocs(collection(db, col))).docs.map((d) => [d.id, d.data()]));
+    added[col] = 0;
+    kept[col] = 0;
+    for (const [id, data] of rows) {
+      const current = existing.get(id);
+      if (!current) {
+        added[col] += 1;
+        writes.push({ col, id, data, merge: false });
+        continue;
+      }
+      kept[col] += 1;
+      const newFields = Object.fromEntries(Object.entries(data).filter(([k, v]) => !(k in current) && v !== undefined && v !== ''));
+      if (Object.keys(newFields).length) {
+        filled += Object.keys(newFields).length;
+        writes.push({ col, id, data: newFields, merge: true });
+      }
+    }
+  }
   // the database accepts up to 500 writes at once; send them in chunks
   for (let i = 0; i < writes.length; i += 400) {
     const batch = writeBatch(db);
-    writes.slice(i, i + 400).forEach(({ col, id, data }) => batch.set(doc(db, col, id), data));
+    writes.slice(i, i + 400).forEach(({ col, id, data, merge }) => batch.set(doc(db, col, id), data, { merge }));
     await batch.commit();
     onProgress?.(Math.min(i + 400, writes.length), writes.length);
   }
-  return Object.fromEntries(Object.entries(seed).map(([col, rows]) => [col, rows.length]));
+  return { added, kept, filled };
+}
+
+// Everything in the database as one file, for a backup on your laptop.
+export const BACKUP_COLLECTIONS = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'howToAttend', 'queues'];
+export async function downloadBackup() {
+  const out = { exportedAt: new Date().toISOString(), project: 'afriff-app' };
+  for (const col of BACKUP_COLLECTIONS) {
+    const snap = await getDocs(collection(db, col));
+    out[col] = Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]));
+  }
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `afriff-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return Object.fromEntries(BACKUP_COLLECTIONS.map((c) => [c, Object.keys(out[c]).length]));
 }

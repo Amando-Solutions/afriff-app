@@ -180,12 +180,24 @@ function OpeningDay() {
   );
 }
 
+// One sponsor tile: the logo on a light tile (the logos are dark artwork).
+// If a logo can't load, the sponsor's name shows instead.
+function SponsorTile({ sponsor }) {
+  const [broken, setBroken] = useState(false);
+  const body = sponsor.logo && !broken
+    ? <img src={sponsor.logo} alt={sponsor.name} loading="lazy" decoding="async" onError={() => setBroken(true)} />
+    : <span className="sponsor-name">{sponsor.name}</span>;
+  return sponsor.website
+    ? <a className="sponsor" href={sponsor.website} target="_blank" rel="noopener noreferrer">{body}</a>
+    : <div className="sponsor">{body}</div>;
+}
+
 function Sponsors() {
   return (
     <section className="section sponsors">
       <p className="eyebrow">Supported by</p>
       <div className="sponsor-strip">
-        {SPONSORS.map((name) => <span key={name} className="sponsor">{name}</span>)}
+        {SPONSORS.map((s) => <SponsorTile key={s.name} sponsor={s} />)}
       </div>
     </section>
   );

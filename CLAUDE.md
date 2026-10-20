@@ -364,17 +364,56 @@ heavy libraries) apply everywhere.
     one batch that applies the change and marks it approved; Reject
     stores an optional note the editor sees in My changes.
   - Saves keep fields the form doesn't show (e.g. film poster colours).
-  - Import: "Load festival data" (admins, on Festival data page) writes
-    199 items (68 films, 90 sample screenings, 20 events, 3 venues,
-    3 news, 9 sponsors, 6 How to attend) using the built-in IDs, so
-    re-running overwrites those items but nothing else.
+  - DECISION (user, 19 Oct): the data extracted from afriff.com is
+    kept, not re-entered. It's loaded into Firestore once and THE
+    DATABASE IS THE MASTER COPY from then on; the team edits it in the
+    console. The built-in files (programme.js, events.js) are only the
+    starting point / offline fallback. Never ask the user to re-enter
+    data; never overwrite database items with the built-in copy.
+  - Import button "Add missing festival data" (admins, Festival data
+    page): adds only items whose ID isn't in the database yet (199
+    built-in items: 68 films, 90 sample screenings, 20 events, 3
+    venues, 3 news, 9 sponsors, 6 How to attend). Existing items,
+    including edits, are never overwritten, so it's safe to re-press.
+  - "Download backup" (admins): saves all collections incl. queues as
+    afriff-backup-YYYY-MM-DD.json on the device.
+  - The import also fills in fields an existing item doesn't have at
+    all (e.g. new `logo` on sponsors); fields the team filled in or
+    cleared are never touched.
+- SPONSOR LOGOS (20 Oct): the 9 partner logos from afriff.com/partners
+  are linked (not downloaded) in `SPONSORS` (programme.js, objects
+  {name, logo}); names unchanged because they're the database IDs.
+  They're dark artwork for light backgrounds (checked on navy: Filmhouse,
+  Martell, Mikano, NB, Dentsu vanish), so the Home strip shows them on
+  light tiles (--text colour), name as fallback if a logo fails. Console
+  sponsor fields: name, logo link, website (optional, makes tile a link),
+  order. Host the logo files ourselves before launch (like posters);
+  AFRIFF should confirm sponsors are happy with logo use in the app.
   - Queries avoid composite indexes (sorting done in the app).
   - Admin addresses: #/admin/data, #/admin/data/<collection>,
     #/admin/data/<collection>/<id or new>, #/admin/approvals,
     #/admin/mine, #/admin/team.
   - Attendee app still reads built-in data; build step 3 switches it
     to the database.
-- Part 3 next: door volunteer counter (+1/−1 queue and seats).
+- Parts 1–2 + mixed schedule saved (commit f16933a) and DEPLOYED
+  19 Oct 2026; admin login live at afriff-app-mu.vercel.app/#/admin.
+- Part 3 BUILT 19 Oct 2026 (user to test): door counter at
+  #/admin/door (`src/admin/DoorCounter.jsx`). Volunteers see today's
+  screenings at their venue only; admins pick any venue + day. Tap a
+  screening → "Start counting" (0 in line, seats = capacity) → big
+  +1/−1 for "People in line" and "Seats left", "Mark as full", live
+  label, "Saved · N min ago by <name>". Writes queues/{screeningId}
+  {inLine, seatsLeft, venue, date, updatedAt, updatedBy, updatedByName}
+  using increment() so two volunteers never overwrite each other;
+  offline taps queue and send on reconnect ("Saving…" shown). Needs
+  screenings loaded into Firestore (rules check the screening's venue).
+  Attendee Queues screen still uses the sample feed until build step 8.
+- HOW UPDATES FLOW (explained to user 19 Oct): code changes → Claude →
+  checkpoint → deploy; festival data → admin console (editor request →
+  admin approve) → Firestore → attendee app (from step 3); queue counts
+  → volunteers → Firestore → Queues screens (from step 8, no approval).
+  Known gap: approving an old request overwrites newer live edits to
+  the same item; could add a "changed since" warning later.
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`

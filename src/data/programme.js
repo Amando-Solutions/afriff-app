@@ -211,7 +211,22 @@ export const HOW_TO_ATTEND = [
   },
 ];
 
-export const SPONSORS =['MTN', 'Filmhouse Group', 'Martell', 'Mikano', 'Nigerian Breweries', 'Afreximbank · CANEX', 'Dentsu', 'GIZ', 'Federal Ministry of Art, Culture, Tourism & the Creative Economy'];
+// Partners from afriff.com/partners (20 Oct 2026). Logos are linked from
+// AFRIFF's site; they're dark artwork made for light backgrounds, so the app
+// shows them on light tiles. Host the files ourselves before launch.
+// Keep names stable: they become the database IDs.
+const LOGO_BASE = 'https://afriff-revival.lovable.app/__l5e/assets-v1/';
+export const SPONSORS = [
+  { name: 'MTN', logo: `${LOGO_BASE}2ff9abc3-f2d4-4ce5-b405-2e79443f0e78/mtn.png` },
+  { name: 'Filmhouse Group', logo: `${LOGO_BASE}f20b24e7-e2ab-4e76-a61e-f013c21d4f58/filmhouse-group.png` },
+  { name: 'Martell', logo: `${LOGO_BASE}0a69fcb3-0dd0-4d67-92c7-a99dee17c23f/martell.png` },
+  { name: 'Mikano', logo: `${LOGO_BASE}ea89f8e2-1534-4c9d-927b-f1b5ff0aa118/mikano.png` },
+  { name: 'Nigerian Breweries', logo: `${LOGO_BASE}f8d3c956-82f8-49e1-86eb-f18d75c9471f/nigerian-breweries.png` },
+  { name: 'Afreximbank · CANEX', logo: `${LOGO_BASE}f92e7450-271c-4935-bbc2-7b204431854c/canex-wknd-afreximbank.png` },
+  { name: 'Dentsu', logo: `${LOGO_BASE}ba4d870b-7d4b-49fa-823c-42f7a505dca0/dentsu.png` },
+  { name: 'GIZ', logo: `${LOGO_BASE}e5185120-8c4e-4b96-a5a0-0cde9e9481ef/giz.jpg` },
+  { name: 'Federal Ministry of Art, Culture, Tourism & the Creative Economy', logo: 'https://afriff.com/assets/fmactce-BfXnsMTF.png' },
+];
 
 // Helpers -----------------------------------------------------------------
 
