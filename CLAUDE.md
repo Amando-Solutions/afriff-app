@@ -97,6 +97,8 @@ user decision). Home's top banner depends on the Lagos date:
   Industry items (open question settled by default; easy to change).
 - Home redraws every minute. Test: ?now=2026-11-03T13:00 (day 3),
   ?now=2026-11-03T23:50 (wrap), ?now=2026-11-08T10:00 (after).
+- Saved (commit c1fa9e6) and DEPLOYED 20 Oct 2026; checked live (normal
+  = countdown; ?now= day 3 = daily highlight).
 
 ## Programme / Schedule (copy FilmFest "Schedule of Films" layout)
 - Big title "PROGRAMME" with an icon, subtitle "Full festival
@@ -640,6 +642,29 @@ heavy libraries) apply everywhere.
   Saved (commit def61e8) and DEPLOYED 20 Oct 2026. Live published copy
   doesn't have the graphics yet → USER: Add missing festival data, then
   Publish to app.
+- OFFICIAL MASTERCLASS GRAPHICS (21 Oct 2026, sent by the user): 10
+  files (1080x1350, ~250–350 KB) now HOSTED IN THE APP in
+  `public/masterclasses/` (free option; no Firebase Storage / Blaze).
+  6 wired up in events.js: acting (RMD), actors (Hilda Dokubo), AI
+  (Obinna Okerekeocha), costume (Yolanda Okereke), directing (Angel
+  Kristi Williams graphic), makeup (Alakpa Uduoghene). Old lovable.app
+  links listed in `REPLACED_LINKS` (events.js); "Add missing festival
+  data" now ALSO swaps a field still holding one of those old links for
+  the new file (never touches links the team typed). USER: after deploy,
+  press Add missing festival data, then Publish to app.
+  USER DECISIONS (21 Oct) from the graphics: keep TWO workshops;
+  Cinematography speaker Kirby Griffin → Erin G. Wesley (Cinematographer);
+  Film Editing Steve Sodiya → Chuka Ejorh (Founder, Blink Studios; "In
+  partnership with Blink Studios" added to About); NEW Writers Workshop
+  (`writers-workshop`, Tunde Babalola, Award-winning writer and producer,
+  SAMPLE date Wed 4 Nov 15:00–17:00 Twinwaters). Erin/Chuka/Tunde have
+  no bio (not invented; team can add in console). Old values listed in
+  `REPLACED_VALUES` (events.js) so the import corrects them in the
+  database only while it still holds exactly the old value.
+  The joint Angel + Erin graphic (directing-cinematography-williams-
+  wesley.jpg) is stored but unused. Producers (Femi Adebayo) and
+  Animation (Esther Kemi Gbadamosi) got no new graphic; they keep the
+  afriff.com links. 11 masterclasses/workshops now.
 - If new console fields seem missing: reload the console tab (an open
   tab keeps the old code until reloaded). The new film fields are at
   the BOTTOM of the film form, under Synopsis.

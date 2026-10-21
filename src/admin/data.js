@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase.js';
 import { seedData } from './schema.js';
+import { REPLACED_LINKS, REPLACED_VALUES } from '../data/events.js';
 
 // Live list of one collection, e.g. useCollection('films')
 export function useCollection(name) {
@@ -102,6 +103,8 @@ export async function rejectChange(change, admin, note) {
 //  - for items already there, only adds fields they don't have at all
 //    (e.g. a newly introduced "logo" field). A field your team filled in or
 //    cleared is never changed.
+const REPLACED = new Set(REPLACED_LINKS);
+
 export async function importAll(onProgress) {
   const seed = seedData();
   const added = {};
@@ -120,7 +123,19 @@ export async function importAll(onProgress) {
         continue;
       }
       kept[col] += 1;
-      const newFields = Object.fromEntries(Object.entries(data).filter(([k, v]) => !(k in current) && v !== undefined && v !== ''));
+      const newFields = Object.fromEntries(Object.entries(data).filter(([k, v]) => (
+        (!(k in current) && v !== undefined && v !== '')
+        // an old link we shipped (never one the team typed) gets the new file
+        || (REPLACED.has(current[k]) && v && v !== current[k])
+        // a corrected value, only while the database still has our old one
+        || (col === 'events' && k in (REPLACED_VALUES[id] || {}) && current[k] === REPLACED_VALUES[id][k] && v !== current[k])
+      )));
+      // corrected values we now leave empty (e.g. a bio for the old speaker)
+      if (col === 'events') {
+        for (const [k, old] of Object.entries(REPLACED_VALUES[id] || {})) {
+          if (!(k in data) && current[k] === old) newFields[k] = '';
+        }
+      }
       if (Object.keys(newFields).length) {
         filled += Object.keys(newFields).length;
         writes.push({ col, id, data: newFields, merge: true });
