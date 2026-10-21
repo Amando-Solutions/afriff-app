@@ -19,8 +19,11 @@ export default async function handler(req, res) {
     const doc = await r.json();
     const json = doc?.fields?.json?.stringValue;
     if (!json) throw new Error('Published document has no data');
-    // fresh for 60 s; if the database is slow, keep serving the last copy for up to 10 min
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+    // fresh for 60 s. Only a short "serve old while refreshing" window: a long
+    // one meant that when few people use the app, the first phone after a
+    // publish got the old copy and kept it for 5 minutes. (Phones keep their
+    // own saved copy if the relay is ever down, so no long window is needed.)
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=10');
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.status(200).send(json);
   } catch (e) {

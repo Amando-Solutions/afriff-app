@@ -484,7 +484,10 @@ heavy libraries) apply everywhere.
     publishedAt, publishedBy(Name)}; ~<100 KB, limit checked (900 KB).
   - Vercel relay `api/festival.js` (GET /api/festival) reads that doc
     via Firestore REST and returns the JSON with Cache-Control
-    s-maxage=60, stale-while-revalidate=600 → ~1 DB read/min total.
+    s-maxage=60 → ~1 DB read/min total. (21 Oct: stale-while-revalidate
+    cut from 600 to 10 s. With few visitors, the long window handed the
+    first phone after a publish the OLD copy, which it kept for 5 min;
+    user saw "graphics not reflecting". Published data itself was fine.)
   - Phones (`src/lib/liveData.js`): `loadSavedCopy()` in main.jsx before
     first render (localStorage key `afriff-data-v1`), then
     `checkForUpdates()` on start, every 5 min and on reopen; prod uses
@@ -665,6 +668,9 @@ heavy libraries) apply everywhere.
   wesley.jpg) is stored but unused. Producers (Femi Adebayo) and
   Animation (Esther Kemi Gbadamosi) got no new graphic; they keep the
   afriff.com links. 11 masterclasses/workshops now.
+  Saved (commit 7fb780d) and DEPLOYED 21 Oct 2026 (graphics served from
+  afriff-app-mu.vercel.app/masterclasses/…). USER: Add missing festival
+  data → Publish to app, so attendees get them.
 - If new console fields seem missing: reload the console tab (an open
   tab keeps the old code until reloaded). The new film fields are at
   the BOTTOM of the film form, under Synopsis.
