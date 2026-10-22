@@ -707,6 +707,9 @@ heavy libraries) apply everywhere.
   page, schedule rows, queue gone after film starts, sample mode, no
   requests before the festival). NOT tested by Claude: the door counter
   itself (needs a volunteer/admin login) → USER to test.
+- Saved (commit c37e0fd, pushed to GitHub) and DEPLOYED 22 Oct 2026.
+  Live /api/queues answered 502 "Database answered 403" right after
+  deploy = rules not yet republished (expected).
 - USER MUST: republish firestore.rules (new queueDays rule) before
   counting; until then the real database refuses queue reads (403) and
   the app shows no queues.
