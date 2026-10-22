@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { checkForUpdates, currentVersion } from './lib/liveData.js';
+import { startLiveQueues } from './lib/queues.js';
 import { useRoute } from './lib/router.js';
 import Welcome, { shouldShowWelcome } from './components/Welcome.jsx';
 import { Header, BottomNav } from './components/Chrome.jsx';
@@ -41,6 +42,8 @@ export default function App() {
   useEffect(() => {
     const check = () => checkForUpdates().then((changed) => changed && setDataVersion(currentVersion()));
     check();
+    // live queue counts from door volunteers (festival days only; not on the admin console)
+    if (!window.location.hash.startsWith('#/admin')) startLiveQueues();
     const timer = setInterval(check, 5 * 60 * 1000);
     const onShow = () => document.visibilityState === 'visible' && check();
     document.addEventListener('visibilitychange', onShow);

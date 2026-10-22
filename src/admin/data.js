@@ -8,6 +8,7 @@ import {
 import { db } from './firebase.js';
 import { seedData } from './schema.js';
 import { REPLACED_LINKS, REPLACED_VALUES } from '../data/events.js';
+import { FESTIVAL } from '../data/programme.js';
 
 // Live list of one collection, e.g. useCollection('films')
 export function useCollection(name) {
@@ -153,12 +154,18 @@ export async function importAll(onProgress) {
 }
 
 // Everything in the database as one file, for a backup on your laptop.
-export const BACKUP_COLLECTIONS = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'jury', 'howToAttend', 'queues'];
+export const BACKUP_COLLECTIONS = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'jury', 'howToAttend'];
 export async function downloadBackup() {
   const out = { exportedAt: new Date().toISOString(), project: 'afriff-app' };
   for (const col of BACKUP_COLLECTIONS) {
     const snap = await getDocs(collection(db, col));
     out[col] = Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]));
+  }
+  // live queue counts: one record per venue per festival day (date/venue keys)
+  out.queues = {};
+  for (const day of FESTIVAL.days) {
+    const snap = await getDocs(collection(db, 'queueDays', day, 'venues'));
+    snap.docs.forEach((d) => { out.queues[`${day}/${d.id}`] = d.data(); });
   }
   const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -167,5 +174,5 @@ export async function downloadBackup() {
   a.download = `afriff-backup-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return Object.fromEntries(BACKUP_COLLECTIONS.map((c) => [c, Object.keys(out[c]).length]));
+  return Object.fromEntries([...BACKUP_COLLECTIONS, 'queues'].map((c) => [c, Object.keys(out[c]).length]));
 }

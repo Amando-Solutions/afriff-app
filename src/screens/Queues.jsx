@@ -3,7 +3,7 @@ import { Users } from 'lucide-react';
 import { useFestival } from '../lib/store.jsx';
 import { VENUES, filmById, venueById } from '../data/programme.js';
 import { queueLabel, timeLabel } from '../lib/format.js';
-import { minutesAgo, openQueues, recentUpdates, useLiveClock } from '../lib/queues.js';
+import { isSampleQueues, minutesAgo, openQueues, recentUpdates, useLiveClock } from '../lib/queues.js';
 import { PageTitle, VenueDot, VenueLine } from '../components/Bits.jsx';
 
 function LiveTag() {
@@ -56,10 +56,10 @@ export default function Queues() {
       <section className="section">
         <LiveTag />
         <h2 className="live-title">Queues open now</h2>
-        <p className="muted small">Screenings starting in the next 2 hours</p>
+        <p className="muted small">Screenings where door volunteers are counting the line</p>
 
         {open.length === 0 ? (
-          <p className="empty">No screenings start in the next 2 hours.</p>
+          <p className="empty">No queues being counted right now. Volunteers start counting when each queue opens.</p>
         ) : (
           <>
             <VenuePins open={open} />
@@ -92,7 +92,7 @@ export default function Queues() {
         <h2 className="live-title">Recent updates</h2>
         <p className="muted small">Latest counts first</p>
         {updates.length === 0 ? (
-          <p className="empty">No counts posted yet. Queues open 2 hours before each screening.</p>
+          <p className="empty">No counts posted yet.</p>
         ) : (
           <div className="updates">
             {updates.map(({ screening: s, queue }) => {
@@ -112,7 +112,7 @@ export default function Queues() {
         )}
       </section>
 
-      <p className="footnote">Updates every 30 seconds. Times and counts are samples until the festival schedule is published.</p>
+      <p className="footnote">{isSampleQueues() ? 'Sample counts for testing.' : 'Counts update about every minute.'} Times are samples until the festival schedule is published.</p>
     </div>
   );
 }

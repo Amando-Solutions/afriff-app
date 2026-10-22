@@ -149,3 +149,7 @@
 .rep-bar-track { height: 12px; border-radius: 6px; background: var(--raised); overflow: hidden; }
 .rep-bar { display: block; height: 100%; background: var(--gold); border-radius: 6px; }
 .rep-bar-n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* door counter: live count on each screening in the list */
+.door-row-count { font-size: 13px; font-weight: 700; margin-top: 2px; }
+.door-note { text-align: center; margin-top: 10px; }

@@ -73,12 +73,15 @@ service cloud.firestore {
     }
 
     // ---------- Live queue counts ----------
-    // Anyone can read. Volunteers can only update screenings at their own venue.
-    match /queues/{screeningId} {
+    // One record per venue per festival day: queueDays/{date}/venues/{venueId},
+    // holding every screening's count at that venue that day. Anyone can read
+    // (phones get it through the relay). Volunteers can only write their own venue.
+    match /queueDays/{date}/venues/{venueId} {
       allow read: if true;
       allow write: if isAdmin()
-        || (role() == 'volunteer'
-            && get(/databases/$(database)/documents/screenings/$(screeningId)).data.venue == myVenue());
+        || (role() == 'volunteer' && venueId == myVenue()
+            && request.resource.data.venue == venueId
+            && request.resource.data.date == date);
     }
   }
 }

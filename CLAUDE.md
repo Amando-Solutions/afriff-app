@@ -676,6 +676,44 @@ heavy libraries) apply everywhere.
   tab keeps the old code until reloaded). The new film fields are at
   the BOTTOM of the film form, under Synopsis.
 
+### Step 8: live queues (built 22 Oct 2026)
+- Storage: ONE record per venue per festival day,
+  `queueDays/{date}/venues/{venueId}` = { date, venue, updatedAt,
+  s: { screeningId: { inLine, seatsLeft, updatedAt, byName } } }.
+  Replaces the old `queues/{screeningId}` docs (rule removed).
+- Door counter (`src/admin/DoorCounter.jsx`): taps show at once and are
+  BUNDLED (sent ~1 s after the last tap, at most every 2.5 s) as
+  increment(N), so 2 volunteers never overwrite each other and writes stay
+  far under the free plan's 20k/day. Start counting = 0 in line + capacity
+  seats; Mark as full = 0 seats; unsent taps sent on Back / app hidden;
+  offline taps sent on reconnect. List shows "N in line · N seats" per
+  screening (when one venue is picked).
+- Relay `api/queues.js` (GET /api/queues?date=YYYY-MM-DD, default today
+  Lagos): lists that day's ~3 venue records via Firestore REST, returns
+  { date, fetchedAt, queues: { id: { venue, inLine, seatsLeft, updatedAt } } },
+  cache s-maxage=30, swr=5; errors → 502 no-store.
+- Phones (`src/lib/queues.js`, same functions as before so no screen
+  changed): `startLiveQueues()` (App.jsx, not on #/admin) fetches on start,
+  every 60 s while visible, and on reopen; ONLY on festival days. A queue
+  shows once a volunteer starts counting, until the film starts. Screens
+  redraw when new counts arrive. Dev server reads Firestore REST directly.
+- TESTING: `?queues=sample` brings back the pretend feed (with ?now=...).
+- Queues screen wording: "Screenings where door volunteers are counting
+  the line"; empty "No queues being counted right now…"; footnote "Counts
+  update about every minute." Backup now saves queues as date/venue keys.
+- Tested: relay with pretend Firestore answers (decode, negatives → 0,
+  bad date → today, DB error → 502); app with pretend counts (Queues list,
+  Good chance / Full labels, venue pins, recent updates, nav dot, film
+  page, schedule rows, queue gone after film starts, sample mode, no
+  requests before the festival). NOT tested by Claude: the door counter
+  itself (needs a volunteer/admin login) → USER to test.
+- USER MUST: republish firestore.rules (new queueDays rule) before
+  counting; until then the real database refuses queue reads (403) and
+  the app shows no queues.
+- Vercel note: each open phone asks /api/queues once a minute on festival
+  days (cached, ~1 KB). Fine on Pro; on the free Hobby plan heavy use could
+  approach its monthly request allowance (part of the hosting decision).
+
 ### GitHub (22 Oct 2026)
 - Code is on GitHub: https://github.com/TheoKwechi/afriff-app (PRIVATE),
   branch main, remote `origin`. First push done from the Terminal panel

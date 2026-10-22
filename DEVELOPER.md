@@ -59,7 +59,8 @@ src/
   admin/       console: schema.js drives every form/list, data.js (save/approve/import/backup),
                Publish, Reports, DoorCounter, Team, Login
 public/masterclasses/  AFRIFF's official masterclass graphics, served by the app itself
-api/festival.js        Vercel serverless relay (see below)
+api/festival.js        Vercel relay for published festival data (see below)
+api/queues.js          Vercel relay for live queue counts
 firestore.rules        database security rules
 ```
 
@@ -122,11 +123,11 @@ Whichever is chosen, set a Blaze **budget alert**, and point the final
 address (e.g. app.afriff.com) at it before the QR codes are printed.
 
 ## 6. What's left / what to check
-**Build step 8, live queues:** `src/lib/queues.js` is still a *sample
-feed*. The door counter (`src/admin/DoorCounter.jsx`) already writes real
-counts to `queues/{screeningId}` (using `increment()`, offline-safe).
-Swap `queues.js` to read those counts without blowing the read quota
-(e.g. one summary doc or the relay), and no screen code should need to change.
+**Live queues (step 8, built 22 Oct):** volunteers' taps are bundled and
+saved to one record per venue per day (`queueDays/{date}/venues/{venue}`);
+phones read them through `api/queues.js` (30 s cache) once a minute on
+festival days. Details in CLAUDE.md "Step 8". Still to test with real
+logins at a door; `?queues=sample` shows pretend queues for demos.
 
 **Before launch:**
 - Real screening and event times. All current times are **samples**
