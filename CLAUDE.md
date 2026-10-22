@@ -487,7 +487,8 @@ heavy libraries) apply everywhere.
     s-maxage=60 → ~1 DB read/min total. (21 Oct: stale-while-revalidate
     cut from 600 to 10 s. With few visitors, the long window handed the
     first phone after a publish the OLD copy, which it kept for 5 min;
-    user saw "graphics not reflecting". Published data itself was fine.)
+    user saw "graphics not reflecting". Published data itself was fine.
+    Saved commit 38cee77, DEPLOYED 21 Oct.)
   - Phones (`src/lib/liveData.js`): `loadSavedCopy()` in main.jsx before
     first render (localStorage key `afriff-data-v1`), then
     `checkForUpdates()` on start, every 5 min and on reopen; prod uses
