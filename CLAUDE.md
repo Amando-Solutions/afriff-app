@@ -745,6 +745,9 @@ heavy libraries) apply everywhere.
   with walk-ins, undo, fix numbers, mark full, 10 taps = 1 save, admin
   pickers, counting card, clear counts; #/door opens the login. NOT
   tested by Claude with a real login → USER to test on a phone.
+- Saved (commit c56a208, pushed) and DEPLOYED 22 Oct 2026. Live #/door
+  shows the login. Rules are republished: live /api/queues answers 200
+  with no counts yet (queues switched on).
 
 ### GitHub (22 Oct 2026)
 - Code is on GitHub: https://github.com/TheoKwechi/afriff-app (PRIVATE),
