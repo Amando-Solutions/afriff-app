@@ -676,6 +676,17 @@ heavy libraries) apply everywhere.
   tab keeps the old code until reloaded). The new film fields are at
   the BOTTOM of the film form, under Synopsis.
 
+### GitHub (22 Oct 2026)
+- Code is on GitHub: https://github.com/TheoKwechi/afriff-app (PRIVATE),
+  branch main, remote `origin`. First push done from the Terminal panel
+  (Git Credential Manager sign-in needs an interactive window; it's now
+  saved on this laptop, so later `git push` works from any shell).
+- Developer handover note: `DEVELOPER.md`. USER: invite the developer
+  (repo Settings → Collaborators → Add people), add him to Firebase as
+  Editor, give him the admin role on the console Team page.
+- After each checkpoint, also `git push` so GitHub stays current.
+  Deploys are still manual to Vercel (not connected to GitHub).
+
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`
   (`npx.cmd`, not `npx`: Windows PowerShell blocks npx.ps1 scripts on
