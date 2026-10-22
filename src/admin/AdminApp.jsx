@@ -22,7 +22,7 @@ const SECTIONS = [
   { id: 'reports', title: 'Reports', text: 'Most planned, ratings and app usage', Icon: BarChart3, roles: ['admin'] },
   { id: 'approvals', title: 'Approvals', text: 'Check editors\' changes before attendees see them', Icon: CheckSquare, roles: ['admin'] },
   { id: 'mine', title: 'My changes', text: 'Changes you sent for approval', Icon: ClipboardList, roles: ['editor'] },
-  { id: 'door', title: 'Door counter', text: 'Big +1 / −1 buttons for queue and seats', Icon: UserCheck, roles: ['admin', 'volunteer'] },
+  { id: 'door', title: 'Door counter', text: 'Count queues at the door (opens the door view)', Icon: UserCheck, roles: ['admin', 'volunteer'], href: '#/door' },
 ];
 
 function TopBar({ profile }) {
@@ -52,8 +52,8 @@ function Home({ profile }) {
         {profile.role === 'volunteer' && profile.venue ? ` at ${venueById(profile.venue)?.name}` : ''}.
       </p>
       <div className="ad-tiles">
-        {mine.map(({ id, title, text, Icon, soon }) => (
-          <a key={id} href={soon ? undefined : `#/admin/${id}`} className={`ad-tile${soon ? ' soon' : ''}`} aria-disabled={soon || undefined}>
+        {mine.map(({ id, title, text, Icon, soon, href }) => (
+          <a key={id} href={soon ? undefined : href || `#/admin/${id}`} className={`ad-tile${soon ? ' soon' : ''}`} aria-disabled={soon || undefined}>
             <span className="icon-box"><Icon size={22} /></span>
             <span className="ad-tile-text">
               <span className="ad-tile-title">{title}{soon && <span className="ad-soon">Coming next</span>}{id === 'approvals' && <PendingBadge />}</span>
@@ -80,7 +80,7 @@ function Waiting({ profile }) {
   );
 }
 
-export default function AdminApp({ param, rest = [] }) {
+export default function AdminApp({ param, rest = [], door = false }) {
   const { loading, user, profile, error } = useAdminAuth();
 
   if (loading) return <div className="ad-center"><p className="muted">Loading…</p></div>;
@@ -109,6 +109,22 @@ export default function AdminApp({ param, rest = [] }) {
     );
   }
   if (profile.role === 'pending') return <Waiting profile={profile} />;
+
+  // #/door: the volunteers' own view, without the console around it
+  if (door) {
+    if (!['admin', 'volunteer'].includes(profile.role)) {
+      return (
+        <div className="ad-center">
+          <div className="ad-card">
+            <h1 className="ad-title">Door view</h1>
+            <p>This page is for door volunteers. Ask an admin to give you the volunteer role and a venue.</p>
+            <a className="btn btn-outline btn-small" href="#/admin">Go to the console</a>
+          </div>
+        </div>
+      );
+    }
+    return <DoorCounter profile={profile} standalone />;
+  }
 
   const section = SECTIONS.find((s) => s.id === param && !s.soon && s.roles.includes(profile.role));
   return (

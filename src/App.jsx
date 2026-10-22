@@ -28,7 +28,7 @@ const SCREENS = {
   news: { Screen: News, tab: null },
 };
 
-// The admin console (and Firebase) is only downloaded when #/admin is opened,
+// The admin console (and Firebase) is only downloaded when #/admin or #/door is opened,
 // so attendees' phones never load it.
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
 
@@ -43,7 +43,7 @@ export default function App() {
     const check = () => checkForUpdates().then((changed) => changed && setDataVersion(currentVersion()));
     check();
     // live queue counts from door volunteers (festival days only; not on the admin console)
-    if (!window.location.hash.startsWith('#/admin')) startLiveQueues();
+    if (!/^#\/(admin|door)/.test(window.location.hash)) startLiveQueues();
     const timer = setInterval(check, 5 * 60 * 1000);
     const onShow = () => document.visibilityState === 'visible' && check();
     document.addEventListener('visibilitychange', onShow);
@@ -53,10 +53,11 @@ export default function App() {
     };
   }, []);
 
-  if (route.name === 'admin') {
+  // #/admin = console; #/door = the volunteers' door view (same logins)
+  if (route.name === 'admin' || route.name === 'door') {
     return (
-      <Suspense fallback={<div className="ad-loading">Loading admin…</div>}>
-        <AdminApp param={route.param} rest={route.rest} />
+      <Suspense fallback={<div className="ad-loading">Loading…</div>}>
+        <AdminApp param={route.param} rest={route.rest} door={route.name === 'door'} />
       </Suspense>
     );
   }

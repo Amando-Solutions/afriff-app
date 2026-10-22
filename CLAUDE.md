@@ -717,6 +717,35 @@ heavy libraries) apply everywhere.
   days (cached, ~1 KB). Fine on Pro; on the free Hobby plan heavy use could
   approach its monthly request allowance (part of the hosting decision).
 
+### Door view for volunteers (built 22 Oct 2026, user request)
+- Own address `#/door` (afriff-app-mu.vercel.app/#/door): same logins,
+  lazy-loaded like the console, no console around it. Volunteers save it
+  to their home screen. Admins + volunteers only (others told to ask an
+  admin). Console "Door counter" tile now opens #/door.
+- Today list (`src/admin/DoorCounter.jsx`): volunteer's venue, today
+  (admins pick venue + day). Gold "Count now" card = screening being
+  counted, else the next to start within 2 h; other rows tagged Done
+  (faded, "Final: …"), Counting, Count now, Next.
+- Counter, USER'S DESIGN: two big buttons instead of four +/−:
+  "+ Joined the queue" (in line +1) and "✓ Let in" (in line −1 AND seats
+  left −1 together, so seats count down by themselves; walk-ins with no
+  queue just use a seat). Small: "Let in 5", "Undo" (this phone's taps),
+  "Fix numbers" (−/+ for line and seats, Mark as full). Start counting
+  asks "Seats available at the door" (pre-filled from the console's
+  Seats; change if seats are reserved/sold in advance) → saved as
+  seatsStart; screen shows "of N". At 0 seats: Full label, red note
+  "Let the N people still in line know", Let in disabled.
+- Screen stays awake while counting (Wake Lock), short vibration per
+  tap, "Saving… / Saved just now" dot. Same bundled saving as step 8.
+  Quick double-taps read the latest numbers (ref), fixed after testing.
+- Admin-only "Clear counts for this venue and day" (deletes that day's
+  venue record) so test counts never show on the real day.
+- Tested with a TEMPORARY test page + pretend in-memory database (deleted
+  after): volunteer list, start with 150 seats, joins / let in / let in 5
+  with walk-ins, undo, fix numbers, mark full, 10 taps = 1 save, admin
+  pickers, counting card, clear counts; #/door opens the login. NOT
+  tested by Claude with a real login → USER to test on a phone.
+
 ### GitHub (22 Oct 2026)
 - Code is on GitHub: https://github.com/TheoKwechi/afriff-app (PRIVATE),
   branch main, remote `origin`. First push done from the Terminal panel

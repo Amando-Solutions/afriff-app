@@ -126,8 +126,11 @@ address (e.g. app.afriff.com) at it before the QR codes are printed.
 **Live queues (step 8, built 22 Oct):** volunteers' taps are bundled and
 saved to one record per venue per day (`queueDays/{date}/venues/{venue}`);
 phones read them through `api/queues.js` (30 s cache) once a minute on
-festival days. Details in CLAUDE.md "Step 8". Still to test with real
-logins at a door; `?queues=sample` shows pretend queues for demos.
+festival days. Volunteers count in the **door view** at `#/door`
+(`src/admin/DoorCounter.jsx`): "Joined the queue" / "Let in" (seats count
+down automatically), undo, fix, wake lock, admin "Clear counts". Details
+in CLAUDE.md "Step 8" and "Door view". Still to test with real logins at a
+door; `?queues=sample` shows pretend queues for demos.
 
 **Before launch:**
 - Real screening and event times. All current times are **samples**
