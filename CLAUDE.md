@@ -91,7 +91,7 @@ user decision). Home's top banner depends on the Lagos date:
   film or event to start, links to it; "That's a wrap for today.
   Tomorrow: <theme>" late; closing line on the last night), gold "See
   today" (opens the Schedule on today via `openProgrammeDay()` in
-  Programme.jsx, even if another day was picked). The "Opening day"
+  `app/lib/programmeMemory.ts`, even if another day was picked). The "Opening day"
   list becomes "Today": the next 4 films AND events still to start,
   with + buttons; "Nothing else starts today. See tomorrow" when done.
 - After 7 Nov: thank-you banner + "Your watched list"; no day list.
@@ -201,6 +201,41 @@ Start with sample African films and 4 sample venues.
 ## Progress
 (Update this section at the end of each session: what's done, what's
 next, anything I need to do.)
+
+### STATUS AT A GLANCE (updated 23 Oct 2026; festival opens 1 Nov)
+Read this first; the dated sections below are the detailed history.
+- Who: product owner (this laptop, with Claude Code) + Michael
+  (developer, GitHub michaelkyng). WORKING AGREEMENT: every change goes
+  to GitHub as a pull request; Michael reviews, merges and deploys.
+  Claude no longer deploys from this laptop (doing so would overwrite
+  Michael's version). React version is kept only as local branch
+  `backup/react-filmstrip`.
+- Code: Nuxt 4 + TypeScript PWA in `app/` (Michael's rebuild, 22–23 Oct),
+  GitHub TheoKwechi/afriff-app, branch main. Live:
+  https://afriff-app-mu.vercel.app runs Michael's Nuxt version.
+- Build steps: 1 look ✅ · 2 admin console + logins ✅ (owner's own login
+  tests of Team / Approvals / Reports outstanding) · 3 real data ✅ (but
+  screening + event TIMES ARE SAMPLES) · 4 My Festival + Share my day ✅ ·
+  5 news + alerts ✅ (no push notifications, by design) · 6 sponsors +
+  venues ✅ · 7 watched log + Letterboxd ✅ · 8 live queues ✅ built, plus
+  the volunteer door view; NOT yet tested with real logins on real phones.
+- Extras built on request: masterclasses + events, jury page, film page
+  extras, simplified Home, daily highlight, admin reports, home-screen
+  install + offline (Michael).
+- Waiting: branch `claude/daily-highlights-filmstrip` (filmstrip +
+  "Daily highlights" headline) uploaded 23 Oct; pull request to open and
+  Michael to review, merge, deploy.
+- OPEN RISKS before 1 Nov: (1) Firestore free plan: phones now read the
+  database directly, so live queues can pass 50,000 reads/day and stop
+  updating → move to Blaze + budget alert. (2) Vercel Hobby is
+  non-commercial → Vercel Pro or Firebase Hosting (Blaze). (3) Sample
+  times. (4) Nothing tested end to end on real phones with real logins.
+- NEEDED FROM AFRIFF: real schedule (times, rooms), official synopses,
+  poster / logo / jury photo files to host ourselves, sponsors' OK to show
+  logos, confirm 3 "How to attend" sections, bios for Erin G. Wesley,
+  Chuka Ejorh, Tunde Babalola, graphics for Producing + Animation, fixes
+  for afriff.com data errors, and (optional) an app.afriff.com address.
+
 ### Decisions made (session 1, 18 Oct 2026)
 - Tech: React + Vite (plain JavaScript), icons from lucide-react.
   Pages switch with `#/...` addresses (e.g. `#/film/harmattan`).
@@ -784,6 +819,8 @@ heavy libraries) apply everywhere.
   are forwarded to the matching page automatically.
 - Relays moved from `api/*.js` to Nuxt server routes `server/api/festival.get.ts`
   and `server/api/queues.get.ts`. Same URLs, same caching, same answers.
+  (SUPERSEDED 23 Oct: the relays were then deleted; phones read Firestore
+  directly. See "Proper PWA, like DP Fitness" below.)
 - LOOK: sizes, colours, spacing, icons and fonts now follow the AFRIFF
   design system from the earlier attendee build (deep navy + festival gold,
   Archivo headings + Onest text, one radius system, the official AFRIFF
@@ -911,11 +948,17 @@ heavy libraries) apply everywhere.
   Blaze before the festival.
 
 ### How to deploy (publish an update)
-- From this folder: `npx.cmd vercel deploy --prod --yes`
-  (`npx.cmd`, not `npx`: Windows PowerShell blocks npx.ps1 scripts on
-  this laptop. Don't change the execution policy; use .cmd instead.)
-- `.vercelignore` keeps `reference/` and other local files out of the
-  upload. Not connected to GitHub yet, so deploys are manual.
+- SINCE 23 OCT: Michael deploys. Changes reach him as GitHub pull
+  requests; he merges into main and deploys the Nuxt app to Vercel
+  (`vercel.json` says framework nuxtjs; Vercel's automatic deploys from
+  GitHub are switched off, so deploys are manual).
+- Do NOT run `vercel deploy` from this laptop unless Michael agrees: it
+  would publish whatever is on this laptop over his version.
+- (Old laptop command, for reference: `npx.cmd vercel deploy --prod --yes`;
+  `npx.cmd`, not `npx`, because Windows PowerShell blocks npx.ps1 here.
+  Don't change the execution policy.)
+- After any deploy that adds data fields: Add missing festival data, then
+  Publish to app (also creates the `published/version` marker).
 
 ### How to run it
 - `npm install` once (after the move to Nuxt), then `npm run dev` in this
@@ -923,6 +966,13 @@ heavy libraries) apply everywhere.
   http://<laptop Wi-Fi IP>:3000 on a phone on the same Wi-Fi.
 - To try offline, updates and install: `npm run build`, then `npm run preview`.
 
-### Next
-- Step 2: admin console and logins (needs Firebase account, free tier).
-- Festival opens 1 Nov 2026: may need to prioritise steps.
+### Next (as of 23 Oct 2026; festival opens 1 Nov)
+1. Open the pull request for `claude/daily-highlights-filmstrip`; Michael
+   reviews, merges, deploys.
+2. Decide and pay for: Firebase Blaze (+ budget alert) and hosting
+   (Vercel Pro, or Firebase Hosting on Blaze). Payments/deposits message
+   drafted 21 Oct.
+3. Real-phone test day: admin logins, Team roles, a volunteer at /door,
+   an alert end to end, Reports, install + airplane mode; then Clear counts.
+4. Load AFRIFF's real schedule and content in the console; Publish to app.
+5. Host posters / logos / jury photos ourselves; final address + QR codes.
