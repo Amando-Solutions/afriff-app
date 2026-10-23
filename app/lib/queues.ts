@@ -1,4 +1,4 @@
-import { onBeforeUnmount, ref } from 'vue';
+import { onBeforeUnmount, reactive, ref } from 'vue';
 import type { Queue, Screening } from '~/types/festival';
 import { FESTIVAL, SCREENINGS } from '../data/programme';
 import { screeningStart } from './format';
@@ -6,9 +6,19 @@ import { lagosDate, now, testSwitch } from './now';
 
 // LIVE QUEUES (build step 8)
 // Every screen asks this file for queue counts. The counts come from door
-// volunteers (admin console → Door counter), stored as one record per venue
-// per day and served to phones by the /api/queues relay. During the festival
-// this phone asks for fresh counts every minute while the app is open.
+// volunteers (/door), stored as one record per venue per day,
+// queueDays/{date}/venues/{venue}. Phones read those records DIRECTLY from
+// Firestore with a live listener (no server route): a count a volunteer saves
+// shows on open phones within a second or two.
+//
+// To keep database reads down (each saved count is one read for every phone
+// listening), the listener is only open when it's useful:
+//   - on festival days,
+//   - while the app is on screen (closed when it's in the background),
+//   - from 3 hours before the day's first screening until its last one starts.
+// Outside that the phone keeps the last counts it had.
+// Offline, the listener answers from the phone's cache and catches up by
+// itself when the connection is back (see lib/firebase/app.ts).
 // A screening shows a queue once a volunteer has started counting it, until
 // the film starts.
 //
@@ -18,7 +28,9 @@ import { lagosDate, now, testSwitch } from './now';
 
 export const QUEUE_OPENS_MINUTES = 120;
 const POST_EVERY_MINUTES = 5;
-const CHECK_EVERY_MS = 60 * 1000;
+/** start listening this long before a screening (volunteers may start counting early) */
+const LISTEN_BEFORE_MINUTES = 180;
+const RECHECK_MS = 60 * 1000;
 
 const SAMPLE = testSwitch('queues') === 'sample';
 
@@ -28,66 +40,74 @@ let board: { date: string | null; queues: Record<string, BoardEntry> } = { date:
 const listeners = new Set<() => void>();
 const tell = () => listeners.forEach((fn) => fn());
 
-const BOARD_DIRECT =
-  'https://firestore.googleapis.com/v1/projects/afriff-app/databases/(default)/documents/queueDays/';
-const KEY = 'AIzaSyCPxdNaQyK6r4OU97-zBZBKLqHsHunGzYo';
+/** What the Queues screen says about the feed. */
+export const queueFeed = reactive({
+  /** a listener is open right now */
+  listening: false,
+  /** the counts on screen came from the server (false = this phone's saved copy) */
+  live: false,
+});
 
-// Firestore's REST format → plain counts (used if the relay can't be reached)
-interface FsValue { integerValue?: string; doubleValue?: number; timestampValue?: string; mapValue?: { fields?: Record<string, FsValue> } }
-interface FsDoc { name: string; fields?: Record<string, FsValue> }
-
-function decode(documents: FsDoc[] = []): Record<string, BoardEntry> {
-  const n = (v: FsValue | undefined) => Number(v?.integerValue ?? v?.doubleValue ?? 0);
-  const out: Record<string, BoardEntry> = {};
-  for (const d of documents) {
-    const venue = d.name.split('/').pop() ?? '';
-    for (const [id, e] of Object.entries(d.fields?.s?.mapValue?.fields || {})) {
-      const f = e.mapValue?.fields || {};
-      out[id] = {
-        venue,
-        inLine: Math.max(0, n(f.inLine)),
-        seatsLeft: Math.max(0, n(f.seatsLeft)),
-        updatedAt: f.updatedAt?.timestampValue ? Date.parse(f.updatedAt.timestampValue) : null,
-      };
-    }
-  }
-  return out;
+// Is any screening today within the listening window?
+function wantedNow(date: string, t: number): boolean {
+  if (!FESTIVAL.days.includes(date)) return false;
+  return SCREENINGS.some((s) => {
+    if (s.date !== date || s.status === 'cancelled') return false;
+    const start = screeningStart(s).getTime();
+    return t >= start - LISTEN_BEFORE_MINUTES * 60000 && t < start;
+  });
 }
 
-async function fetchBoard(date: string): Promise<Record<string, BoardEntry>> {
+let stop: (() => void) | null = null;
+let listeningDate: string | null = null;
+
+async function listen(date: string) {
+  listeningDate = date;
+  queueFeed.listening = true;
   try {
-    const res = await fetch(`/api/queues?date=${date}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return ((await res.json()) as { queues?: Record<string, BoardEntry> }).queues || {};
+    const live = await import('./firebase/live');
+    if (listeningDate !== date) return; // stopped while loading
+    stop = live.watchQueueDay(
+      date,
+      (queues, fromCache) => {
+        board = { date, queues };
+        queueFeed.live = !fromCache;
+        tell();
+      },
+      () => { queueFeed.live = false; },
+    );
   } catch {
-    /* relay unreachable: read the database directly */
+    listeningDate = null; // couldn't load the database code (offline first visit): next check retries
+    queueFeed.listening = false;
   }
-  const res = await fetch(`${BOARD_DIRECT}${date}/venues?pageSize=50&key=${KEY}`, { cache: 'no-store' });
-  if (res.status === 404) return {};
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return decode(((await res.json()) as { documents?: FsDoc[] }).documents);
 }
 
-async function refresh() {
+function unlisten() {
+  stop?.();
+  stop = null;
+  listeningDate = null;
+  queueFeed.listening = false;
+  queueFeed.live = false;
+}
+
+function check() {
+  const t = now().getTime();
   const date = lagosDate();
-  if (!FESTIVAL.days.includes(date)) return; // no queues outside festival days
-  try {
-    board = { date, queues: await fetchBoard(date) };
-    tell();
-  } catch {
-    /* offline: keep the last counts we had */
-  }
+  const want = document.visibilityState === 'visible' && wantedNow(date, t);
+  if (!want) return unlisten();
+  if (listeningDate === date) return;
+  unlisten();
+  void listen(date);
 }
 
-// Called once when the app starts: check now, every minute while the app is
-// open, and whenever it's reopened.
+// Called once when the app starts (not on the console or the door view).
 let started = false;
 export function startLiveQueues() {
   if (started || SAMPLE) return;
   started = true;
-  refresh();
-  setInterval(() => document.visibilityState === 'visible' && refresh(), CHECK_EVERY_MS);
-  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && refresh());
+  check();
+  setInterval(check, RECHECK_MS);
+  document.addEventListener('visibilitychange', check);
 }
 
 // ---------- Pretend queues for testing (?queues=sample) ----------

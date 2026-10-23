@@ -1,5 +1,5 @@
-// The shapes of the festival data, shared by the attendee app, the admin
-// console and the relays. They match what the admin console saves in
+// The shapes of the festival data, shared by the attendee app and the admin
+// console. They match what the admin console saves in
 // Firestore and what "Publish to app" sends to phones.
 
 /** 'YYYY-MM-DD' (a festival day, Lagos) */

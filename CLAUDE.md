@@ -843,6 +843,65 @@ heavy libraries) apply everywhere.
 - Not deployed yet. Michael: pull, `npm install` (adds typescript and
   vue-tsc), `npm run typecheck`, then deploy as usual.
 
+### Proper PWA, like DP Fitness (23 Oct 2026, decision by Michael)
+- WHAT CHANGED FOR ATTENDEES: the app now talks to the database directly and
+  keeps working with no signal, then catches up by itself when the signal
+  comes back. Updates arrive on their own. Screens look the same.
+- Modelled on Michael's DP Fitness PWA (same service worker, offline cache,
+  update and install approach), adapted for AFRIFF.
+- NO SERVER ROUTES ANY MORE: the two relays (`/api/festival`, `/api/queues`)
+  are deleted. Phones read Firestore directly with the Firebase SDK, which
+  keeps a copy of everything it has read on the phone (IndexedDB):
+  - Published data: "Publish to app" now also writes a tiny marker,
+    `published/version`. Open phones watch it live; only when it says there's
+    a newer version do they download the big bundle (`published/current`).
+    A publish shows on open phones within seconds (it used to take up to
+    ~1 min).
+  - Live queues: phones listen to the day's ~3 venue records live. A count a
+    volunteer saves shows within a second or two (it used to be up to ~1 min).
+    To save database reads, phones only listen on festival days, while the
+    app is on screen, from 3 hours before the day's first screening until
+    the last one starts.
+  - Anonymous usage counts: saved with the SDK; made with no signal, they
+    wait on the phone (even if the app is closed) and go when it's back.
+  - Door view: taps made with no signal now also survive closing the app.
+- OFFLINE: the whole app is saved on the phone, including the console and
+  door view (a volunteer can open /door with no signal). Banner "You're
+  offline…", then "Back online" for a moment. Queues says when the counts
+  are the last ones received, and only shows "Live" when they're live.
+- UPDATES: no more "new version ready → Reload" toast. A deploy installs by
+  itself; the app checks whenever it's reopened and reloads onto the new
+  version. On the console and door view it waits until the person leaves the
+  app, so a volunteer mid-count never loses taps.
+- INSTALL: same toasts (Android one-tap Install, iPhone Share steps, plus a
+  hint for Instagram/WhatsApp's built-in browsers). Fixed: "Not now" used to
+  hide the Android install offer forever; now it's a week, as intended.
+- Splash screen (emblem + gold loading bar) while the app starts.
+- COST WARNING (Firebase): with no relay, every phone's reads count against
+  Firestore's free 50,000 reads/day. Published data is cheap. Live queues
+  during the festival are not: each saved count is one read per phone
+  watching. With thousands of phones open during screening hours this will
+  pass the free limit, and on the free plan Firestore then stops answering
+  for the rest of the day (the app keeps showing what it has). Before
+  1 Nov: switch Firebase to Blaze (pay as you go, a few cents per 100,000
+  reads; check Firebase's pricing page) and set a budget alert. Bigger download too: the offline copy is
+  ~735 KB instead of ~525 KB (the Firebase code).
+- Checked (cloud browser at phone size, with a pretend database in a
+  throwaway test build, never in the repo): publish reaches an open phone
+  without reloading, bundle read once per publish, live queue counts,
+  offline banner and Queues note, offline reload of deep links with the
+  Firebase code, "Back online" and counts catching up after reconnecting,
+  usage write queued offline and sent on reconnect (only allowed fields),
+  queue listener closed in background and before the festival, install
+  toast and dialog, a deploy reaching an open app by itself while the door
+  view waits until hidden, no-cache headers on sw.js and the manifest.
+  `npm run typecheck` and `npm run build` pass. NOT checked: the real
+  Firestore (this sandbox can't reach it), real phones.
+- USER (Michael) TO DO: run it against the real database (`npm run dev`),
+  deploy, press Publish to app once (creates the marker), test on a real
+  Android and iPhone (install, airplane mode, back online), and decide on
+  Blaze before the festival.
+
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`
   (`npx.cmd`, not `npx`: Windows PowerShell blocks npx.ps1 scripts on
@@ -854,7 +913,7 @@ heavy libraries) apply everywhere.
 - `npm install` once (after the move to Nuxt), then `npm run dev` in this
   folder and open http://localhost:3000 on the laptop, or
   http://<laptop Wi-Fi IP>:3000 on a phone on the same Wi-Fi.
-- To try offline and install: `npm run build`, then `npm run preview`.
+- To try offline, updates and install: `npm run build`, then `npm run preview`.
 
 ### Next
 - Step 2: admin console and logins (needs Firebase account, free tier).

@@ -18,9 +18,11 @@ Your job is to make sure it's technically solid for the festival
 | Admin console role | Sign up at `/#/admin`; an admin sets your role to *admin* on the Team page |
 | Vercel project `afriff-app` | Hobby plan = owner only for now; deploys go through the owner (see §5) |
 
-There are **no secrets or `.env` files**. The Firebase web config in
-`app/admin/firebase.ts` is the public kind; access is controlled by
-`firestore.rules`.
+There are **no secrets or `.env` files**. The Firebase web config lives in
+`runtimeConfig.public.firebase` in `nuxt.config.ts`; it's the public kind,
+and access is controlled by `firestore.rules`. To point a build at another
+Firebase project, set the `NUXT_PUBLIC_FIREBASE_*` variables in
+`.env.example`.
 
 ## 2. Run it locally
 Requires Node.ts 20.19+ (22 recommended).
@@ -29,14 +31,14 @@ npm install
 npm run dev        # http://localhost:3000 (phones on the same Wi-Fi: http://<laptop-ip>:3000)
 npm run build      # production build into .output/ (what Vercel runs)
 npm run preview    # run that production build locally, with the service worker (offline, install)
-npm run typecheck  # TypeScript check of the app and the server relays (run before every commit)
+npm run typecheck  # TypeScript check of the app (run before every commit)
 ```
 Windows note: if PowerShell blocks `npx`, use `npx.cmd`. Don't change the
 execution policy on the owner's laptop.
 
-The offline/installable parts (service worker) only run in a production
-build: use `npm run build` then `npm run preview` to try them. To try them in
-`npm run dev`, set `pwa.devOptions.enabled: true` in `nuxt.config.ts`.
+The offline/installable parts (service worker, updates, install prompt) only
+run in a production build: use `npm run build` then `npm run preview` to try
+them. `npm run dev` talks to the real Firestore like the live app does.
 
 **Testing switches** go in the address, e.g. `/programme?now=2026-11-03T13:00`.
 They're remembered for that browser tab (so they survive moving between
@@ -61,20 +63,26 @@ pages and reloading); close the tab to clear them.
   (headings) + Onest (text), bundled with the app so they work offline.
   Real addresses (`/film/<id>`, `/programme/films`, `/admin/data/films`);
   old `#/...` links are forwarded by `app/middleware/old-hash.global.ts`.
-- **PWA** via `@vite-pwa/nuxt` (`nuxt.config.ts` → `pwa`): web manifest and
-  icons, a service worker that keeps the app shell, fonts and icons on the
-  phone (every page opens with no signal; images are cached as they're
-  seen), an "Install the AFRIFF app" prompt on Android/Chrome, an "Add to
-  Home Screen" guide on iPhone, an offline banner, and a "new version ready
-  → Reload" toast. All in `app/components/app/`.
+- **PWA**, set up like the DP Fitness PWA (see "How the PWA works" below):
+  `@vite-pwa/nuxt` builds the manifest and service worker; registering it,
+  update checks, the install offer and reloading onto new versions are ours
+  (`app/plugins/pwa.client.ts`, `app/lib/installPrompt.ts`,
+  `app/composables/useInstallApp.ts`). The whole app is precached, so every
+  page (the console and door view too) opens with no signal. Live data comes
+  straight from Firestore with its offline cache on the phone. Offline banner
+  with "Back online", install toast on Android/Chrome, Add to Home Screen
+  guide on iPhone, splash screen (`app/spa-loading-template.html`).
 - **Design tokens** (colours, type sizes, radii, shadows) live only in
   `app/assets/css/main.css`: the AFRIFF navy + gold system from the earlier
   attendee build. Venue dot colours stay with the venues in `app/data/programme.ts`.
   Mobile-first, max width 36rem.
-- **Admin console is lazy-loaded** (`app/pages/admin/` → `app/admin/`), so
-  attendees never download Firebase (it's also kept out of the offline
-  download). Attendee JS ≈ 140 KB gzipped. Keep it that way: no Firebase SDK
-  imports outside `app/admin/`.
+- **Firebase loads after first paint.** The first screen's code doesn't
+  include Firebase (~29 KB gzipped for the entry). The Firestore SDK
+  (~170 KB gzipped) is pulled in with a dynamic `import()` once the first
+  screen is showing (`app/lib/firebase/live.ts`), or when the console / door
+  view opens. Firebase Auth is only ever imported by `app/admin/`. Keep it
+  that way: no static `firebase/*` imports in attendee screens or in modules
+  they import statically; go through `lib/firebase/live.ts` with `import()`.
 
 ```
 app/
@@ -87,13 +95,16 @@ app/
   data/         built-in festival data: programme.ts, events.ts, jury.ts
   lib/          liveData (published data), store (phone storage), queues, alerts, usage, plan,
                 today (what's on a festival day), format, now (clock + test switches), dayItems,
-                programmeMemory
+                programmeMemory, installPrompt + platform (install offer)
+  lib/firebase/ config (project details), app (Firebase + Firestore with the offline cache),
+                live (everything attendees read/write: published data, queues, usage)
+  composables/  useInstallApp (install toast logic)
   admin/        console: schema.ts drives every form/list, data.ts (save/approve/import/backup),
                 publish.ts, reports.ts, board.ts (door counts) + the Admin*.vue screens
-  plugins/festival.client.ts   loads the saved copy, checks for new data, starts live queues
+  plugins/festival.client.ts   loads the saved copy, then follows published data and live queues
+  plugins/pwa.client.ts        registers the service worker, update checks, install offer
+  spa-loading-template.html    splash shown before the app's code has started
   assets/css/main.css          design tokens and shared styles
-server/api/festival.get.ts     relay for published festival data (see below)
-server/api/queues.get.ts       relay for live queue counts
 public/masterclasses/          AFRIFF's official masterclass graphics
 public/brand/, public/*.png    official AFRIFF emblem and the app icons
 firestore.rules                database security rules
@@ -121,15 +132,22 @@ firestore.rules                database security rules
    Editors' changes wait in `changes` for an admin to approve.
 2. **Publish to app** (admins) packs everything into one document,
    `published/current`.
-3. **`/api/festival`** (Nuxt server route, a Vercel function when deployed) reads that one doc and serves it
-   with CDN caching (`s-maxage=60, stale-while-revalidate=10`), so ~1
-   database read per minute in total. Reason: the free Firestore Spark plan
-   allows 50k reads a day. (The stale window used to be 600 s; with little
-   traffic that made a publish take 5+ minutes to show. Keep it short.)
-4. **Phones** (`app/lib/liveData.ts`) cache it in localStorage
-   (`afriff-data-v1`) and check for a newer version on start, every 5 min and
-   on reopen. If there's nothing published, or the relay fails, they fall
-   back to Firestore REST and then to the built-in data in `app/data/`.
+   Alongside it, it writes a tiny marker, `published/version` ({version}).
+3. **Phones read Firestore directly** with the Firebase SDK (no server
+   routes; the old `/api/festival` and `/api/queues` relays are gone).
+   `app/lib/liveData.ts`: on start the phone shows its saved copy
+   (localStorage `afriff-data-v1`, or the built-in data in `app/data/` on a
+   first visit), then watches `published/version` live. Only when the marker
+   is newer than what the phone has does it download `published/current`,
+   so each phone reads the big bundle once per publish (not once per visit)
+   and a publish reaches open phones within seconds. If the marker doesn't
+   exist yet (published before 23 Oct), the bundle is read once per visit
+   until the next publish creates it.
+4. **Offline and reconnecting** are the SDK's job: Firestore's cache lives in
+   the phone's IndexedDB (`persistentLocalCache`, multi-tab), so listeners
+   answer from the cache offline, writes made offline are queued (even across
+   closing the app) and sent when the connection is back, and listeners
+   catch up by themselves. See `app/lib/firebase/app.ts`.
 
 Rules of the road:
 - **Never overwrite database items with the built-in copy.** The console's
@@ -148,8 +166,35 @@ Rules of the road:
 
 Other data on phones: plans, Seen it and star ratings are in localStorage
 `afriff-my-v1` (no accounts, by design). Anonymous usage counts go to
-`usage/{randomDeviceId}`, at most every 30 min, with an opt-out switch in My
-Festival. The admin Reports page reads them.
+`usage/{randomDeviceId}` with the SDK (queued on the phone when offline), at
+most every 30 min, with an opt-out switch in My Festival. The admin Reports
+page reads them.
+
+### How the PWA works (same approach as the DP Fitness PWA)
+- **Service worker** (generated by `@vite-pwa/nuxt` from `nuxt.config.ts` →
+  `pwa.workbox`): precaches the whole build (app shell prerendered as `/`,
+  every page's code incl. the Firebase SDK, the console and door view,
+  fonts, icons); every address falls back to the shell, so deep links open
+  offline. Images are cached as they're seen (our own: cache-first; other
+  sites': show saved copy, refresh in background). Firestore traffic is never
+  touched by the worker.
+- **Updates**: `skipWaiting` + `clientsClaim`, so a new version takes over
+  without waiting for tabs to close. `app/plugins/pwa.client.ts` checks for a
+  new `/sw.js` whenever the app returns to the foreground (plus on reconnect,
+  focus and hourly), because phones resume frozen pages instead of reloading
+  them. When a new version takes over, attendee screens reload onto it at
+  once; the console and door view wait until the person leaves the app, so no
+  unsent door taps are lost. `/sw.js` and the manifest are served with
+  no-cache headers (`routeRules`), or deploys wouldn't reach installed apps.
+- The module's own client plugin is switched off (`client.registerPlugin:
+  false`): it force-reloads every open page on update and its "not now"
+  hid the install offer for good.
+- **Install**: Chrome's offer is caught at start (`lib/installPrompt.ts`) and
+  shown as our toast; iPhone gets the Share → Add to Home Screen steps
+  (with a hint for in-app browsers). "Not now" snoozes for a week.
+- **Offline banner** (`AppOfflineBanner.vue`): "You're offline…" while
+  offline, "Back online" for a moment on return. Queues says when counts are
+  the last ones received, and only shows "Live" when they are.
 
 **Home** (`app/pages/index.vue`) changes with the Lagos date: countdown
 banner + "Opening day" before 1 Nov; `DailyHighlight` (day N of 7, theme,
@@ -161,9 +206,9 @@ films with real posters, then by start time.
 ## 5. Deploying and hosting
 Currently manual, from the owner's laptop: `npx.cmd vercel deploy --prod --yes`.
 Vercel builds it with `nuxt build` (`vercel.json` tells Vercel the project
-is now Nuxt, not Vite) and runs the two `/api` relays as
-functions. The first deploy after the move from React is the one to watch:
-check `/`, `/film/lady`, `/admin`, `/api/festival` and `/api/queues` answer.
+is now Nuxt, not Vite). There are no server functions any more; the host only
+serves files. After a deploy, check `/`, `/film/lady`, `/admin` and `/door`
+open, and that `/sw.js` comes back with `Cache-Control: no-cache`.
 `.vercelignore` keeps `reference/` (design screenshots, not in the repo)
 out of uploads. Uploads with the graphics take a few minutes.
 
@@ -171,17 +216,25 @@ out of uploads. Uploads with the graphics take a few minutes.
 non-commercial, so it can't be the launch host as is. Options under
 discussion with the owner:
 - Vercel Pro (~$20 per member per month) + Firebase Blaze for uploads; or
-- Firebase Hosting on the **Blaze** plan only (one bill, no seat fees; the
-  relay would move to a Cloud Function or Hosting rewrite). Spark hosting
-  alone allows ~360 MB/day transfer, too little for festival traffic.
+- Firebase Hosting on the **Blaze** plan only (one bill, no seat fees; no
+  relays to move now). Spark hosting alone allows ~360 MB/day transfer, too
+  little for festival traffic.
+- **Firestore reads now come straight from phones.** Published data is cheap
+  (one tiny marker read per visit, the bundle once per publish). Live queues
+  are the big one: every saved count is one read for every phone listening.
+  Listening is limited to festival days, while the app is on screen, from
+  3 h before the day's first screening to the start of its last
+  (`app/lib/queues.ts`), but at festival scale this can pass Spark's 50k
+  reads/day. Budget for **Blaze** during the festival (a few cents per 100k
+  reads) with a budget alert.
 Whichever is chosen, set a Blaze **budget alert**, and point the final
 address (e.g. app.afriff.com) at it before the QR codes are printed.
 
 ## 6. What's left / what to check
 **Live queues (step 8, built 22 Oct):** volunteers' taps are bundled and
 saved to one record per venue per day (`queueDays/{date}/venues/{venue}`);
-phones read them through `server/api/queues.get.ts` (30 s cache) once a minute on
-festival days. Volunteers count in the **door view** at `/door`
+phones listen to that day's records directly (live, ~3 small docs) during
+screening hours on festival days. Volunteers count in the **door view** at `/door`
 (`app/admin/AdminDoorCounter.vue` + `AdminDoorScreening.vue`): "Joined the
 queue" / "Let in" (seats count down automatically), undo, fix, wake lock,
 admin "Clear counts". Details in CLAUDE.md "Step 8" and "Door view". Still
@@ -197,14 +250,18 @@ to test with real logins at a door; `?queues=sample` shows pretend queues for de
   the official logo (`public/logo.svg`); add bios for Erin G. Wesley, Chuka
   Ejorh and Tunde Babalola (left empty rather than invented).
 - Hosting decision above.
-- PWA: done (manifest, offline service worker, install prompt, iPhone guide,
-  update toast). Check "Add to Home Screen" on a real Android and iPhone after deploying.
+- PWA: done (see "How the PWA works"). Check on a real Android and iPhone
+  after deploying: Add to Home Screen, open in airplane mode, turn data back
+  on and watch "Back online", and that a later deploy arrives after closing
+  and reopening the installed app.
+- Press **Publish to app** once after deploying, so `published/version`
+  exists (until then each visit reads the whole bundle).
 - Known gap: approving an old editor request overwrites newer live edits to the same item.
 
 **Worth a technical review:** firestore.rules (especially the public
 `usage` writes), behaviour on slow 3G and cheap Android (masterclass
 graphics are ~250–350 KB each; consider smaller copies), quotas on the free
-Firebase plan at festival scale, and error handling in `api/festival.ts`.
+Firebase plan at festival scale (now that phones read Firestore directly, see §5).
 There are no automated tests yet.
 
 **Out of scope (agreed):** ticketing, attendee accounts and sign-in, push notifications,

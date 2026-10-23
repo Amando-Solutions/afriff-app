@@ -7,5 +7,6 @@ node_modules
 dist
 .vercel
 .env*
+!.env.example
 # design references stay on this laptop, never shipped or uploaded
 reference/

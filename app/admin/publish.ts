@@ -1,7 +1,10 @@
 // Admins: copy the current festival data into ONE published bundle
 // (published/current) that the attendee app downloads. Nothing reaches
 // attendees until this is pressed.
-import { collection, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
+// Alongside it goes a tiny marker, published/version, which every open phone
+// watches live: phones only download the big bundle when the marker says
+// there's a newer version (lib/liveData.ts). Both are written together.
+import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 import { COLLECTION_ORDER } from './schema';
 import type { Profile } from './types';
@@ -19,9 +22,12 @@ export async function publishToApp(profile: Profile) {
   }
   const json = JSON.stringify(snapshot);
   if (json.length > MAX_BYTES) throw new Error(`The festival data is too big to publish in one go (${Math.round(json.length / 1024)} KB). Ask Claude to split it.`);
-  await setDoc(doc(db, 'published', 'current'), {
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'published', 'current'), {
     version: snapshot.version, json, counts,
     publishedAt: serverTimestamp(), publishedBy: profile.id, publishedByName: profile.name || profile.email,
   });
+  batch.set(doc(db, 'published', 'version'), { version: snapshot.version, publishedAt: serverTimestamp() });
+  await batch.commit();
   return counts;
 }

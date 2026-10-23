@@ -4,7 +4,7 @@ import { computed, watch } from 'vue'
 import { UsersIcon } from 'lucide-vue-next'
 import { VENUES, filmById } from '~/data/programme'
 import { queueLabel, timeLabel } from '~/lib/format'
-import { isSampleQueues, minutesAgo, openQueues, recentUpdates, useLiveClock, type OpenQueue } from '~/lib/queues'
+import { isSampleQueues, minutesAgo, openQueues, queueFeed, recentUpdates, useLiveClock, type OpenQueue } from '~/lib/queues'
 import type { Tone } from '~/types/festival'
 import type { BadgeTone } from '~/components/ui/UiBadge.vue'
 import { useFestival } from '~/lib/store'
@@ -13,6 +13,7 @@ import { useFestival } from '~/lib/store'
 // and the latest counts. Updates by itself.
 useHead({ title: 'Queues' })
 const t = useLiveClock()
+const online = useOnline()
 // film title and label worked out once per row
 const withInfo = (x: OpenQueue) => ({ ...x, title: filmById(x.screening.film)?.title ?? '', venueName: venueShort(x.screening.venue), label: queueLabel(x.queue) ?? { text: '', tone: 'muted' as Tone } })
 const open = computed(() => openQueues(t.value).map(withInfo))
@@ -36,7 +37,8 @@ const pins = computed(() => VENUES.map((v) => {
     <PageTitle title="Queues" :icon="UsersIcon" description="See how long each line is before you head over. Counts are posted by AFRIFF door volunteers." />
 
     <section class="mt-7">
-      <UiBadge tone="success"><span class="pulse" aria-hidden="true" /> Live</UiBadge>
+      <UiBadge v-if="isSampleQueues() || (online && queueFeed.live)" tone="success"><span class="pulse" aria-hidden="true" /> Live</UiBadge>
+      <UiBadge v-else tone="neutral">Last counts</UiBadge>
       <h2 class="mt-1.5 font-display text-h2 font-semibold">Queues open now</h2>
       <p class="text-meta text-muted">Screenings where door volunteers are counting the line</p>
 
@@ -87,6 +89,9 @@ const pins = computed(() => VENUES.map((v) => {
       </div>
     </section>
 
-    <p class="mt-6 text-center text-label text-subtle">{{ isSampleQueues() ? 'Sample counts for testing.' : 'Counts update about every minute.' }} Times are samples until the festival schedule is published.</p>
+    <p v-if="!online && !isSampleQueues()" class="mt-6 rounded-tile bg-raised px-3 py-2 text-center text-meta text-muted">
+      You’re offline. These are the last counts this phone received; they’ll update by themselves when you’re back online.
+    </p>
+    <p class="mt-6 text-center text-label text-subtle">{{ isSampleQueues() ? 'Sample counts for testing.' : queueFeed.live ? 'Counts update live as volunteers count.' : 'Counts update live as volunteers count, during screening hours.' }} Times are samples until the festival schedule is published.</p>
   </div>
 </template>

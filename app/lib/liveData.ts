@@ -3,12 +3,13 @@
 // 1. On start, the app uses the copy saved on this phone last time (or the
 //    built-in afriff.com copy on a first visit), so it opens instantly, even
 //    with no signal.
-// 2. It then asks for the latest published version: from our small relay at
-//    /api/festival (a Nuxt server route that keeps a 1-minute copy, so the
-//    database is read about once a minute however many people use the app),
-//    falling back to the database directly.
-// 3. If that's newer, it swaps it in, saves it on the phone, and the screens
-//    update. It checks again every 5 minutes and whenever the app is reopened.
+// 2. Once the first screen is up, it connects to Firestore directly (no server
+//    route) and watches a tiny marker, published/version, live.
+// 3. When the marker says there's a newer version than this phone has, it
+//    downloads the bundle (published/current), swaps it in, saves it on the
+//    phone, and the screens update. Publishing reaches open phones within
+//    seconds; a phone that was offline catches up as soon as it reconnects.
+//    Reconnecting is the Firebase SDK's job (see lib/firebase/app.ts).
 import { ref } from 'vue';
 import { VENUES, replaceProgramme } from '../data/programme';
 import { replaceEvents } from '../data/events';
@@ -16,9 +17,6 @@ import { replaceJury } from '../data/jury';
 import type { PublishedSnapshot } from '~/types/festival';
 
 const CACHE_KEY = 'afriff-data-v1';
-const FIRESTORE_DOC =
-  'https://firestore.googleapis.com/v1/projects/afriff-app/databases/(default)/documents/published/current' +
-  '?key=AIzaSyCPxdNaQyK6r4OU97-zBZBKLqHsHunGzYo';
 
 let version = 0; // 0 = built-in copy
 export const currentVersion = () => version;
@@ -48,37 +46,67 @@ export function loadSavedCopy() {
   }
 }
 
-async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json() as Promise<T>;
+function adopt(snapshot: PublishedSnapshot | null) {
+  if (!snapshot?.version || snapshot.version <= version) return false;
+  apply(snapshot);
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
+  } catch {
+    /* phone storage full or blocked: still use it for this visit */
+  }
+  return true;
 }
 
-async function fetchPublished(): Promise<PublishedSnapshot> {
-  try {
-    return await getJson<PublishedSnapshot>('/api/festival');
-  } catch {
-    /* relay unreachable: fall back to the database directly */
+// One download at a time; a publish that lands mid-download is fetched after it.
+let pulling = false;
+let again = false;
+async function pull() {
+  if (pulling) {
+    again = true;
+    return;
   }
-  const doc = await getJson<{ fields?: { json?: { stringValue?: string } } }>(FIRESTORE_DOC);
-  const json = doc?.fields?.json?.stringValue;
-  if (!json) throw new Error('Nothing published yet');
-  return JSON.parse(json) as PublishedSnapshot;
+  pulling = true;
+  try {
+    const live = await import('./firebase/live');
+    do {
+      again = false;
+      try {
+        adopt(await live.readPublished());
+      } catch {
+        /* offline and not in the cache yet, or nothing published: keep what we have */
+      }
+    } while (again);
+  } finally {
+    pulling = false;
+  }
 }
 
-// Steps 2–3: returns true if newer data arrived and was swapped in.
-export async function checkForUpdates(): Promise<boolean> {
+// Steps 2–3. Called once, after the first screen is showing.
+let started = false;
+export async function startPublishedFeed() {
+  if (started) return;
+  started = true;
+  let live: typeof import('./firebase/live');
   try {
-    const snapshot = await fetchPublished();
-    if (!snapshot?.version || snapshot.version <= version) return false;
-    apply(snapshot);
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
-    } catch {
-      /* phone storage full or blocked: still use it for this visit */
-    }
-    return true;
+    live = await import('./firebase/live');
   } catch {
-    return false; // offline or nothing published yet: keep what we have
+    started = false; // the code couldn't load (offline on a first visit): try again on the next start
+    return;
   }
+  let checkedWithoutMarker = false;
+  live.watchPublishedVersion(
+    ({ version: v, fromCache }) => {
+      if (v === null) {
+        // No marker: published before the marker existed (or never). Read the
+        // bundle once, from the server, and rely on the next publish's marker.
+        if (!fromCache && !checkedWithoutMarker) {
+          checkedWithoutMarker = true;
+          void pull();
+        }
+        return;
+      }
+      if (v > version) void pull();
+    },
+    (e) => console.warn('[liveData] published feed stopped', e),
+  );
 }
