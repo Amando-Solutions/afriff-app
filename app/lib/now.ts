@@ -7,7 +7,7 @@
 // Testing switches (?now=, ?queues=sample, ?welcome=1, ?share=1) are read from
 // the address when the app opens and remembered for this browser tab, so they
 // keep working after you move between pages or reload. Close the tab to clear.
-export function testSwitch(name) {
+export function testSwitch(name: string): string | null {
   if (typeof window === 'undefined') return null;
   try {
     const fromUrl = new URLSearchParams(window.location.search).get(name);
@@ -38,13 +38,13 @@ const OFFSET = readOffset();
 export const now = () => new Date(Date.now() + OFFSET);
 
 // 'YYYY-MM-DD' in Lagos
-export const lagosDate = (d = now()) =>
+export const lagosDate = (d: Date = now()): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(d);
 
 // minutes since midnight in Lagos
-export function lagosMinutes(d = now()) {
+export function lagosMinutes(d: Date = now()): number {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d);
-  const h = Number(parts.find((x) => x.type === 'hour').value);
-  const m = Number(parts.find((x) => x.type === 'minute').value);
+  const h = Number(parts.find((x) => x.type === 'hour')?.value ?? 0);
+  const m = Number(parts.find((x) => x.type === 'minute')?.value ?? 0);
   return h * 60 + m;
 }

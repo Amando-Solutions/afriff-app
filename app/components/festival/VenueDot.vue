@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { venueById } from '~/data/programme.js'
+import { venueById } from '~/data/programme'
 
-const props = defineProps({ venueId: { type: String, default: null }, size: { type: Number, default: 8 }, color: { type: String, default: '' } })
+const props = withDefaults(defineProps<{ venueId?: string | null; size?: number; color?: string }>(), { venueId: null, size: 8, color: '' })
 const bg = computed(() => props.color || venueById(props.venueId)?.color || 'var(--c-accent)')
 </script>
 

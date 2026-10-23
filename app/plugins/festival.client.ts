@@ -1,6 +1,6 @@
 // Runs once when the app starts, before the first screen is drawn.
-import { checkForUpdates, loadSavedCopy } from '~/lib/liveData.js'
-import { startLiveQueues } from '~/lib/queues.js'
+import { checkForUpdates, loadSavedCopy } from '~/lib/liveData'
+import { startLiveQueues } from '~/lib/queues'
 
 export default defineNuxtPlugin((nuxtApp) => {
   // Use the festival data saved on this phone last time, before anything shows.

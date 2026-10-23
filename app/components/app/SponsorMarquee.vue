@@ -1,18 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { computed, reactive } from 'vue'
-import { SPONSORS } from '~/data/programme.js'
+import { SPONSORS } from '~/data/programme'
 
 // Sponsor logos gliding left to right on a loop.
 // variant 'ribbon' = slim strip above the header on every screen,
 // variant 'strip'  = larger strip at the bottom of Home.
 // The list is repeated twice so the loop is seamless. Holding a finger on it
 // pauses it; phones set to "reduce motion" get a still row you can swipe.
-const props = defineProps({ variant: { type: String, default: 'strip' } })
+const props = withDefaults(defineProps<{ variant?: 'ribbon' | 'strip' }>(), { variant: 'strip' })
 
 const list = computed(() => [...SPONSORS].sort((a, b) => (a.order ?? 99) - (b.order ?? 99)))
 // ~4–5 seconds per logo keeps it calm and readable
 const seconds = computed(() => list.value.length * (props.variant === 'ribbon' ? 4 : 5))
-const broken = reactive({})
+const broken = reactive<Record<string, boolean>>({})
 
 const sizes = computed(() =>
   props.variant === 'ribbon'

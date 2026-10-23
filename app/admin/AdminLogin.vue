@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { createProfile } from './useAdminAuth.js'
-import { auth } from './firebase.js'
+import { createProfile } from './useAdminAuth'
+import { auth } from './firebase'
 
 // Plain-language versions of Firebase's error codes
-const MESSAGES = {
+const MESSAGES: Record<string, string> = {
   'auth/invalid-credential': 'That email and password don\'t match. Check them and try again.',
   'auth/invalid-email': 'That doesn\'t look like an email address.',
   'auth/email-already-in-use': 'There\'s already an account with this email. Log in instead.',
@@ -14,9 +14,12 @@ const MESSAGES = {
   'auth/network-request-failed': 'No connection. Check your internet and try again.',
   'auth/missing-email': 'Type your email first.',
 }
-const friendly = (e) => MESSAGES[e.code] || `Something went wrong (${e.code || e.message}).`
+const friendly = (e: unknown) => {
+  const { code = '', message = '' } = (e ?? {}) as { code?: string; message?: string }
+  return MESSAGES[code] || `Something went wrong (${code || message}).`
+}
 
-const mode = ref('login') // 'login' | 'signup'
+const mode = ref<'login' | 'signup'>('login')
 const name = ref('')
 const email = ref('')
 const password = ref('')

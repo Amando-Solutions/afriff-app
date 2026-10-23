@@ -1,36 +1,43 @@
-<script setup>
+<script setup lang="ts">
 import { reactive } from 'vue'
 import { ChevronRightIcon, DownloadCloudIcon, SaveIcon } from 'lucide-vue-next'
-import { COLLECTIONS, COLLECTION_ORDER } from './schema.js'
-import { downloadBackup, importAll, useCollection } from './data.js'
+import { COLLECTIONS, COLLECTION_ORDER, isCollection, type CollectionName } from './schema'
+import { downloadBackup, importAll, useCollection, type ImportResult } from './data'
+import type { Profile } from './types'
+import { errMsg } from './util'
 
 // Festival data home: one card per kind of data, plus import and backup for admins.
-defineProps({ profile: { type: Object, required: true } })
+defineProps<{ profile: Profile }>()
 
 const counts = Object.fromEntries(COLLECTION_ORDER.map((name) => [name, useCollection(name)]))
-const listCounts = (c) =>
-  Object.entries(c).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${(COLLECTIONS[k]?.title || k).toLowerCase()}`).join(', ')
+const listCounts = (c: Record<string, number>) =>
+  Object.entries(c).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${(isCollection(k) ? COLLECTIONS[k].title : k).toLowerCase()}`).join(', ')
 
-const imp = reactive({ busy: false, done: null, error: '', progress: '' })
+const countText = (name: CollectionName) => {
+  const items = counts[name]?.state.items
+  return items == null ? 'Loading…' : `${items.length} in the database`
+}
+
+const imp = reactive({ busy: false, done: null as ImportResult | null, error: '', progress: '' })
 async function runImport() {
   Object.assign(imp, { busy: true, done: null, error: '', progress: 'Checking what\'s already there…' })
   try {
     const done = await importAll((n, total) => { imp.progress = `${n} of ${total} added…` })
     Object.assign(imp, { busy: false, done, progress: '' })
   } catch (e) {
-    Object.assign(imp, { busy: false, error: e.message, progress: '' })
+    Object.assign(imp, { busy: false, error: errMsg(e), progress: '' })
   }
 }
-const importAdded = () => listCounts(imp.done.added)
-const importKept = () => Object.values(imp.done.kept).reduce((a, b) => a + b, 0)
+const importAdded = () => (imp.done ? listCounts(imp.done.added) : '')
+const importKept = () => (imp.done ? Object.values(imp.done.kept).reduce((a, b) => a + b, 0) : 0)
 
-const backup = reactive({ busy: false, done: null, error: '' })
+const backup = reactive({ busy: false, done: null as Record<string, number> | null, error: '' })
 async function runBackup() {
   Object.assign(backup, { busy: true, done: null, error: '' })
   try {
     Object.assign(backup, { busy: false, done: await downloadBackup() })
   } catch (e) {
-    Object.assign(backup, { busy: false, error: e.message })
+    Object.assign(backup, { busy: false, error: errMsg(e) })
   }
 }
 </script>
@@ -72,7 +79,7 @@ async function runBackup() {
       <NuxtLink v-for="name in COLLECTION_ORDER" :key="name" :to="`/admin/data/${name}`" class="card card-interactive flex items-center gap-3 p-4">
         <span class="flex flex-1 flex-col gap-0.5">
           <span class="text-body font-semibold">{{ COLLECTIONS[name].title }}</span>
-          <span class="text-meta text-muted">{{ counts[name].state.items == null ? 'Loading…' : `${counts[name].state.items.length} in the database` }}</span>
+          <span class="text-meta text-muted">{{ countText(name) }}</span>
         </span>
         <ChevronRightIcon class="size-5 text-muted" />
       </NuxtLink>

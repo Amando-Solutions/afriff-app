@@ -770,15 +770,15 @@ heavy libraries) apply everywhere.
 - SAME APP, SAME SCOPE, NEW FRAMEWORK: everything above (screens, admin
   console, Firebase, publish step, relays, queues, reports) is unchanged in
   behaviour. Only the framework and the look changed.
-- Tech: Nuxt 4 (Vue 3) in SPA mode, plain JavaScript, Tailwind CSS 4,
+- Tech: Nuxt 4 (Vue 3) in SPA mode, TypeScript since 23 Oct (see below), Tailwind CSS 4,
   icons from lucide-vue-next. Code moved from `src/` to `app/`; the file
-  map is in DEVELOPER.md section 3. Data files (`app/data/*.js`) and most of
+  map is in DEVELOPER.md section 3. Data files (`app/data/*.ts`) and most of
   `app/lib/` are the same code as before.
 - Addresses are real paths now: `/film/lady`, `/programme/events`, `/my`,
   `/admin/data/films`. Old `#/...` links (already shared, or in a QR code)
   are forwarded to the matching page automatically.
-- Relays moved from `api/*.js` to Nuxt server routes `server/api/festival.get.js`
-  and `server/api/queues.get.js`. Same URLs, same caching, same answers.
+- Relays moved from `api/*.js` to Nuxt server routes `server/api/festival.get.ts`
+  and `server/api/queues.get.ts`. Same URLs, same caching, same answers.
 - LOOK: sizes, colours, spacing, icons and fonts now follow the AFRIFF
   design system from the earlier attendee build (deep navy + festival gold,
   Archivo headings + Onest text, one radius system, the official AFRIFF
@@ -807,6 +807,41 @@ heavy libraries) apply everywhere.
   screen, relays (with pretend database answers), offline reload of deep
   links. NOT checked: admin logins (Firebase accounts), install prompts on
   real phones.
+
+### TypeScript + visual hierarchy pass (23 Oct 2026, user request)
+- WHAT CHANGED FOR ATTENDEES: nothing in what the app does; screens read
+  more clearly. WHAT CHANGED FOR THE DEVELOPER: the whole app is TypeScript.
+- TypeScript: every file in `app/` and `server/` is `.ts` (or a `.vue` file
+  with `lang="ts"`); no JavaScript left except throwaway test scripts. The
+  shapes of films, screenings, events, venues, news, jury and queue counts
+  are written down once in `app/types/festival.ts` (console records in
+  `app/admin/types.ts`), so a typo in a field name is caught before it
+  ships. New check: `npm run typecheck` (must say nothing = all good).
+- Visual hierarchy (design rules, also in DEVELOPER.md section 3):
+  - Gold is kept for things you can tap or have chosen (buttons, selected
+    day/chip/tab, active nav). Times, dates, counts and initials are now
+    white or grey, so the gold buttons stand out.
+  - One clear order of text sizes on every screen: page title → section
+    heading → item title → details → small capital labels.
+  - Programme: the All / Films / Events switch sits on the same row as
+    Public/Industry; a heading above the list shows the day, its theme and
+    how many items; the selected day is a soft gold tile.
+  - Rows (schedule, events, My Festival, My plan): big white time on the
+    left, title, then venue, then a small grey category label; masterclasses
+    show a green "Free" tag; cancelled rows fade.
+  - Home: the urgent banner is shorter (headline + 2 lines + "Read in News").
+  - My Festival: the three number tiles became one card.
+  - Queues: "Live" tag only on "Queues open now"; recent updates use short
+    venue names so the line fits; labels are coloured tags.
+  - News: tag and date on one quiet line, headline leads, "View" button.
+  - Jury: country and initials grey instead of gold.
+  - Console and door view: same rules (numbers white, gold for actions).
+- Checked (cloud browser at phone size): every screen re-screenshotted; the
+  attendee test run (welcome, plans saved across reload, bell, hash links,
+  festival-day Home, sample queues); offline reload; door counter with the
+  pretend database (all steps); `npm run typecheck` and `npm run build`.
+- Not deployed yet. Michael: pull, `npm install` (adds typescript and
+  vue-tsc), `npm run typecheck`, then deploy as usual.
 
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`

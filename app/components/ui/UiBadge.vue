@@ -1,8 +1,12 @@
-<script setup>
-/** Small static tag for status and attributes. */
-defineProps({ tone: { type: String, default: 'neutral' } }) // neutral | accent | success | danger | info
+<script lang="ts">
+export type BadgeTone = 'neutral' | 'accent' | 'success' | 'danger' | 'info'
+</script>
 
-const tones = {
+<script setup lang="ts">
+/** Small static tag for status and attributes. */
+withDefaults(defineProps<{ tone?: BadgeTone }>(), { tone: 'neutral' })
+
+const tones: Record<BadgeTone, string> = {
   neutral: 'bg-raised text-muted',
   accent: 'bg-accent-soft text-accent-ink',
   success: 'bg-success-soft text-success',

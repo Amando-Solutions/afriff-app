@@ -1,32 +1,36 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { signOut } from 'firebase/auth'
 import { deleteDoc } from 'firebase/firestore'
 import { LogOutIcon } from 'lucide-vue-next'
-import { FESTIVAL } from '~/data/programme.js'
-import { dayLabel, screeningStart, timeLabel } from '~/lib/format.js'
-import { lagosDate, now } from '~/lib/now.js'
-import { auth } from './firebase.js'
-import { useCollection } from './data.js'
-import { boardRef, useBoard } from './board.js'
+import { FESTIVAL } from '~/data/programme'
+import { dayLabel, screeningStart, timeLabel } from '~/lib/format'
+import { lagosDate, now } from '~/lib/now'
+import { auth } from './firebase'
+import { useCollection } from './data'
+import { boardRef, useBoard } from './board'
 import AdminDoorScreening from './AdminDoorScreening.vue'
+import type { BoardEntry, DoorScreening, Profile } from './types'
+import { errMsg } from './util'
+
+type RowState = 'done' | 'counting' | 'now' | 'later'
 
 // THE DOOR VIEW (/door): what door volunteers use, on their own phone.
 // Opens straight to today at their venue and highlights the screening to
 // count now. Admins can pick any venue and festival day, and clear test counts.
-const props = defineProps({ profile: { type: Object, required: true }, standalone: Boolean })
+const props = defineProps<{ profile: Profile; standalone?: boolean }>()
 
 const COUNT_FROM_MINUTES = 120 // "Count now" from 2 hours before the start
-const clamp = (n) => Math.max(0, n || 0)
+const clamp = (n: number | undefined) => Math.max(0, n || 0)
 
 const screenings = useCollection('screenings')
 const films = useCollection('films')
 const venues = useCollection('venues')
 const isAdmin = props.profile.role === 'admin'
 const today = lagosDate()
-const venue = ref(isAdmin ? '' : props.profile.venue)
-const day = ref(FESTIVAL.days.includes(today) ? today : FESTIVAL.days[0])
-const openId = ref(null)
+const venue = ref(isAdmin ? '' : props.profile.venue || '')
+const day = ref<string>(FESTIVAL.days.includes(today) ? today : FESTIVAL.days[0]!)
+const openId = ref<string | null>(null)
 const clearing = ref('')
 
 // volunteers only ever see today; admins can look at any festival day
@@ -40,15 +44,15 @@ const t = ref(now().getTime())
 const tick = setInterval(() => { t.value = now().getTime() }, 30000)
 onBeforeUnmount(() => clearInterval(tick))
 
-const list = computed(() => (screenings.state.items || [])
+const list = computed(() => ((screenings.state.items || []) as unknown as DoorScreening[])
   .filter((s) => s.date === shownDay.value && (!venue.value || s.venue === venue.value))
   .sort((a, b) => (a.time || '').localeCompare(b.time || '')))
 const open = computed(() => list.value.find((s) => s.id === openId.value))
-const venueName = (id) => venues.map.value[id]?.name || id
-const filmTitle = (s) => films.map.value[s.film]?.title || s.film
+const venueName = (id: string) => String(venues.map.value[id]?.name || id)
+const filmTitle = (s: DoorScreening) => String(films.map.value[s.film]?.title || s.film)
 
 // Where each screening stands, for the Today list
-function stateOf(s, entry) {
+function stateOf(s: DoorScreening, entry: BoardEntry | undefined): RowState {
   const start = screeningStart(s).getTime()
   if (start <= t.value) return 'done'
   if (entry) return 'counting'
@@ -56,12 +60,12 @@ function stateOf(s, entry) {
   return 'later'
 }
 const rows = computed(() => {
-  const entries = venue.value ? board.data?.s || {} : {}
+  const entries: Record<string, BoardEntry> = venue.value ? board.data?.s || {} : {}
   return list.value.map((s) => ({ s, entry: entries[s.id], state: stateOf(s, entries[s.id]) }))
 })
 // the one to count now: something already being counted, else the next to start within 2 hours
 const focus = computed(() => (venue.value ? rows.value.find((r) => r.state === 'counting') || rows.value.find((r) => r.state === 'now') : null))
-const TAG = { done: 'Done', counting: 'Counting', now: 'Count now', later: 'Next' }
+const TAG: Record<RowState, string> = { done: 'Done', counting: 'Counting', now: 'Count now', later: 'Next' }
 
 async function clearAll() {
   if (!window.confirm(`Delete every queue count at ${venueName(venue.value)} on ${dayLabel(shownDay.value)}? Use this to remove test counts.`)) return
@@ -70,7 +74,7 @@ async function clearAll() {
     await deleteDoc(boardRef(shownDay.value, venue.value))
     clearing.value = 'Counts cleared.'
   } catch (e) {
-    clearing.value = `Couldn't clear: ${e.message}`
+    clearing.value = `Couldn't clear: ${errMsg(e)}`
   }
 }
 </script>
@@ -100,7 +104,7 @@ async function clearAll() {
       v-else-if="open"
       :key="open.id"
       :screening="open"
-      :film="films.map.value[open.film]"
+      :film-title="filmTitle(open)"
       :venue-name="venueName(open.venue)"
       :profile="profile"
       @back="openId = null"
@@ -124,11 +128,11 @@ async function clearAll() {
 
       <p v-if="screenings.state.items == null" class="text-muted">Loading…</p>
       <p v-if="screenings.state.items?.length === 0" class="rounded-tile bg-raised px-3.5 py-2.5 text-meta text-muted">No screenings in the database yet. An admin needs to load the festival data first (Festival data page).</p>
-      <p v-if="venue && screenings.state.items?.length > 0 && list.length === 0" class="text-muted">{{ isAdmin ? 'No screenings at this venue on this day.' : 'No screenings at your venue today.' }}</p>
+      <p v-if="venue && (screenings.state.items?.length ?? 0) > 0 && list.length === 0" class="text-muted">{{ isAdmin ? 'No screenings at this venue on this day.' : 'No screenings at your venue today.' }}</p>
 
       <!-- The one to count now -->
       <button v-if="focus" type="button" class="card card-interactive flex w-full flex-col gap-1.5 border-2 border-accent! p-4 text-left" @click="openId = focus.s.id">
-        <span class="text-label font-semibold tracking-wider text-accent-ink uppercase">
+        <span class="eyebrow text-accent-ink">
           {{ focus.state === 'counting' ? 'Counting now' : 'Count now' }} · starts {{ timeLabel(focus.s.time) }}
         </span>
         <span class="font-display text-h2 font-semibold">{{ filmTitle(focus.s) }}</span>
@@ -148,7 +152,7 @@ async function clearAll() {
           :class="r.state === 'done' && 'opacity-50'"
           @click="openId = r.s.id"
         >
-          <span class="w-[5.25rem] shrink-0 font-display text-h3 font-semibold whitespace-nowrap text-accent-ink tabular-nums">{{ timeLabel(r.s.time) }}</span>
+          <span class="w-[5.25rem] shrink-0 font-display text-h3 font-semibold whitespace-nowrap tabular-nums">{{ timeLabel(r.s.time) }}</span>
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
             <span class="truncate font-semibold">{{ filmTitle(r.s) }}</span>
             <span class="text-meta text-muted tabular-nums">

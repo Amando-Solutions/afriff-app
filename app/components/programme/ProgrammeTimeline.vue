@@ -1,19 +1,20 @@
-<script setup>
+<script setup lang="ts">
+import type { DayItem } from '~/lib/dayItems'
 import { computed, onMounted, useTemplateRef, watch } from 'vue'
 import { CheckIcon } from 'lucide-vue-next'
-import { VENUES } from '~/data/programme.js'
-import { EVENT_TYPES } from '~/data/events.js'
-import { fromMinutes, timeLabel } from '~/lib/format.js'
-import { lagosDate, lagosMinutes } from '~/lib/now.js'
-import { useFestival } from '~/lib/store.js'
+import { VENUES } from '~/data/programme'
+import { EVENT_TYPES } from '~/data/events'
+import { fromMinutes, timeLabel } from '~/lib/format'
+import { lagosDate, lagosMinutes } from '~/lib/now'
+import { useFestival } from '~/lib/store'
 
 // Timeline: venues and screens down the left, hours across, a block per
 // showing, a red line for "now". Scrolls sideways.
-const props = defineProps({ items: { type: Array, required: true }, day: { type: String, required: true } })
+const props = defineProps<{ items: DayItem[]; day: string }>()
 const { isScheduled } = useFestival()
 const PX = 120 // pixels per hour
 const LABEL = 92 // width of the room-name column
-const scroller = useTemplateRef('scroller')
+const scroller = useTemplateRef<HTMLElement>('scroller')
 
 const grid = computed(() => {
   const items = props.items
@@ -26,7 +27,7 @@ const grid = computed(() => {
   }
   const hours = []
   for (let m = from; m < to; m += 60) hours.push(m)
-  const x = (mins) => ((mins - from) / 60) * PX
+  const x = (mins: number) => ((mins - from) / 60) * PX
   // one group per cinema, plus "Other places" for events away from the cinemas
   const places = [...VENUES.map((v) => ({ id: v.id, name: v.name, color: v.color })), { id: null, name: 'Other places', color: '#D9A441' }]
   const groups = places
@@ -38,8 +39,8 @@ const grid = computed(() => {
   return { nowMin, hours, x, trackWidth: ((to - from) / 60) * PX, groups }
 })
 
-const hourLabel = (m) => timeLabel(fromMinutes(m % (24 * 60))).replace(':00', '').toLowerCase()
-const endLabel = (i) => timeLabel(fromMinutes(i.end % (24 * 60)))
+const hourLabel = (m: number) => timeLabel(fromMinutes(m % (24 * 60))).replace(':00', '').toLowerCase()
+const endLabel = (i: DayItem) => timeLabel(fromMinutes(i.end % (24 * 60)))
 
 function scrollToNow() {
   const g = grid.value
@@ -61,7 +62,7 @@ watch(() => props.day, scrollToNow, { flush: 'post' })
         >{{ hourLabel(m) }}</span>
       </div>
       <div v-for="g in grid.groups" :key="g.place.id || 'other'" class="mt-3.5">
-        <div class="sticky left-0 inline-block px-4 pb-1.5 text-micro font-semibold tracking-wider uppercase" :style="{ color: g.place.color }">{{ g.place.name }}</div>
+        <div class="sticky left-0 inline-block px-4 pb-1.5 eyebrow" :style="{ color: g.place.color }">{{ g.place.name }}</div>
         <div v-for="lane in g.lanes" :key="lane" class="flex h-[4.375rem]">
           <div
             class="sticky left-0 z-2 flex shrink-0 items-center border-l-[3px] bg-canvas pl-3 text-meta text-ink"

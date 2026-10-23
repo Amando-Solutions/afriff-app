@@ -1,7 +1,8 @@
-<script setup>
+<script setup lang="ts">
+import type { JuryMember } from '~/types/festival'
 // Bio that slides up when someone is tapped
-defineProps({ member: { type: Object, default: null } })
-const open = defineModel('open', { type: Boolean, default: false })
+defineProps<{ member: JuryMember | null }>()
+const open = defineModel<boolean>('open', { default: false })
 </script>
 
 <template>

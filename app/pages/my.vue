@@ -1,46 +1,49 @@
-<script setup>
+<script setup lang="ts">
 import { computed, useTemplateRef } from 'vue'
 import { ArrowUpRightIcon, CheckIcon, DownloadIcon, ListChecksIcon, Share2Icon, StarIcon } from 'lucide-vue-next'
-import { FILMS } from '~/data/programme.js'
-import { dateParts, timeLabel } from '~/lib/format.js'
-import { statusTag } from '~/lib/alerts.js'
-import { planItems } from '~/lib/plan.js'
-import { useFestival } from '~/lib/store.js'
+import { FILMS } from '~/data/programme'
+import { dateParts, timeLabel } from '~/lib/format'
+import { statusTag } from '~/lib/alerts'
+import { planItems, planWhere, type PlanItem } from '~/lib/plan'
+import { useFestival } from '~/lib/store'
 
 // MY FESTIVAL ("My Schedule"): your plan by day, Share my day, your watched
 // list with stars and the Letterboxd export. Kept on this phone.
 useHead({ title: 'My Festival' })
 const { state, toggleScheduled, rateWatched, setSharing } = useFestival()
-const diary = useTemplateRef('diary')
+const diary = useTemplateRef<HTMLElement>('diary')
 const LETTERBOXD_IMPORT = 'https://letterboxd.com/import/'
 
 const mine = computed(() => planItems(state.scheduled))
 const nFilms = computed(() => mine.value.filter((i) => i.kind === 'screening').length)
 const nEvents = computed(() => mine.value.length - nFilms.value)
 const changed = computed(() => mine.value.filter((i) => statusTag(i.status)))
-const byDay = computed(() => mine.value.reduce((acc, s) => {
+const byDay = computed(() => mine.value.reduce<Record<string, PlanItem[]>>((acc, s) => {
   (acc[s.date] ||= []).push(s)
   return acc
 }, {}))
 const days = computed(() => Object.keys(byDay.value))
 const summary = computed(() => {
-  const s = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`
+  const s = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
   return `${s(nFilms.value, 'screening')}${nEvents.value > 0 ? ` and ${s(nEvents.value, 'event')}` : ''} over ${s(days.value.length, 'day')}`
 })
 
-function shareDay(date) {
+function shareDay(date: string) {
   const p = dateParts(date)
-  const lines = byDay.value[date].map((item) => `• ${timeLabel(item.time)}: ${item.title} (${item.where})`)
+  const lines = (byDay.value[date] || []).map((item) => `• ${timeLabel(item.time)}: ${item.title} (${planWhere(item)})`)
   const text = `My AFRIFF day, ${p.day} ${p.date} ${p.month}:\n${lines.join('\n')}`
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
 }
 
 // ---------- Watched ----------
-const entries = computed(() => FILMS.filter((f) => state.watched.has(f.id)).map((film) => ({ film, ...state.watched.get(film.id) })))
+const entries = computed(() => FILMS.flatMap((film) => {
+  const w = state.watched.get(film.id)
+  return w ? [{ film, date: w.date, rating: w.rating }] : []
+}))
 
 // CSV in Letterboxd's import format: https://letterboxd.com/about/importing-data/
 function exportLetterboxd() {
-  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const esc = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`
   const rows = [
     ['Title', 'Year', 'Directors', 'WatchedDate', 'Rating', 'Tags'],
     ...entries.value.map(({ film, date, rating }) => [film.title, film.year || '', film.director.replace(/ & /g, ', '), date, rating || '', 'afriff2026']),
@@ -54,7 +57,7 @@ function exportLetterboxd() {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 // tapping your current rating again clears it
-const rate = (filmId, current, n) => rateWatched(filmId, current === n ? 0 : n)
+const rate = (filmId: string, current: number, n: number) => rateWatched(filmId, current === n ? 0 : n)
 </script>
 
 <template>
@@ -68,18 +71,18 @@ const rate = (filmId, current, n) => rateWatched(filmId, current === n ? 0 : n)
       </NuxtLink>
     </div>
 
-    <!-- Three numbers -->
-    <div class="mt-4 grid grid-cols-3 gap-2">
-      <button type="button" class="card card-interactive flex flex-col items-start p-3 text-left" @click="diary?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
-        <span class="font-display text-h1 font-semibold text-accent-ink tabular-nums">{{ state.watched.size }}</span>
+    <!-- Three numbers: one quiet panel, so the plan below stays the focus -->
+    <div class="card mt-4 grid grid-cols-3 divide-x divide-line overflow-hidden">
+      <button type="button" class="row-interactive flex flex-col items-start px-3.5 py-3 text-left" @click="diary?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
+        <span class="font-display text-h2 font-semibold tabular-nums">{{ state.watched.size }}</span>
         <span class="text-label text-muted">{{ state.watched.size === 1 ? 'film' : 'films' }} seen</span>
       </button>
-      <div class="card flex flex-col p-3">
-        <span class="font-display text-h1 font-semibold text-accent-ink tabular-nums">{{ mine.length }}</span>
+      <div class="flex flex-col px-3.5 py-3">
+        <span class="font-display text-h2 font-semibold tabular-nums">{{ mine.length }}</span>
         <span class="text-label text-muted">in your plan</span>
       </div>
-      <NuxtLink to="/queues" class="card card-interactive flex flex-col p-3">
-        <span class="font-display text-h1 font-semibold text-accent-ink tabular-nums">{{ state.queuesChecked.size }}</span>
+      <NuxtLink to="/queues" class="row-interactive flex flex-col px-3.5 py-3">
+        <span class="font-display text-h2 font-semibold tabular-nums">{{ state.queuesChecked.size }}</span>
         <span class="text-label text-muted">queues checked</span>
       </NuxtLink>
     </div>
@@ -99,13 +102,13 @@ const rate = (filmId, current, n) => rateWatched(filmId, current === n ? 0 : n)
           <FilmPoster v-if="item.kind === 'screening'" :film="item.film" class="aspect-[2/3] w-12 rounded-thumb" />
           <EventThumb v-else :event="item.event" class="aspect-[2/3] w-12 rounded-thumb" />
           <span class="flex min-w-0 flex-col gap-0.5">
-            <span class="text-label text-muted tabular-nums">{{ timeLabel(item.time) }} – {{ timeLabel(item.end) }}{{ item.typeLabel ? ` · ${item.typeLabel}` : '' }}</span>
+            <span class="text-meta font-medium text-ink/80 tabular-nums">{{ timeLabel(item.time) }} – {{ timeLabel(item.end) }}<span v-if="item.kind === 'event'" class="text-muted"> · {{ item.typeLabel }}</span></span>
             <span class="line-clamp-2 text-body font-semibold" :class="item.status === 'cancelled' && 'text-muted line-through'">{{ item.title }}</span>
             <StatusTag :status="item.status" />
-            <VenueLine :venue-id="item.venue" :place="item.venue ? '' : item.where" :screen="item.venue ? item.where.split(' · ')[1] : ''" />
+            <VenueLine :venue-id="item.venue" :place="item.venueName" :screen="item.room" />
           </span>
         </NuxtLink>
-        <AddButton added big :title="item.title" @toggle="toggleScheduled(item.id)" />
+        <AddButton added :title="item.title" @toggle="toggleScheduled(item.id)" />
       </div>
     </section>
 
@@ -163,7 +166,7 @@ const rate = (filmId, current, n) => rateWatched(filmId, current === n ? 0 : n)
         <span class="text-body font-semibold">Share anonymous counts with AFRIFF</span>
         <span class="text-meta text-muted">No names or contact details: just which screenings are planned and how films are rated, to help plan the festival.</span>
       </span>
-      <input type="checkbox" role="switch" class="peer sr-only" :checked="state.sharing" @change="setSharing($event.target.checked)" />
+      <input type="checkbox" role="switch" class="peer sr-only" :checked="state.sharing" @change="setSharing(($event.target as HTMLInputElement).checked)" />
       <span
         class="relative h-7 w-12 shrink-0 rounded-full bg-raised transition-colors peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-ink after:shadow after:transition-transform after:content-[''] peer-checked:after:translate-x-5 peer-checked:after:bg-on-accent"
         aria-hidden="true"

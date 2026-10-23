@@ -4,7 +4,9 @@
 // afriff.com on 19 Oct 2026. Descriptions and bios are short summaries
 // written for this app. TIMES AND ROOMS ARE SAMPLES until AFRIFF publishes them.
 
-export const EVENT_TYPES = {
+import type { EventGroup, EventType, FestivalEvent, Link, Tag } from '~/types/festival';
+
+export const EVENT_TYPES: Record<EventType, { label: string; group: EventGroup }> = {
   masterclass: { label: 'Masterclass', group: 'learn' },
   workshop: { label: 'Workshop', group: 'learn' },
   market: { label: 'Market', group: 'industry' },
@@ -16,7 +18,7 @@ export const EVENT_TYPES = {
 };
 
 // Filter chips on the Events tab
-export const EVENT_FILTERS = [
+export const EVENT_FILTERS: { id: EventGroup | 'all'; label: string }[] = [
   { id: 'all', label: 'All events' },
   { id: 'learn', label: 'Masterclasses & workshops' },
   { id: 'industry', label: 'Market & panels' },
@@ -25,9 +27,9 @@ export const EVENT_FILTERS = [
 
 const MASTERCLASS_URL = 'https://afriff.com/program/masterclasses';
 const FREE = 'Free · registration required';
-const register = { label: 'Register on afriff.com', url: MASTERCLASS_URL };
+const register: Link = { label: 'Register on afriff.com', url: MASTERCLASS_URL };
 
-export let EVENTS = [
+export let EVENTS: FestivalEvent[] = [
   // ---------- All week ----------
   {
     id: 'festival-meetups', type: 'networking', title: 'Festival meetups',
@@ -46,7 +48,7 @@ export let EVENTS = [
   },
 
   // ---------- AFCM market, Mon 2 – Thu 5 Nov at Twinwaters ----------
-  ...['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'].map((date, i) => ({
+  ...['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'].map((date, i): FestivalEvent => ({
     id: `afcm-day-${i + 1}`, type: 'market', title: `AFCM Film & Content Market · Day ${i + 1}`,
     date, time: '10:00', end: '18:00', venue: 'twinwaters', place: 'Market floor', tag: 'Industry',
     about: 'Nigeria\'s film market, where producers meet investors, distributors and streamers. Theme: "Frames of the Future: Africa\'s Creative Intelligence". Four days spanning Film & TV, Nollywood, Innovation and Diaspora, plus the first Investment Roundtables.',
@@ -179,16 +181,16 @@ export let EVENTS = [
   },
 ];
 
-export const eventById = (id) => EVENTS.find((e) => e.id === id);
-export const isMultiDay = (e) => Boolean(e.endDate && e.endDate !== e.date);
+export const eventById = (id: string | null | undefined) => EVENTS.find((e) => e.id === id);
+export const isMultiDay = (e: Pick<FestivalEvent, 'date' | 'endDate'>) => Boolean(e.endDate && e.endDate !== e.date);
 // Single-day events on a given day (multi-day ones are shown under "All week")
-export const eventsOn = (date) => EVENTS.filter((e) => !isMultiDay(e) && e.date === date).sort((a, b) => a.time.localeCompare(b.time));
+export const eventsOn = (date: string) => EVENTS.filter((e) => !isMultiDay(e) && e.date === date).sort((a, b) => a.time.localeCompare(b.time));
 
 // Values we shipped earlier and have since corrected from AFRIFF's own
 // graphics. "Add missing festival data" swaps each one for the new value,
 // but only while the database still holds exactly the old value (so
 // anything the team typed is never touched).
-export const REPLACED_VALUES = {
+export const REPLACED_VALUES: Record<string, Partial<Record<keyof FestivalEvent, string>>> = {
   'cinematography-workshop': { image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/010d239f-7f93-45e5-ba45-ae157f169454/cinematography-workshop.jpg', speaker: 'Kirby Griffin', bio: 'Self-taught director of photography who has shot for BET, Revolt TV and HBO.' },
   'editing-workshop': {
     image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/923196fa-6434-415f-8852-e5063d04879c/film-editing-workshop-2026.jpg', speaker: 'Steve Sodiya', speakerRole: 'Film editor',
@@ -197,7 +199,7 @@ export const REPLACED_VALUES = {
 };
 
 // Old graphic links replaced by AFRIFF's files in public/masterclasses
-export const REPLACED_LINKS = [
+export const REPLACED_LINKS: string[] = [
   'https://afriff-revival.lovable.app/__l5e/assets-v1/7f158796-7ceb-4f1a-b2e2-d74522d76b87/acting-masterclass-rmd.jpg',
   'https://afriff-revival.lovable.app/__l5e/assets-v1/7be2c5c5-9b2f-4b35-970e-d56afb07bd53/actors-workshop-hilda-dokubo.jpg',
   'https://afriff-revival.lovable.app/__l5e/assets-v1/f61d2ef6-e314-49f5-a78f-689479206227/ai-filmmaking-workshop.jpg',
@@ -210,14 +212,16 @@ export const REPLACED_LINKS = [
 export const BUILT_IN_EVENTS = EVENTS;
 
 // Swap in the events an admin published from the console.
-export function replaceEvents(list, venueIds) {
+export function replaceEvents(list: Partial<FestivalEvent>[], venueIds: Set<string>) {
   EVENTS = list
     .filter((e) => e.id && e.title && e.date && e.time)
-    .map((e) => ({
+    .map((e): FestivalEvent => ({
       ...e,
-      type: EVENT_TYPES[e.type] ? e.type : 'networking',
-      venue: venueIds.has(e.venue) ? e.venue : null,
-      end: e.end || e.time,
+      id: e.id!, title: e.title!, date: e.date!, time: e.time!,
+      type: e.type && EVENT_TYPES[e.type] ? e.type : 'networking',
+      venue: e.venue && venueIds.has(e.venue) ? e.venue : null,
+      tag: (e.tag || undefined) as Tag | undefined,
+      end: e.end || e.time!,
       about: e.about || '',
       access: e.access || '',
       place: e.place || '',

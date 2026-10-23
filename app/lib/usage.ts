@@ -11,9 +11,9 @@
 //
 // The laptop test version never sends (so testing doesn't pollute reports),
 // unless ?share=1 is in the address.
-import { lagosDate, testSwitch } from './now.js';
+import { lagosDate, testSwitch } from './now';
 
-const DOC_URL = (id) =>
+const DOC_URL = (id: string) =>
   `https://firestore.googleapis.com/v1/projects/afriff-app/databases/(default)/documents/usage/${id}` +
   '?key=AIzaSyCPxdNaQyK6r4OU97-zBZBKLqHsHunGzYo';
 const SHARE_KEY = 'afriff-share';
@@ -23,16 +23,22 @@ const DAYS_KEY = 'afriff-usage-days';
 const MIN_GAP = 30 * 60 * 1000;
 
 const store = {
-  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
-  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } },
+  get: (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } },
 };
+
+interface UsagePayload {
+  planned: string[];
+  seen: Record<string, number>;
+  days: string[];
+}
 
 const enabledHere = () =>
   !import.meta.dev || testSwitch('share') === '1';
 
 export const getSharing = () => store.get(SHARE_KEY) !== '0';
 
-function deviceId() {
+function deviceId(): string {
   let id = store.get(DEVICE_KEY);
   if (!id) {
     id = (window.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`).replace(/[^a-z0-9-]/gi, '');
@@ -42,8 +48,8 @@ function deviceId() {
 }
 
 // days this phone opened the app (last 60), for the "app usage" report
-function activeDays() {
-  let days = [];
+function activeDays(): string[] {
+  let days: string[] = [];
   try { days = JSON.parse(store.get(DAYS_KEY) || '[]'); } catch { days = []; }
   const today = lagosDate();
   if (!days.includes(today)) {
@@ -54,7 +60,7 @@ function activeDays() {
 }
 
 // Firestore's REST format for our three kinds of values
-const toFields = ({ planned, seen, days }) => ({
+const toFields = ({ planned, seen, days }: UsagePayload) => ({
   v: { integerValue: '1' },
   updatedAt: { timestampValue: new Date().toISOString() },
   planned: { arrayValue: { values: planned.map((s) => ({ stringValue: s })) } },
@@ -62,7 +68,7 @@ const toFields = ({ planned, seen, days }) => ({
   seen: { mapValue: { fields: Object.fromEntries(Object.entries(seen).map(([k, r]) => [k, { integerValue: String(r) }])) } },
 });
 
-async function send(payload) {
+async function send(payload: UsagePayload) {
   const res = await fetch(DOC_URL(deviceId()), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -72,10 +78,10 @@ async function send(payload) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
-let timer = null;
-let pending = null;
+let timer: ReturnType<typeof setTimeout> | null = null;
+let pending: UsagePayload | null = null;
 
-function lastSent() {
+function lastSent(): { at?: number; fingerprint?: string } {
   try { return JSON.parse(store.get(LAST_KEY) || '{}'); } catch { return {}; }
 }
 
@@ -96,7 +102,7 @@ async function flush() {
 }
 
 // Called whenever plans or ratings change (and when the app opens).
-export function queueUsageReport({ scheduled, watched }) {
+export function queueUsageReport({ scheduled, watched }: { scheduled: ReadonlySet<string>; watched: ReadonlyMap<string, { rating?: number }> }) {
   if (!enabledHere() || !getSharing()) return;
   pending = {
     planned: [...scheduled].sort(),
@@ -109,7 +115,7 @@ export function queueUsageReport({ scheduled, watched }) {
 }
 
 // The switch in My Festival. Turning it off clears what this phone shared.
-export function setSharing(on) {
+export function setSharing(on: boolean) {
   store.set(SHARE_KEY, on ? '1' : '0');
   if (!on) {
     if (timer) clearTimeout(timer);

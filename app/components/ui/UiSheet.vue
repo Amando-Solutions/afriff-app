@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, useId, useTemplateRef, watch } from 'vue'
 import { useScrollLock } from '@vueuse/core'
 import { XIcon } from 'lucide-vue-next'
@@ -7,10 +7,10 @@ import { XIcon } from 'lucide-vue-next'
  * Bottom sheet built on the native <dialog>: focus is trapped, Esc closes it and
  * the page behind is inert. Slides up from the bottom, rounded top, close X.
  */
-defineProps({ title: { type: String, required: true } })
-const open = defineModel('open', { type: Boolean, default: false })
+defineProps<{ title: string }>()
+const open = defineModel<boolean>('open', { default: false })
 
-const dialog = useTemplateRef('dialog')
+const dialog = useTemplateRef<HTMLDialogElement>('dialog')
 const titleId = useId()
 const locked = useScrollLock(typeof document === 'undefined' ? null : document.body)
 
@@ -33,7 +33,7 @@ onMounted(() => {
   }
 })
 
-function onBackdropClick(event) {
+function onBackdropClick(event: MouseEvent) {
   if (event.target === dialog.value) open.value = false
 }
 </script>

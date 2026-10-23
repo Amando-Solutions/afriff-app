@@ -1,25 +1,33 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
 /** Pill button. `to` makes it a link (internal path, or an external https link). */
-const props = defineProps({
-  variant: { type: String, default: 'primary' }, // primary | secondary | ghost | danger
-  size: { type: String, default: 'md' }, // sm | md | lg
-  to: { type: String, default: undefined },
-  href: { type: String, default: undefined }, // external link (opens in a new tab)
-  type: { type: String, default: 'button' },
-  block: Boolean,
-  loading: Boolean,
-  disabled: Boolean,
-})
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
+type Size = 'sm' | 'md' | 'lg'
 
-const variants = {
+const props = withDefaults(
+  defineProps<{
+    variant?: Variant
+    size?: Size
+    /** internal page: renders a NuxtLink */
+    to?: string
+    /** external link: opens in a new tab */
+    href?: string
+    type?: 'button' | 'submit' | 'reset'
+    block?: boolean
+    loading?: boolean
+    disabled?: boolean
+  }>(),
+  { variant: 'primary', size: 'md', to: undefined, href: undefined, type: 'button' },
+)
+
+const variants: Record<Variant, string> = {
   primary: 'bg-accent text-on-accent hover:bg-accent-hover shadow-[inset_0_1px_0_rgb(255_255_255/0.28),0_1px_2px_rgb(2_4_20/0.22)]',
   secondary: 'border border-line bg-surface text-ink shadow-card hover:border-line-strong hover:bg-hover',
   ghost: 'text-ink hover:bg-hover',
   danger: 'bg-danger-soft text-danger hover:bg-danger hover:text-canvas',
 }
-const sizes = {
+const sizes: Record<Size, string> = {
   sm: 'h-8 px-3 text-meta gap-1.5 [&_svg]:size-4',
   md: 'h-10 px-4 text-body gap-2 [&_svg]:size-[1.125rem]',
   lg: 'h-12 px-5 text-prose gap-2 [&_svg]:size-5',

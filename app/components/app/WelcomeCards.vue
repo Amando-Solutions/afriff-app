@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 import { CheckIcon, DownloadIcon, EyeIcon, PlusIcon, StarIcon } from 'lucide-vue-next'
-import { VENUES } from '~/data/programme.js'
+import { VENUES } from '~/data/programme'
 
 // First-open welcome cards. Shown once; remembered on this phone.
 // Test it again: add ?welcome=1 to the address.
-const emit = defineEmits(['done'])
+const emit = defineEmits<{ done: [] }>()
 const KEY = 'afriff-welcome-seen'
 
 const CARDS = [
@@ -15,9 +15,9 @@ const CARDS = [
   { art: 'seen', title: 'Log what you\'ve seen', text: 'Tap Seen it after a film, rate it, and export your list to Letterboxd.' },
   { art: 'share', title: 'Share your day on WhatsApp', text: 'Send your plan for the day to friends in one tap.' },
 ]
-const dot = (i) => VENUES[i % VENUES.length]?.color || '#D9A441'
+const dot = (i: number) => VENUES[i % VENUES.length]?.color || '#D9A441'
 
-const track = useTemplateRef('track')
+const track = useTemplateRef<HTMLElement>('track')
 const index = ref(0)
 
 function finish() {
@@ -34,6 +34,7 @@ function onScroll() {
 function next() {
   if (index.value === CARDS.length - 1) return finish()
   const el = track.value
+  if (!el) return
   el.scrollTo({ left: (index.value + 1) * el.clientWidth, behavior: 'smooth' })
 }
 

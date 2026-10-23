@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 /**
  * The AFRIFF emblem, cut from the official logo on afriff.com.
  * `size` is the rendered size in CSS pixels; the right resolution is picked via srcset.
  */
-defineProps({ size: { type: Number, default: 32 }, decorative: { type: Boolean, default: true } })
+withDefaults(defineProps<{ size?: number; decorative?: boolean }>(), { size: 32, decorative: true })
 </script>
 
 <template>

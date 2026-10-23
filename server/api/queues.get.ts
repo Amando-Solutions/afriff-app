@@ -4,7 +4,7 @@
 // per day, so each refresh reads about 3 records. The CDN keeps the answer
 // for 30 seconds and serves that copy to everyone, so the database is read a
 // few times a minute however many phones are watching.
-import { boardsToQueues } from '../utils/queueBoards.js';
+import { boardsToQueues, type FsDocument } from '../utils/queueBoards';
 
 const BASE = 'https://firestore.googleapis.com/v1/projects/afriff-app/databases/(default)/documents';
 
@@ -16,12 +16,12 @@ export default defineEventHandler(async (event) => {
   try {
     const r = await fetch(`${BASE}/queueDays/${date}/venues?pageSize=50`);
     if (!r.ok && r.status !== 404) throw new Error(`Database answered ${r.status}`);
-    const body = r.ok ? await r.json() : {};
+    const body = (r.ok ? await r.json() : {}) as { documents?: FsDocument[] };
     setResponseHeader(event, 'Cache-Control', 'public, s-maxage=30, stale-while-revalidate=5');
     return { date, fetchedAt: Date.now(), queues: boardsToQueues(body.documents) };
   } catch (e) {
     setResponseHeader(event, 'Cache-Control', 'no-store');
     setResponseStatus(event, 502);
-    return { error: e.message };
+    return { error: e instanceof Error ? e.message : String(e) };
   }
 });

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { WifiOffIcon } from 'lucide-vue-next'
 
 const online = useOnline()

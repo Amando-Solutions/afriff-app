@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       return { error: 'Nothing has been published yet' };
     }
     if (!r.ok) throw new Error(`Database answered ${r.status}`);
-    const doc = await r.json();
+    const doc = (await r.json()) as { fields?: { json?: { stringValue?: string } } };
     const json = doc?.fields?.json?.stringValue;
     if (!json) throw new Error('Published document has no data');
     // fresh for 60 s. Only a short "serve old while refreshing" window: a long
@@ -29,6 +29,6 @@ export default defineEventHandler(async (event) => {
   } catch (e) {
     setResponseHeader(event, 'Cache-Control', 'no-store');
     setResponseStatus(event, 502);
-    return { error: e.message };
+    return { error: e instanceof Error ? e.message : String(e) };
   }
 });

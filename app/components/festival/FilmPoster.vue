@@ -1,9 +1,10 @@
-<script setup>
+<script setup lang="ts">
+import type { Film } from '~/types/festival'
 import { computed, ref, watch } from 'vue'
 
 // A film's poster, or colour art when it has none (or the link breaks).
 // Size and corner radius come from the class you pass (e.g. "w-12 rounded-thumb").
-const props = defineProps({ film: { type: Object, required: true } })
+const props = defineProps<{ film: Pick<Film, 'title' | 'image' | 'poster'> }>()
 const broken = ref(false)
 watch(() => props.film.image, () => { broken.value = false })
 

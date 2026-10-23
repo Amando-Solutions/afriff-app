@@ -1,9 +1,10 @@
-<script setup>
+<script setup lang="ts">
+import type { JuryMember } from '~/types/festival'
 import { ref } from 'vue'
-import { initials } from '~/lib/format.js'
+import { initials } from '~/lib/format'
 
 // Round photo, or initials if there's no photo (or it fails to load)
-defineProps({ member: { type: Object, required: true }, size: { type: Number, default: 56 }, ring: Boolean })
+withDefaults(defineProps<{ member: Pick<JuryMember, 'name' | 'photo'>; size?: number; ring?: boolean }>(), { size: 56 })
 const broken = ref(false)
 </script>
 
@@ -21,7 +22,7 @@ const broken = ref(false)
   />
   <span
     v-else
-    class="grid shrink-0 place-items-center rounded-full border-2 bg-raised font-display font-semibold text-accent-ink"
+    class="grid shrink-0 place-items-center rounded-full border-2 bg-raised font-display font-semibold text-muted"
     :class="ring ? 'border-accent' : 'border-line'"
     :style="{ width: `${size}px`, height: `${size}px`, fontSize: `${Math.round(size * 0.32)}px` }"
     aria-hidden="true"

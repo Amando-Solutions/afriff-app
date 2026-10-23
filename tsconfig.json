@@ -1,6 +1,5 @@
 {
-  // Lets the editor find Nuxt's types (defineNuxtConfig, auto-imports, etc.).
-  // The real settings are generated in .nuxt/ by `nuxt prepare` (runs after npm install).
+  // Nuxt writes the real settings into .nuxt/ (run `npm run postinstall` or `nuxt prepare` if they're missing).
   "files": [],
   "references": [
     { "path": "./.nuxt/tsconfig.app.json" },

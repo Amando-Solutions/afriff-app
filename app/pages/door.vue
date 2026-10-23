@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import AdminApp from '~/admin/AdminApp.vue'
 
 // THE DOOR VIEW for volunteers at the cinema door. Same logins as the console,

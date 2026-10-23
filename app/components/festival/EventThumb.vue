@@ -1,10 +1,11 @@
-<script setup>
+<script setup lang="ts">
+import type { FestivalEvent } from '~/types/festival'
 import { computed, ref, watch } from 'vue'
-import { eventLook } from '~/lib/eventLook.js'
+import { eventLook } from '~/lib/eventLook'
 
 // The event's graphic if it has one (e.g. masterclass posters), otherwise a
 // colour tile with an icon for its type. Size comes from the class you pass.
-const props = defineProps({ event: { type: Object, required: true }, iconSize: { type: String, default: 'size-5' } })
+const props = withDefaults(defineProps<{ event: Pick<FestivalEvent, 'type' | 'image'>; iconSize?: string }>(), { iconSize: 'size-5' })
 const broken = ref(false)
 watch(() => props.event.image, () => { broken.value = false })
 const look = computed(() => eventLook(props.event))

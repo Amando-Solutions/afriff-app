@@ -10,9 +10,10 @@
 // 3. If that's newer, it swaps it in, saves it on the phone, and the screens
 //    update. It checks again every 5 minutes and whenever the app is reopened.
 import { ref } from 'vue';
-import { VENUES, replaceProgramme } from '../data/programme.js';
-import { replaceEvents } from '../data/events.js';
-import { replaceJury } from '../data/jury.js';
+import { VENUES, replaceProgramme } from '../data/programme';
+import { replaceEvents } from '../data/events';
+import { replaceJury } from '../data/jury';
+import type { PublishedSnapshot } from '~/types/festival';
 
 const CACHE_KEY = 'afriff-data-v1';
 const FIRESTORE_DOC =
@@ -25,7 +26,7 @@ export const currentVersion = () => version;
 // Screens are keyed on this, so they redraw when newer data arrives.
 export const dataVersion = ref(0);
 
-function apply(snapshot) {
+function apply(snapshot: PublishedSnapshot) {
   replaceProgramme(snapshot);
   if (snapshot.events) replaceEvents(snapshot.events, new Set(VENUES.map((v) => v.id)));
   if (snapshot.jury?.length) replaceJury(snapshot.jury);
@@ -38,7 +39,7 @@ export function loadSavedCopy() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return false;
-    const snapshot = JSON.parse(raw);
+    const snapshot = JSON.parse(raw) as PublishedSnapshot | null;
     if (!snapshot?.version) return false;
     apply(snapshot);
     return true;
@@ -47,26 +48,26 @@ export function loadSavedCopy() {
   }
 }
 
-async function getJson(url) {
+async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
-async function fetchPublished() {
+async function fetchPublished(): Promise<PublishedSnapshot> {
   try {
-    return await getJson('/api/festival');
+    return await getJson<PublishedSnapshot>('/api/festival');
   } catch {
     /* relay unreachable: fall back to the database directly */
   }
-  const doc = await getJson(FIRESTORE_DOC);
+  const doc = await getJson<{ fields?: { json?: { stringValue?: string } } }>(FIRESTORE_DOC);
   const json = doc?.fields?.json?.stringValue;
   if (!json) throw new Error('Nothing published yet');
-  return JSON.parse(json);
+  return JSON.parse(json) as PublishedSnapshot;
 }
 
 // Steps 2–3: returns true if newer data arrived and was swapped in.
-export async function checkForUpdates() {
+export async function checkForUpdates(): Promise<boolean> {
   try {
     const snapshot = await fetchPublished();
     if (!snapshot?.version || snapshot.version <= version) return false;

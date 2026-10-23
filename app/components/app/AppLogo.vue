@@ -1,6 +1,6 @@
-<script setup>
+<script setup lang="ts">
 /** Header logo: official AFRIFF emblem + wordmark. */
-defineProps({ showWordmark: { type: Boolean, default: true }, size: { type: Number, default: 28 } })
+withDefaults(defineProps<{ showWordmark?: boolean; size?: number }>(), { showWordmark: true, size: 28 })
 </script>
 
 <template>

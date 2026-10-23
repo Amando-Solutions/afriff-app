@@ -1,13 +1,14 @@
-<script setup>
-import { computed } from 'vue'
-import { signOut } from 'firebase/auth'
+<script setup lang="ts">
+import { computed, type Component } from 'vue'
+import { signOut, type User } from 'firebase/auth'
 import {
   ChartColumnIcon, ClipboardListIcon, DatabaseIcon, LogOutIcon, SendIcon, SquareCheckIcon, UserCheckIcon, UsersIcon,
 } from 'lucide-vue-next'
-import { venueById } from '~/data/programme.js'
-import { auth } from './firebase.js'
-import { ROLES, createProfile, useAdminAuth } from './useAdminAuth.js'
-import { COLLECTIONS } from './schema.js'
+import { venueById } from '~/data/programme'
+import { auth } from './firebase'
+import { ROLES, createProfile, useAdminAuth } from './useAdminAuth'
+import { isCollection } from './schema'
+import type { Role } from './types'
 import AdminLogin from './AdminLogin.vue'
 import AdminTeam from './AdminTeam.vue'
 import AdminDataHome from './AdminDataHome.vue'
@@ -24,11 +25,12 @@ import AdminPendingBadge from './AdminPendingBadge.vue'
 // /admin, /admin/team, /admin/data, /admin/data/<collection>, /admin/data/<collection>/<id or new>,
 // /admin/publish, /admin/reports, /admin/approvals, /admin/mine, /admin/door
 // With `door`, it's the volunteers' door view at /door instead (same logins, no console around it).
-const props = defineProps({ path: { type: Array, default: () => [] }, door: Boolean })
+const props = withDefaults(defineProps<{ path?: string[]; door?: boolean }>(), { path: () => [], door: false })
 const auth$ = useAdminAuth()
 
 // What each role can open.
-const SECTIONS = [
+interface Section { id: string; title: string; text: string; icon: Component; roles: Role[]; to?: string }
+const SECTIONS: Section[] = [
   { id: 'team', title: 'Team', text: 'Give people roles and venues', icon: UsersIcon, roles: ['admin'] },
   { id: 'data', title: 'Festival data', text: 'Films, screenings, events, venues, news, sponsors, How to attend', icon: DatabaseIcon, roles: ['admin', 'editor'] },
   { id: 'publish', title: 'Publish to app', text: 'Send the latest data to attendees\' phones', icon: SendIcon, roles: ['admin'] },
@@ -41,11 +43,11 @@ const SECTIONS = [
 const profile = computed(() => auth$.profile)
 const mine = computed(() => SECTIONS.filter((s) => profile.value && s.roles.includes(profile.value.role)))
 const section = computed(() => mine.value.find((s) => s.id === props.path[0]) || null)
-const col = computed(() => (props.path[1] && COLLECTIONS[props.path[1]] ? props.path[1] : null))
+const col = computed(() => (isCollection(props.path[1]) ? props.path[1] : null))
 const itemId = computed(() => (col.value && props.path[2] ? props.path[2] : null))
 
 const logOut = () => signOut(auth)
-const finishSetup = () => createProfile(auth$.user).catch(() => {})
+const finishSetup = () => { if (auth$.user) createProfile(auth$.user as User).catch(() => {}) }
 </script>
 
 <template>

@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted } from 'vue'
-import { dataVersion } from '~/lib/liveData.js'
-import { testSwitch } from '~/lib/now.js'
+import { dataVersion } from '~/lib/liveData'
+import { testSwitch } from '~/lib/now'
 
 // The attendee app's frame: sponsor ribbon, header, offline banner, the page,
 // the bottom bar, and the install / update toasts.

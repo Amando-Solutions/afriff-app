@@ -1,23 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { collection, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore'
-import { db } from './firebase.js'
-import { ROLES } from './useAdminAuth.js'
-import { VENUES } from '~/data/programme.js'
+import { db } from './firebase'
+import { ROLES } from './useAdminAuth'
+import type { Profile, Role } from './types'
+import { errMsg } from './util'
+import { VENUES } from '~/data/programme'
 
 // Admins only: everyone who has signed up, and what they're allowed to do.
-const props = defineProps({ me: { type: Object, required: true } })
-const people = ref(null)
+const props = defineProps<{ me: Profile }>()
+const people = ref<Profile[] | null>(null)
 const error = ref('')
 
 const stop = onSnapshot(
   query(collection(db, 'users'), orderBy('createdAt', 'desc')),
-  (snap) => { people.value = snap.docs.map((d) => ({ id: d.id, ...d.data() })) },
-  (e) => { error.value = e.message },
+  (snap) => { people.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Profile) },
+  (e) => { error.value = errMsg(e) },
 )
 onBeforeUnmount(stop)
 
-async function save(person, changes) {
+async function save(person: Profile, changes: Partial<Pick<Profile, 'role' | 'venue'>>) {
   error.value = ''
   try {
     const next = { ...changes }
@@ -25,7 +27,7 @@ async function save(person, changes) {
     if (next.role && next.role !== 'volunteer') next.venue = null
     await updateDoc(doc(db, 'users', person.id), next)
   } catch (e) {
-    error.value = `Couldn't save: ${e.message}`
+    error.value = `Couldn't save: ${errMsg(e)}`
   }
 }
 const waiting = computed(() => people.value?.filter((p) => p.role === 'pending').length || 0)
@@ -46,10 +48,10 @@ const waiting = computed(() => people.value?.filter((p) => p.role === 'pending')
           <span class="text-meta text-muted">{{ p.email }}</span>
         </div>
         <div class="flex flex-wrap gap-2">
-          <select class="field-input h-10! w-auto!" :value="p.role" :disabled="p.id === props.me.id" :aria-label="`Role for ${p.name || p.email}`" @change="save(p, { role: $event.target.value })">
+          <select class="field-input h-10! w-auto!" :value="p.role" :disabled="p.id === props.me.id" :aria-label="`Role for ${p.name || p.email}`" @change="save(p, { role: ($event.target as HTMLSelectElement).value as Role })">
             <option v-for="(label, value) in ROLES" :key="value" :value="value">{{ label }}</option>
           </select>
-          <select v-if="p.role === 'volunteer'" class="field-input h-10! w-auto!" :value="p.venue || ''" aria-label="Venue" @change="save(p, { venue: $event.target.value || null })">
+          <select v-if="p.role === 'volunteer'" class="field-input h-10! w-auto!" :value="p.venue || ''" aria-label="Venue" @change="save(p, { venue: ($event.target as HTMLSelectElement).value || null })">
             <option value="">Choose venue…</option>
             <option v-for="v in VENUES" :key="v.id" :value="v.id">{{ v.name }}</option>
           </select>

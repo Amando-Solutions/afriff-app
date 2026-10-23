@@ -1,14 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { ChevronRightIcon } from 'lucide-vue-next'
 
 /** Section title with optional inline meta (e.g. a date) and a "See all" link. */
-defineProps({
-  title: { type: String, required: true },
-  meta: { type: String, default: '' },
-  to: { type: String, default: '' },
-  linkLabel: { type: String, default: 'See all' },
-})
-defineEmits(['link'])
+withDefaults(defineProps<{ title: string; meta?: string; to?: string; linkLabel?: string }>(), { meta: '', to: '', linkLabel: 'See all' })
+defineEmits<{ link: [] }>()
 </script>
 
 <template>

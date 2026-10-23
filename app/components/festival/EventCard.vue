@@ -1,10 +1,11 @@
-<script setup>
+<script setup lang="ts">
+import type { FestivalEvent } from '~/types/festival'
 import { computed } from 'vue'
-import { isMultiDay } from '~/data/events.js'
-import { dateParts } from '~/lib/format.js'
+import { isMultiDay } from '~/data/events'
+import { dateParts } from '~/lib/format'
 
 // Poster-style card used in the Home strip: graphic (or colour tile), short title, day
-const props = defineProps({ event: { type: Object, required: true } })
+const props = defineProps<{ event: FestivalEvent }>()
 const when = computed(() => {
   if (isMultiDay(props.event)) return 'All week'
   const p = dateParts(props.event.date)

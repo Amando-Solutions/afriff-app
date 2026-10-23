@@ -1,17 +1,17 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { ClockIcon } from 'lucide-vue-next'
-import { DAY_THEMES, filmById } from '~/data/programme.js'
-import { dateParts, timeLabel } from '~/lib/format.js'
-import { dayInfo, venueShort } from '~/lib/today.js'
-import { openProgrammeDay } from '~/lib/programmeMemory.js'
+import { DAY_THEMES, filmById } from '~/data/programme'
+import { dateParts, timeLabel } from '~/lib/format'
+import { dayInfo, venueShort } from '~/lib/today'
+import { openProgrammeDay } from '~/lib/programmeMemory'
 
 // HOME BANNER DURING THE FESTIVAL (1–7 Nov): changes every day.
 // Day N of 7 + theme, a collage of the day's films (team-picked first,
 // then automatic), what's on today, what's next, and "See today".
-const props = defineProps({ day: { type: String, required: true }, t: { type: Number, required: true } })
+const props = defineProps<{ day: string; t: number }>()
 
-const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 const d = computed(() => dayInfo(props.day, props.t))
 const p = computed(() => dateParts(props.day))
 const counts = computed(() => [
@@ -23,27 +23,27 @@ const counts = computed(() => [
 // collage: big poster on the left; the rest fill a 2 x 2 grid (or a column when fewer)
 const collage = computed(() => {
   const films = d.value.films
-  if (!films.length) return null
+  const [first] = films
+  if (!first) return null
   const many = films.length > 5
   const shown = many ? films.slice(0, 4) : films.slice(0, 5)
   const n = shown.length + (many ? 1 : 0)
   const style = n >= 5
     ? { gridTemplateColumns: '2fr 1fr 1fr', gridTemplateRows: '1fr 1fr' }
     : { gridTemplateColumns: n === 1 ? '1fr' : '2fr 1fr', gridTemplateRows: `repeat(${Math.max(1, n - 1)}, 1fr)` }
-  const [lead, ...rest] = shown
-  return { style, lead, rest, more: many ? films.length - 4 : 0, total: films.length }
+  const [, ...rest] = shown
+  return { style, lead: first, rest, more: many ? films.length - 4 : 0, total: films.length }
 })
 
 const next = computed(() => {
   const n = d.value.upcoming[0]
   if (!n) return null
-  const item = n.item
-  return {
-    title: n.kind === 'screening' ? filmById(item.film)?.title : item.title.split(':')[0],
-    where: item.venue ? venueShort(item.venue) : item.place,
-    href: n.kind === 'screening' ? `/film/${item.film}` : `/event/${item.id}`,
-    time: timeLabel(item.time),
+  if (n.kind === 'screening') {
+    const s = n.item
+    return { title: filmById(s.film)?.title ?? '', where: venueShort(s.venue), href: `/film/${s.film}`, time: timeLabel(s.time) }
   }
+  const e = n.item
+  return { title: e.title.split(':')[0], where: e.venue ? venueShort(e.venue) : e.place, href: `/event/${e.id}`, time: timeLabel(e.time) }
 })
 const seeToday = () => openProgrammeDay(props.day)
 </script>
@@ -51,7 +51,7 @@ const seeToday = () => openProgrammeDay(props.day)
 <template>
   <HeroCard>
     <div class="flex items-baseline justify-between gap-2">
-      <span class="text-micro font-semibold tracking-[0.12em] text-gold-300 uppercase">Today · Day {{ d.index + 1 }} of {{ d.total }}</span>
+      <span class="eyebrow text-gold-300">Today · Day {{ d.index + 1 }} of {{ d.total }}</span>
       <span class="text-label whitespace-nowrap text-white/70">{{ p.day }} {{ p.date }} {{ p.month }}</span>
     </div>
     <h2 v-if="d.theme" class="mt-1.5 mb-3 font-display text-2xl leading-7 font-semibold tracking-tight">{{ d.theme }}</h2>

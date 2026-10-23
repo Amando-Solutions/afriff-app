@@ -1,33 +1,29 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { EVENT_TYPES, isMultiDay } from '~/data/events.js'
-import { time12, timeLabel } from '~/lib/format.js'
-import { useFestival } from '~/lib/store.js'
+import type { FestivalEvent } from '~/types/festival'
+import { EVENT_TYPES, isMultiDay } from '~/data/events'
+import { useFestival } from '~/lib/store'
 
-const props = defineProps({ event: { type: Object, required: true } })
+// An event in a schedule list: same layout and type roles as a screening row.
+const props = defineProps<{ event: FestivalEvent }>()
 const { isScheduled, toggleScheduled } = useFestival()
 const multi = computed(() => isMultiDay(props.event))
-const t = computed(() => time12(props.event.time))
+const free = computed(() => Boolean(props.event.access?.startsWith('Free')))
+const cancelled = computed(() => props.event.status === 'cancelled')
 </script>
 
 <template>
   <div class="flex items-center gap-3 border-b border-line py-3.5">
-    <NuxtLink :to="`/event/${event.id}`" class="flex min-w-0 flex-1 items-start gap-3">
-      <div class="w-14 shrink-0 tabular-nums">
-        <template v-if="multi">
-          <span class="block text-body leading-tight font-semibold text-accent-ink">Nightly</span>
-          <span class="mt-1 block text-micro font-semibold text-muted">{{ timeLabel(event.time) }}</span>
-        </template>
-        <template v-else>
-          <span class="block font-display text-h2 leading-none font-semibold text-accent-ink">{{ t.time }}</span>
-          <span class="mt-1 block text-micro font-semibold text-muted">{{ t.ampm }}</span>
-        </template>
-      </div>
-      <div class="flex min-w-0 flex-1 flex-col gap-1">
-        <span class="line-clamp-2 text-body font-semibold" :class="event.status === 'cancelled' && 'text-muted line-through'">{{ event.title }}</span>
-        <span v-if="event.speaker" class="text-meta text-ink/80">with {{ event.speaker }}</span>
+    <NuxtLink :to="`/event/${event.id}`" class="flex min-w-0 flex-1 items-start gap-3" :class="cancelled && 'opacity-60'">
+      <RowTime :time="event.time" :label="multi ? 'Nightly' : undefined" />
+      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span class="line-clamp-2 text-body font-semibold" :class="cancelled && 'line-through'">{{ event.title }}</span>
+        <span v-if="event.speaker" class="truncate text-meta text-ink/80">with {{ event.speaker }}</span>
         <VenueLine :venue-id="event.venue" :place="event.place"><StatusTag :status="event.status" /></VenueLine>
-        <span class="text-micro font-semibold tracking-wider text-accent-ink uppercase">{{ EVENT_TYPES[event.type].label }}{{ event.access?.startsWith('Free') ? ' · Free' : '' }}</span>
+        <span class="mt-1 flex items-center gap-1.5">
+          <span class="eyebrow text-subtle">{{ EVENT_TYPES[event.type].label }}</span>
+          <UiBadge v-if="free" tone="success">Free</UiBadge>
+        </span>
       </div>
       <EventThumb :event="event" class="aspect-[4/5] w-12 rounded-thumb" />
     </NuxtLink>

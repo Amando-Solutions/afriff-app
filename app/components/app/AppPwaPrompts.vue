@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { DownloadIcon, PlusSquareIcon, RefreshCwIcon, ShareIcon, XIcon } from 'lucide-vue-next'
 
@@ -26,7 +26,7 @@ onMounted(() => {
   }
   const ua = navigator.userAgent
   const isIos = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
   ios.value = isIos && !standalone
   // give people a moment with the app before asking
   if (ios.value) setTimeout(() => { iosOpen.value = true }, 15000)

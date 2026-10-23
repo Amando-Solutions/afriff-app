@@ -1,6 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { BellIcon } from 'lucide-vue-next'
-import { useUnreadCount } from '~/lib/alerts.js'
+import { useUnreadCount } from '~/lib/alerts'
 
 // Header on every screen: logo left, bell with the unread count right (opens News).
 const unread = useUnreadCount()

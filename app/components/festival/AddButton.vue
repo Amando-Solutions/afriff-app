@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { CheckIcon, PlusIcon } from 'lucide-vue-next'
 
 // Round + that turns into a gold tick once it's in My Festival.
-defineProps({ added: Boolean, title: { type: String, default: '' }, big: Boolean })
-const emit = defineEmits(['toggle'])
+withDefaults(defineProps<{ added?: boolean; title?: string; big?: boolean }>(), { title: '' })
+const emit = defineEmits<{ toggle: [] }>()
 </script>
 
 <template>

@@ -1,9 +1,11 @@
 import { reactive } from 'vue';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
-import { auth, db } from './firebase.js';
+import type { User } from 'firebase/auth';
+import { auth, db } from './firebase';
+import type { Profile, Role } from './types';
 
-export const ROLES = {
+export const ROLES: Record<Role, string> = {
   pending: 'No access yet',
   volunteer: 'Door volunteer',
   editor: 'Editor',
@@ -11,7 +13,12 @@ export const ROLES = {
 };
 
 // Who is logged in, and their team profile (role, venue). One shared copy for the console.
-const state = reactive({ loading: true, user: null, profile: null, error: null });
+const state = reactive({
+  loading: true,
+  user: null as User | null,
+  profile: null as Profile | null,
+  error: null as string | null,
+});
 let started = false;
 
 export function useAdminAuth() {
@@ -28,7 +35,7 @@ export function useAdminAuth() {
         doc(db, 'users', user.uid),
         (snap) => {
           // No profile yet: the sign-up page is creating it (or the screen offers a button)
-          Object.assign(state, { loading: false, user, profile: snap.exists() ? { id: snap.id, ...snap.data() } : null, error: null });
+          Object.assign(state, { loading: false, user, profile: snap.exists() ? ({ id: snap.id, ...snap.data() } as Profile) : null, error: null });
         },
         (e) => Object.assign(state, { loading: false, user, profile: null, error: e.message }),
       );
@@ -38,7 +45,7 @@ export function useAdminAuth() {
 }
 
 // For an account that exists without a team profile: create one with no access.
-export const createProfile = (user, name) =>
+export const createProfile = (user: User, name?: string) =>
   setDoc(doc(db, 'users', user.uid), {
     email: user.email, name: (name || user.displayName || '').trim(), role: 'pending', venue: null, createdAt: serverTimestamp(),
   });

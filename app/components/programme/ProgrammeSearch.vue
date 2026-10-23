@@ -1,13 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { SearchIcon, XIcon } from 'lucide-vue-next'
-import { FILMS } from '~/data/programme.js'
-import { EVENTS, EVENT_TYPES } from '~/data/events.js'
+import { FILMS } from '~/data/programme'
+import { EVENTS, EVENT_TYPES } from '~/data/events'
 
 // Full-screen search for films, directors, events and speakers.
-const open = defineModel('open', { type: Boolean, default: false })
+const open = defineModel<boolean>('open', { default: false })
 const q = ref('')
-const input = useTemplateRef('input')
+const input = useTemplateRef<HTMLInputElement>('input')
 watch(open, (v) => {
   if (v) nextTick(() => input.value?.focus())
   else q.value = ''

@@ -1,9 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { increment, serverTimestamp, setDoc } from 'firebase/firestore'
+import { increment, serverTimestamp, setDoc, type FieldValue, type Timestamp } from 'firebase/firestore'
 import { CheckIcon, ChevronLeftIcon, MinusIcon, PlusIcon, Undo2Icon } from 'lucide-vue-next'
-import { queueLabel, timeLabel } from '~/lib/format.js'
-import { boardRef, useBoard } from './board.js'
+import { queueLabel, timeLabel } from '~/lib/format'
+import { boardRef, useBoard } from './board'
+import type { BoardEntry, DoorScreening, Profile } from './types'
+import type { Tone } from '~/types/festival'
+import type { BadgeTone } from '~/components/ui/UiBadge.vue'
+import { errMsg } from './util'
 
 // THE COUNTER for one screening, in the door view (/door).
 // Two big buttons:
@@ -19,38 +23,35 @@ import { boardRef, useBoard } from './board.js'
 // save) as "add N" / "take N away", never a fixed number, so two volunteers
 // at the same door never overwrite each other and the free database plan's
 // write limit isn't eaten up. Taps made without signal are sent on reconnect.
-const props = defineProps({
-  screening: { type: Object, required: true },
-  film: { type: Object, default: null },
-  venueName: { type: String, default: '' },
-  profile: { type: Object, required: true },
-})
-const emit = defineEmits(['back'])
+const props = withDefaults(defineProps<{ screening: DoorScreening; filmTitle?: string; venueName?: string; profile: Profile }>(), { filmTitle: '', venueName: '' })
+const emit = defineEmits<{ back: [] }>()
+
+interface Tap { inLine?: number; seatsLeft?: number }
 
 const SEND_AFTER_MS = 1000 // quiet time after the last tap before sending
 const SEND_AT_MOST_MS = 2500 // keep tapping and it still sends this often
 
-const clamp = (n, max = Infinity) => Math.min(max, Math.max(0, n || 0))
+const clamp = (n: number | undefined, max = Infinity) => Math.min(max, Math.max(0, n || 0))
 const buzz = () => navigator.vibrate?.(12)
-const ago = (ts) => {
+const ago = (ts: Timestamp | undefined) => {
   if (!ts?.seconds) return ''
   const m = Math.round((Date.now() - ts.seconds * 1000) / 60000)
   return m <= 0 ? 'just now' : `${m} min ago`
 }
 
 const board = useBoard(() => props.screening.date, () => props.screening.venue)
-const entry = computed(() => board.data?.s?.[props.screening.id] || null)
+const entry = computed<BoardEntry | null>(() => board.data?.s?.[props.screening.id] || null)
 const error = ref('')
 const fixing = ref(false)
 const seatsAtDoor = ref(String(props.screening.capacity || ''))
 
 // taps not sent yet, and this phone's taps so far (for Undo)
 const unsent = reactive({ inLine: 0, seatsLeft: 0 })
-const history = ref([])
-const timers = { quiet: null, first: null }
+const history = ref<Tap[]>([])
+const timers: { quiet: ReturnType<typeof setTimeout> | undefined; first: ReturnType<typeof setTimeout> | undefined } = { quiet: undefined, first: undefined }
 const byName = props.profile.name || props.profile.email || ''
 
-const write = (fields) =>
+const write = (fields: Record<string, number | FieldValue>) =>
   setDoc(
     boardRef(props.screening.date, props.screening.venue),
     {
@@ -60,25 +61,25 @@ const write = (fields) =>
       s: { [props.screening.id]: { ...fields, updatedAt: serverTimestamp(), byName } },
     },
     { merge: true },
-  ).catch((e) => { error.value = e.message })
+  ).catch((e: unknown) => { error.value = errMsg(e) })
 
 function send() {
   clearTimeout(timers.quiet)
   clearTimeout(timers.first)
-  timers.quiet = null
-  timers.first = null
+  timers.quiet = undefined
+  timers.first = undefined
   const { inLine, seatsLeft } = unsent
   if (!inLine && !seatsLeft) return
   unsent.inLine = 0
   unsent.seatsLeft = 0
-  const fields = {}
+  const fields: Record<string, FieldValue> = {}
   if (inLine) fields.inLine = increment(inLine)
   if (seatsLeft) fields.seatsLeft = increment(seatsLeft)
   write(fields)
 }
 
 // Keep the screen on while counting (phones that support it)
-let lock = null
+let lock: WakeLockSentinel | null = null
 async function stayAwake() {
   try {
     if (document.visibilityState === 'visible' && navigator.wakeLock) lock = await navigator.wakeLock.request('screen')
@@ -97,7 +98,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisibility)
-  lock?.release?.().catch(() => {})
+  lock?.release().catch(() => {})
   send()
 })
 
@@ -108,7 +109,7 @@ const inLine = computed(() => clamp((entry.value?.inLine ?? 0) + unsent.inLine))
 const seatsLeft = computed(() => clamp((entry.value?.seatsLeft ?? 0) + unsent.seatsLeft, seatsStart.value))
 
 // apply a change now, send it shortly
-function apply(d, remember = true) {
+function apply(d: Tap, remember = true) {
   if (!d.inLine && !d.seatsLeft) return
   unsent.inLine += d.inLine || 0
   unsent.seatsLeft += d.seatsLeft || 0
@@ -120,7 +121,7 @@ function apply(d, remember = true) {
 }
 
 const joined = () => apply({ inLine: 1 })
-function letIn(n) {
+function letIn(n: number) {
   const seats = Math.min(n, seatsLeft.value)
   if (!seats) return
   apply({ inLine: -Math.min(seats, inLine.value), seatsLeft: -seats }) // walk-ins with no queue just use a seat
@@ -144,7 +145,7 @@ function markFull() {
 const label = computed(() => (entry.value ? queueLabel({ inLine: inLine.value, seatsLeft: seatsLeft.value }) : null))
 const waiting = computed(() => board.pending || unsent.inLine !== 0 || unsent.seatsLeft !== 0)
 const full = computed(() => Boolean(entry.value) && seatsLeft.value === 0)
-const LABEL_TONE = { good: 'success', gold: 'accent', alert: 'danger' }
+const LABEL_TONE: Record<Tone, BadgeTone> = { muted: 'neutral', good: 'success', gold: 'accent', alert: 'danger' }
 </script>
 
 <template>
@@ -160,7 +161,7 @@ const LABEL_TONE = { good: 'success', gold: 'accent', alert: 'danger' }
     </div>
 
     <div class="flex items-start justify-between gap-3">
-      <h1 class="font-display text-h1 font-semibold">{{ film?.title || screening.film }}</h1>
+      <h1 class="font-display text-h1 font-semibold">{{ filmTitle || screening.film }}</h1>
       <UiBadge v-if="label" :tone="LABEL_TONE[label.tone]" class="mt-1.5 px-2! py-0.5! text-meta! font-semibold!">{{ label.text }}</UiBadge>
     </div>
     <p class="-mt-2 text-muted tabular-nums">{{ timeLabel(screening.time) }} · {{ venueName }} · {{ screening.screen }}</p>
@@ -170,7 +171,7 @@ const LABEL_TONE = { good: 'success', gold: 'accent', alert: 'danger' }
 
     <!-- Not counted yet: how many seats are free at the door? -->
     <div v-if="board.loaded && !entry" class="card flex flex-col gap-3 p-4">
-      <label for="seats-at-door" class="text-label font-semibold tracking-wider text-muted uppercase">Seats available at the door</label>
+      <label for="seats-at-door" class="eyebrow text-muted">Seats available at the door</label>
       <div class="flex items-center gap-3">
         <input
           id="seats-at-door"
@@ -189,11 +190,11 @@ const LABEL_TONE = { good: 'success', gold: 'accent', alert: 'danger' }
     <template v-if="entry">
       <div class="grid grid-cols-2 gap-2.5">
         <div class="card flex flex-col gap-1 p-4">
-          <span class="text-label font-semibold tracking-wider text-muted uppercase">In line</span>
+          <span class="eyebrow text-muted">In line</span>
           <span class="font-display text-[3.25rem] leading-none font-semibold tabular-nums">{{ inLine }}</span>
         </div>
         <div class="card flex flex-col gap-1 p-4" :class="full && 'border-danger/60'">
-          <span class="text-label font-semibold tracking-wider text-muted uppercase">Seats left</span>
+          <span class="eyebrow text-muted">Seats left</span>
           <span class="font-display text-[3.25rem] leading-none font-semibold tabular-nums" :class="full && 'text-danger'">{{ seatsLeft }}</span>
           <span class="text-meta text-muted">of {{ Number.isFinite(seatsStart) ? seatsStart : '?' }}</span>
         </div>

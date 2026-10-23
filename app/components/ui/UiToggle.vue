@@ -1,7 +1,8 @@
-<script setup>
+<script setup lang="ts" generic="T extends string">
+import type { Component } from 'vue'
 /** Two-icon view switch (list / timeline, grid / list). */
-defineProps({ options: { type: Array, required: true }, label: { type: String, default: 'View' } })
-const model = defineModel({ type: String, required: true })
+withDefaults(defineProps<{ options: { value: T; label: string; icon: Component }[]; label?: string }>(), { label: 'View' })
+const model = defineModel<T>({ required: true })
 </script>
 
 <template>

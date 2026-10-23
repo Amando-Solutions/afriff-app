@@ -1,12 +1,15 @@
-<script setup>
-import { useChanges } from './data.js'
+<script setup lang="ts">
+import { useChanges } from './data'
+import type { ChangeDoc, Profile } from './types'
+import type { BadgeTone } from '~/components/ui/UiBadge.vue'
+import { whenLagos } from './util'
 
 // Editors: everything they've sent for approval, newest first.
-const props = defineProps({ profile: { type: Object, required: true } })
+const props = defineProps<{ profile: Profile }>()
 const changes = useChanges({ mineUid: props.profile.id })
-const STATUS = { pending: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected' }
-const TONE = { pending: 'accent', approved: 'success', rejected: 'danger' }
-const when = (ts) => (ts?.seconds ? new Date(ts.seconds * 1000).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : 'just now')
+const STATUS: Record<ChangeDoc['status'], string> = { pending: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected' }
+const TONE: Record<ChangeDoc['status'], BadgeTone> = { pending: 'accent', approved: 'success', rejected: 'danger' }
+const when = whenLagos
 </script>
 
 <template>

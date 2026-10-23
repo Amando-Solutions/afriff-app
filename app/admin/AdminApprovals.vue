@@ -1,40 +1,44 @@
-<script setup>
+<script setup lang="ts">
 import { reactive } from 'vue'
 import { CheckIcon, XIcon } from 'lucide-vue-next'
-import { COLLECTIONS, getField } from './schema.js'
-import { approveChange, rejectChange, useChanges } from './data.js'
+import { COLLECTIONS, getField, isCollection } from './schema'
+import type { ChangeDoc, Profile } from './types'
+import { errMsg, whenLagos } from './util'
+
+import { approveChange, rejectChange, useChanges } from './data'
 
 // Admins: editors' changes waiting for approval, with only the fields that differ.
-const props = defineProps({ profile: { type: Object, required: true } })
+const props = defineProps<{ profile: Profile }>()
 const changes = useChanges({ pendingOnly: true })
 
-const show = (v) => {
+const show = (v: unknown) => {
   if (v === true) return 'Yes'
   if (v === false) return 'No'
   if (v == null || v === '') return '—'
   return String(v)
 }
-function diffRows(change) {
-  const fields = COLLECTIONS[change.collection]?.fields || []
+function diffRows(change: ChangeDoc) {
+  const fields = isCollection(change.collection) ? COLLECTIONS[change.collection].fields : []
   return fields
     .map((f) => ({ f, before: getField(change.before, f.key), after: getField(change.data, f.key) }))
     .filter(({ before, after }) => show(before) !== show(after))
 }
-const when = (ts) => (ts?.seconds ? new Date(ts.seconds * 1000).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : 'just now')
+const when = whenLagos
+const title = (c: string) => (isCollection(c) ? COLLECTIONS[c].title : c)
 
-const busy = reactive({})
-const errors = reactive({})
-async function act(change, fn) {
+const busy = reactive<Record<string, boolean>>({})
+const errors = reactive<Record<string, string>>({})
+async function act(change: ChangeDoc, fn: () => Promise<unknown>) {
   busy[change.id] = true
   errors[change.id] = ''
   try {
     await fn()
   } catch (e) {
-    errors[change.id] = e.message
+    errors[change.id] = errMsg(e)
     busy[change.id] = false
   }
 }
-function reject(change) {
+function reject(change: ChangeDoc) {
   const note = window.prompt('Reason for rejecting (optional, the editor will see it):', '')
   if (note !== null) act(change, () => rejectChange(change, props.profile, note))
 }
@@ -51,7 +55,7 @@ function reject(change) {
       <div v-for="ch in changes.items || []" :key="ch.id" class="card flex flex-col gap-3 p-4">
         <div class="flex flex-col gap-0.5">
           <span class="font-semibold">{{ ch.summary }}</span>
-          <span class="text-meta text-muted">{{ COLLECTIONS[ch.collection]?.title }} · by {{ ch.submittedByName }} · {{ when(ch.submittedAt) }}</span>
+          <span class="text-meta text-muted">{{ title(ch.collection) }} · by {{ ch.submittedByName }} · {{ when(ch.submittedAt) }}</span>
         </div>
         <p v-if="ch.action === 'delete'" class="font-semibold text-danger">Delete this item.</p>
         <p v-else-if="diffRows(ch).length === 0" class="text-meta text-muted">No visible changes.</p>

@@ -1,8 +1,12 @@
 // Icon and colours for each kind of event (used where films show a poster)
+import type { Component } from 'vue';
 import { BriefcaseIcon, GraduationCapIcon, MicIcon, PartyPopperIcon, SparklesIcon, TrophyIcon, UsersIcon, WrenchIcon } from 'lucide-vue-next';
-import { venueById } from '../data/programme.js';
+import type { EventType, FestivalEvent } from '~/types/festival';
+import { venueById } from '../data/programme';
 
-export const EVENT_LOOK = {
+export interface EventLook { icon: Component; a: string; b: string }
+
+export const EVENT_LOOK: Record<EventType, EventLook> = {
   masterclass: { icon: GraduationCapIcon, a: '#D9A441', b: '#4A2A08' },
   workshop: { icon: WrenchIcon, a: '#E9C262', b: '#3A2A12' },
   market: { icon: BriefcaseIcon, a: '#8F84FF', b: '#1E1850' },
@@ -13,6 +17,7 @@ export const EVENT_LOOK = {
   networking: { icon: UsersIcon, a: '#4DA6FF', b: '#0E2650' },
 };
 
-export const eventLook = (event) => EVENT_LOOK[event?.type] || EVENT_LOOK.networking;
+export const eventLook = (event: Pick<FestivalEvent, 'type'> | null | undefined): EventLook =>
+  (event && EVENT_LOOK[event.type]) || EVENT_LOOK.networking;
 
-export const eventWhere = (e) => (e.venue ? venueById(e.venue)?.name : e.place);
+export const eventWhere = (e: Pick<FestivalEvent, 'venue' | 'place'>) => (e.venue ? venueById(e.venue)?.name ?? '' : e.place);

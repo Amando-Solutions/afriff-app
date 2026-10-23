@@ -1,13 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { InfoIcon, MapPinIcon, NavigationIcon } from 'lucide-vue-next'
-import { SCREENINGS, VENUES } from '~/data/programme.js'
-import { directionsUrl } from '~/lib/format.js'
+import { SCREENINGS, VENUES } from '~/data/programme'
+import { directionsUrl } from '~/lib/format'
 
 // VENUES: each cinema with its colour dot, address and Directions.
 useHead({ title: 'Venues' })
 const howOpen = ref(false)
-const count = (id) => SCREENINGS.filter((s) => s.venue === id).length
+const count = (id: string) => SCREENINGS.filter((s) => s.venue === id).length
 </script>
 
 <template>

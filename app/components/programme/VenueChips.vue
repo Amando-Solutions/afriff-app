@@ -1,14 +1,15 @@
-<script setup>
+<script setup lang="ts">
+import type { DayItemType } from '~/lib/dayItems'
 import { computed } from 'vue'
-import { VENUES } from '~/data/programme.js'
-import { dayItems } from '~/lib/dayItems.js'
+import { VENUES } from '~/data/programme'
+import { dayItems } from '~/lib/dayItems'
 
 // Tap venues on and off; more than one can be on. None on = all venues.
-const props = defineProps({ day: { type: String, required: true }, type: { type: String, default: 'all' } })
-const selected = defineModel({ type: Array, required: true })
+const props = withDefaults(defineProps<{ day: string; type?: DayItemType }>(), { type: 'all' })
+const selected = defineModel<string[]>({ required: true })
 const items = computed(() => dayItems(props.day, props.type))
-const count = (vid) => items.value.filter((i) => i.venue === vid).length
-function toggle(vid) {
+const count = (vid: string) => items.value.filter((i) => i.venue === vid).length
+function toggle(vid: string) {
   const next = selected.value.includes(vid) ? selected.value.filter((v) => v !== vid) : [...selected.value, vid]
   selected.value = next.length === VENUES.length ? [] : next
 }

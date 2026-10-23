@@ -1,17 +1,19 @@
-<script setup>
+<script setup lang="ts">
+import type { Component } from 'vue'
+import type { FestivalEvent } from '~/types/festival'
 import { computed, ref } from 'vue'
 import {
   AwardIcon, CalendarDaysIcon, ChartNoAxesGanttIcon, CheckIcon, ClapperboardIcon, EyeIcon, FilmIcon, ListChecksIcon,
   ListIcon, MapPinIcon, SearchIcon, SparklesIcon,
 } from 'lucide-vue-next'
-import { FESTIVAL, FILMS, SCREENINGS, SECTIONS } from '~/data/programme.js'
-import { EVENTS, EVENT_FILTERS, EVENT_TYPES, eventsOn, isMultiDay } from '~/data/events.js'
-import { dateParts } from '~/lib/format.js'
-import { dayItems } from '~/lib/dayItems.js'
-import { planForDay } from '~/lib/plan.js'
-import { programmeMemory as memory } from '~/lib/programmeMemory.js'
-import { useLiveClock } from '~/lib/queues.js'
-import { useFestival } from '~/lib/store.js'
+import { DAY_THEMES, FESTIVAL, FILMS, SCREENINGS, SECTIONS } from '~/data/programme'
+import { EVENTS, EVENT_FILTERS, EVENT_TYPES, eventsOn, isMultiDay } from '~/data/events'
+import { dateParts } from '~/lib/format'
+import { dayItems, type DayItemType } from '~/lib/dayItems'
+import { planForDay } from '~/lib/plan'
+import { programmeMemory as memory } from '~/lib/programmeMemory'
+import { useLiveClock } from '~/lib/queues'
+import { useFestival } from '~/lib/store'
 
 // PROGRAMME: Schedule (by day, list or timeline), All films, Events.
 // /programme, /programme/films, /programme/events
@@ -23,16 +25,16 @@ const searching = ref(false)
 const { state, isWatched, toggleWatched } = useFestival()
 const clock = useLiveClock()
 
-const TABS = [
+const TABS: { id: 'schedule' | 'films' | 'events'; label: string; to: string; icon: Component }[] = [
   { id: 'schedule', label: 'Schedule', to: '/programme', icon: CalendarDaysIcon },
   { id: 'films', label: 'All films', to: '/programme/films', icon: FilmIcon },
   { id: 'events', label: 'Events', to: '/programme/events', icon: SparklesIcon },
 ]
 
 // ---------- Schedule ----------
-const TAG_FILTERS = ['All', 'Public', 'Industry']
-const TYPE_FILTERS = [{ id: 'all', label: 'All' }, { id: 'films', label: 'Films' }, { id: 'events', label: 'Events' }]
-const VIEWS = [{ value: 'list', label: 'List view', icon: ListIcon }, { value: 'timeline', label: 'Timeline view', icon: ChartNoAxesGanttIcon }]
+const TAG_FILTERS = ['All', 'Public', 'Industry'] as const
+const TYPE_FILTERS: { value: DayItemType; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'films', label: 'Films' }, { value: 'events', label: 'Events' }]
+const VIEWS: { value: 'list' | 'timeline'; label: string; icon: Component }[] = [{ value: 'list', label: 'List view', icon: ListIcon }, { value: 'timeline', label: 'Timeline view', icon: ChartNoAxesGanttIcon }]
 const planOpen = ref(false)
 
 // screenings and events for the day, one row per showing, in time order
@@ -45,9 +47,13 @@ const nFilms = computed(() => items.value.filter((i) => i.kind === 'screening').
 const nEvents = computed(() => items.value.length - nFilms.value)
 const plannedToday = computed(() => planForDay(state.scheduled, memory.day).length)
 const eventsToday = computed(() => eventsOn(memory.day).length)
-const nextTag = () => { memory.tag = TAG_FILTERS[(TAG_FILTERS.indexOf(memory.tag) + 1) % TAG_FILTERS.length] }
+const nextTag = () => { memory.tag = TAG_FILTERS[(TAG_FILTERS.indexOf(memory.tag) + 1) % TAG_FILTERS.length]! }
+const dayHeading = computed(() => {
+  const p = dateParts(memory.day)
+  return { title: `${p.day} ${p.date} ${p.month}`, theme: DAY_THEMES[memory.day] || '' }
+})
 const emptyWord = computed(() => (memory.tag === 'Public' ? 'public' : memory.tag === 'Industry' ? 'for industry' : 'showing'))
-const s = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+const s = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 // short enough to stay on one line on small phones
 const countText = computed(() =>
   memory.type === 'films' ? s(nFilms.value, 'screening')
@@ -62,10 +68,10 @@ const sections = computed(() => {
     .map((name) => ({ name, films: FILMS.filter((f) => f.section === name).sort((a, b) => a.title.localeCompare(b.title)) }))
     .filter((x) => x.films.length)
 })
-const venuesOf = (filmId) => [...new Set(SCREENINGS.filter((x) => x.film === filmId).map((x) => x.venue))]
+const venuesOf = (filmId: string) => [...new Set(SCREENINGS.filter((x) => x.film === filmId).map((x) => x.venue))]
 
 // ---------- Events ----------
-const showEvent = (e) => memory.eventFilter === 'all' || EVENT_TYPES[e.type].group === memory.eventFilter
+const showEvent = (e: FestivalEvent) => memory.eventFilter === 'all' || EVENT_TYPES[e.type].group === memory.eventFilter
 const allWeek = computed(() => EVENTS.filter((e) => isMultiDay(e) && showEvent(e)))
 const eventDays = computed(() =>
   FESTIVAL.days.map((d) => ({ d, p: dateParts(d), list: eventsOn(d).filter(showEvent) })).filter((x) => x.list.length),
@@ -78,7 +84,7 @@ const eventDays = computed(() =>
       <template #actions>
         <button
           type="button"
-          class="pressable grid size-10 place-items-center rounded-full border border-line bg-surface text-accent-ink shadow-card"
+          class="pressable grid size-10 place-items-center rounded-full border border-line bg-surface text-ink shadow-card hover:border-line-strong"
           aria-label="Search films, directors and events"
           @click="searching = true"
         >
@@ -112,14 +118,17 @@ const eventDays = computed(() =>
     <template v-if="tab === 'schedule'">
       <DayPicker v-model="memory.day" />
       <div class="mt-3"><VenueChips v-model="memory.venues" :day="memory.day" :type="memory.type" /></div>
-
-      <div role="group" aria-label="Show" class="mt-3 flex items-center gap-1.5">
-        <UiChip v-for="t in TYPE_FILTERS" :key="t.id" small :on="memory.type === t.id" @click="memory.type = t.id">{{ t.label }}</UiChip>
-        <span class="ml-auto text-label text-muted tabular-nums">{{ countText }}</span>
+      <div class="mt-3 flex items-center justify-between gap-2">
+        <UiSegmented v-model="memory.type" :options="TYPE_FILTERS" label="Show" />
+        <UiChip small :on="memory.tag !== 'All'" @click="nextTag">{{ memory.tag === 'All' ? 'Public & Industry' : `${memory.tag} only` }}</UiChip>
       </div>
 
-      <div class="-mx-4 mt-3 flex items-center justify-between gap-2 border-b border-line px-4 pb-3">
-        <UiChip small :on="memory.tag !== 'All'" @click="nextTag">{{ memory.tag === 'All' ? 'Public & Industry' : `${memory.tag} only` }}</UiChip>
+      <!-- The list's own heading: which day, its theme, how much is on -->
+      <div class="-mx-4 mt-6 flex items-end justify-between gap-3 border-b border-line px-4 pb-3">
+        <div class="min-w-0">
+          <h2 class="font-display text-h2 font-semibold">{{ dayHeading.title }}</h2>
+          <p class="truncate text-meta text-muted tabular-nums">{{ [dayHeading.theme, countText].filter(Boolean).join(' · ') }}</p>
+        </div>
         <UiToggle v-model="memory.view" :options="VIEWS" />
       </div>
 

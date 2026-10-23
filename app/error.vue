@@ -1,8 +1,9 @@
-<script setup>
+<script setup lang="ts">
+import type { NuxtError } from '#app'
 import { CompassIcon } from 'lucide-vue-next'
 
 // Shown for addresses that don't exist (and anything that breaks badly).
-const props = defineProps({ error: { type: Object, default: null } })
+const props = defineProps<{ error: NuxtError | null }>()
 const notFound = props.error?.statusCode === 404
 useHead({ title: notFound ? 'Page not found' : 'Something went wrong' })
 </script>

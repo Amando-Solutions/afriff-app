@@ -4,6 +4,8 @@
 // ourselves before launch. The database (console → Jury) is the master
 // copy once published; this file is the starting point.
 
+import type { JuryMember } from '~/types/festival';
+
 export const JURY_LINKS = {
   pressRelease: 'https://afriff.com/news/afriff-2026-international-jury',
   pastJuries: 'https://afriff.com/festival/past-juries',
@@ -12,7 +14,7 @@ export const JURY_LINKS = {
 const PHOTO = 'https://afriff-revival.lovable.app/__l5e/assets-v1/';
 const INTL = 'International Jury';
 
-export let JURY = [
+export let JURY: JuryMember[] = [
   {
     id: 'tshepiso-chikapa-phiri', name: 'Tshepiso Chikapa Phiri', roles: 'Producer · Media executive', country: 'South Africa', jury: INTL, order: 0,
     photo: `${PHOTO}7d7331d6-f9ea-45ba-b030-1958f19a6f16/jury-2026-tshepiso.jpg`,
@@ -68,16 +70,16 @@ export let JURY = [
 export const BUILT_IN_JURY = JURY;
 
 // Swap in the jury an admin published from the console.
-export function replaceJury(list) {
+export function replaceJury(list: Partial<JuryMember>[]) {
   JURY = list
     .filter((j) => j.id && j.name)
-    .map((j) => ({ ...j, jury: j.jury || INTL, roles: j.roles || '', country: j.country || '', bio: j.bio || '', photo: j.photo || '' }))
+    .map((j): JuryMember => ({ ...j, id: j.id!, name: j.name!, jury: j.jury || INTL, roles: j.roles || '', country: j.country || '', bio: j.bio || '', photo: j.photo || '' }))
     .sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
 }
 
 // Jury members grouped under their jury's heading, in order of first appearance
 export function juryGroups() {
-  const groups = [];
+  const groups: { name: string; members: JuryMember[] }[] = [];
   for (const j of JURY) {
     let g = groups.find((x) => x.name === j.jury);
     if (!g) groups.push((g = { name: j.jury, members: [] }));

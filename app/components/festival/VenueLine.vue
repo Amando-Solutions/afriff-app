@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { venueById } from '~/data/programme.js'
+import { venueById } from '~/data/programme'
 
-const props = defineProps({ venueId: { type: String, default: null }, screen: { type: String, default: '' }, place: { type: String, default: '' } })
+const props = withDefaults(defineProps<{ venueId?: string | null; screen?: string; place?: string }>(), { venueId: null, screen: '', place: '' })
 const name = computed(() => (props.venueId ? venueById(props.venueId)?.name : props.place) || '')
 </script>
 

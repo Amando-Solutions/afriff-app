@@ -1,19 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import { onBeforeUnmount, reactive, ref } from 'vue'
-import { doc, onSnapshot } from 'firebase/firestore'
+import { doc, onSnapshot, type Timestamp } from 'firebase/firestore'
+import type { Profile } from './types'
+import { errMsg, whenLagos } from './util'
 import { SendIcon } from 'lucide-vue-next'
-import { db } from './firebase.js'
-import { COLLECTIONS } from './schema.js'
-import { publishToApp } from './publish.js'
+import { db } from './firebase'
+import { COLLECTIONS, isCollection } from './schema'
+import { publishToApp } from './publish'
 
-const props = defineProps({ profile: { type: Object, required: true } })
-const current = ref(undefined)
-const state = reactive({ busy: false, done: null, error: '' })
+interface PublishedInfo { version?: number; counts?: Record<string, number>; publishedAt?: Timestamp; publishedByName?: string }
+const props = defineProps<{ profile: Profile }>()
+// undefined = still loading, null = never published
+const current = ref<PublishedInfo | null | undefined>(undefined)
+const state = reactive({ busy: false, done: null as Awaited<ReturnType<typeof publishToApp>> | null, error: '' })
 
 const stop = onSnapshot(
   doc(db, 'published', 'current'),
-  (snap) => { current.value = snap.exists() ? snap.data() : null },
-  (e) => { state.error = e.message },
+  (snap) => { current.value = snap.exists() ? (snap.data() as PublishedInfo) : null },
+  (e) => { state.error = errMsg(e) },
 )
 onBeforeUnmount(stop)
 
@@ -23,11 +27,11 @@ async function run() {
   try {
     Object.assign(state, { busy: false, done: await publishToApp(props.profile) })
   } catch (e) {
-    Object.assign(state, { busy: false, error: e.message })
+    Object.assign(state, { busy: false, error: errMsg(e) })
   }
 }
-const when = (ts) => (ts?.seconds ? new Date(ts.seconds * 1000).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : '')
-const countsText = (c) => Object.entries(c || {}).map(([k, n]) => `${n} ${(COLLECTIONS[k]?.title || k).toLowerCase()}`).join(', ')
+const when = (ts?: Timestamp) => whenLagos(ts, '')
+const countsText = (c?: Record<string, number>) => Object.entries(c || {}).map(([k, n]) => `${n} ${(isCollection(k) ? COLLECTIONS[k].title : k).toLowerCase()}`).join(', ')
 </script>
 
 <template>

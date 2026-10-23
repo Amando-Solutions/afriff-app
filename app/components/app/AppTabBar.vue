@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { BookmarkCheckIcon, CalendarDaysIcon, HouseIcon, UsersIcon } from 'lucide-vue-next'
-import { openQueues, useLiveClock } from '~/lib/queues.js'
+import { openQueues, useLiveClock } from '~/lib/queues'
 
 // Bottom navigation, 4 tabs. Film and event pages count as Programme; Jury and
 // Venues count as Home (that's where you reach them from).

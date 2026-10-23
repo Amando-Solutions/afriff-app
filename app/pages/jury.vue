@@ -1,7 +1,9 @@
-<script setup>
+<script setup lang="ts">
+import type { Component } from 'vue'
+import type { JuryMember } from '~/types/festival'
 import { computed, ref } from 'vue'
 import { ArrowUpRightIcon, AwardIcon, ChevronRightIcon, LayoutGridIcon, ListIcon } from 'lucide-vue-next'
-import { JURY_LINKS, juryGroups } from '~/data/jury.js'
+import { JURY_LINKS, juryGroups } from '~/data/jury'
 
 // THE JURY: one heading per jury, a card per member; tapping a card slides up
 // their bio. Grid by default, with a list toggle (the phone remembers the choice).
@@ -10,16 +12,16 @@ const VIEW_KEY = 'afriff-jury-view'
 const groups = computed(() => juryGroups())
 const total = computed(() => groups.value.reduce((n, g) => n + g.members.length, 0))
 
-const view = ref((() => { try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid' } catch { return 'grid' } })())
-function setView(v) {
+const view = ref<'grid' | 'list'>((() => { try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid' } catch { return 'grid' } })())
+function setView(v: 'grid' | 'list') {
   view.value = v
   try { localStorage.setItem(VIEW_KEY, v) } catch { /* not saved, fine */ }
 }
-const VIEWS = [{ value: 'grid', label: 'Grid view', icon: LayoutGridIcon }, { value: 'list', label: 'List view', icon: ListIcon }]
+const VIEWS: { value: 'grid' | 'list'; label: string; icon: Component }[] = [{ value: 'grid', label: 'Grid view', icon: LayoutGridIcon }, { value: 'list', label: 'List view', icon: ListIcon }]
 
-const member = ref(null)
+const member = ref<JuryMember | null>(null)
 const open = ref(false)
-function show(m) {
+function show(m: JuryMember) {
   member.value = m
   open.value = true
 }
@@ -40,7 +42,7 @@ function show(m) {
           <JuryPhoto :member="m" />
           <span class="mt-2 text-body leading-snug font-semibold">{{ m.name }}</span>
           <span class="line-clamp-2 text-label text-muted">{{ m.roles }}</span>
-          <span class="text-label font-medium text-accent-ink">{{ m.country }}</span>
+          <span class="text-label text-subtle">{{ m.country }}</span>
         </button>
       </div>
       <div v-else class="flex flex-col gap-2.5">
@@ -49,7 +51,7 @@ function show(m) {
           <span class="flex min-w-0 flex-1 flex-col">
             <span class="text-body font-semibold">{{ m.name }}</span>
             <span class="text-meta text-muted">{{ m.roles }}</span>
-            <span class="text-label font-medium text-accent-ink">{{ m.country }}</span>
+            <span class="text-label text-subtle">{{ m.country }}</span>
           </span>
           <ChevronRightIcon class="size-[1.125rem] shrink-0 text-muted" />
         </button>

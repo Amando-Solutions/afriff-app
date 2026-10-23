@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import AdminApp from '~/admin/AdminApp.vue'
 
@@ -7,7 +7,7 @@ import AdminApp from '~/admin/AdminApp.vue'
 definePageMeta({ layout: 'admin' })
 useHead({ title: 'Admin', meta: [{ name: 'robots', content: 'noindex' }] })
 const route = useRoute()
-const path = computed(() => (Array.isArray(route.params.path) ? route.params.path : [route.params.path]).filter(Boolean))
+const path = computed(() => (Array.isArray(route.params.path) ? route.params.path : [route.params.path]).filter((p): p is string => Boolean(p)))
 </script>
 
 <template>

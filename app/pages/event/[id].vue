@@ -1,33 +1,37 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { ArrowUpRightIcon, CheckIcon, ChevronLeftIcon, ClockIcon, NavigationIcon, PlusIcon, TicketIcon } from 'lucide-vue-next'
-import { EVENT_TYPES, eventById, isMultiDay } from '~/data/events.js'
-import { venueById } from '~/data/programme.js'
-import { dateParts, directionsUrl, initials, timeLabel, toMinutes } from '~/lib/format.js'
-import { useFestival } from '~/lib/store.js'
+import { EVENT_TYPES, eventById, isMultiDay } from '~/data/events'
+import { venueById } from '~/data/programme'
+import { dateParts, directionsUrl, initials, timeLabel, toMinutes } from '~/lib/format'
+import { useFestival } from '~/lib/store'
 
 // EVENT PAGE: masterclasses, workshops, market days, galas, parties.
 const route = useRoute()
 const router = useRouter()
-const event = computed(() => eventById(route.params.id))
+const event = computed(() => eventById(String(route.params.id)))
 useHead({ title: () => event.value?.title.split(':')[0] || 'Event' })
 const { isScheduled, toggleScheduled } = useFestival()
 
-const type = computed(() => EVENT_TYPES[event.value?.type])
-const multi = computed(() => event.value && isMultiDay(event.value))
-const p = computed(() => event.value && dateParts(event.value.date))
-const venue = computed(() => (event.value?.venue ? venueById(event.value.venue) : null))
-const duration = computed(() => {
-  if (!event.value) return ''
-  let mins = toMinutes(event.value.end) - toMinutes(event.value.time)
+// Everything the page shows that's worked out from the event (null when it doesn't exist)
+const info = computed(() => {
+  const e = event.value
+  if (!e) return null
+  const p = dateParts(e.date)
+  const multi = isMultiDay(e)
+  let mins = toMinutes(e.end) - toMinutes(e.time)
   if (mins <= 0) mins += 24 * 60 // runs past midnight
   const h = Math.floor(mins / 60)
   const m = mins % 60
-  return h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`
+  return {
+    type: EVENT_TYPES[e.type],
+    multi,
+    p,
+    venue: e.venue ? venueById(e.venue) ?? null : null,
+    duration: h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`,
+    dayLine: multi && e.endDate ? `– ${String(dateParts(e.endDate).date).padStart(2, '0')} ${p.monthUpper}` : `${p.month} ${p.day}`,
+  }
 })
-const dayLine = computed(() => (multi.value
-  ? `– ${String(dateParts(event.value.endDate).date).padStart(2, '0')} ${p.value.monthUpper}`
-  : `${p.value.month} ${p.value.day}`))
 
 function back() {
   if (window.history.state?.back) router.back()
@@ -42,14 +46,14 @@ function back() {
     </UiEmptyState>
   </div>
 
-  <article v-else :key="event.id">
+  <article v-else-if="info" :key="event.id">
     <div class="mb-4 flex items-center justify-between gap-2">
       <button type="button" class="pressable -ml-2 inline-flex h-9 items-center gap-1 rounded-full pr-3 pl-1.5 text-meta font-medium text-muted hover:bg-hover hover:text-ink" @click="back">
         <ChevronLeftIcon class="size-5" /> Back
       </button>
       <span class="flex gap-1.5">
-        <UiBadge>{{ type.label }}</UiBadge>
-        <UiBadge><ClockIcon /> {{ duration }}</UiBadge>
+        <UiBadge>{{ info.type.label }}</UiBadge>
+        <UiBadge><ClockIcon /> {{ info.duration }}</UiBadge>
       </span>
     </div>
 
@@ -61,7 +65,7 @@ function back() {
       <EventThumb :event="event" icon-size="size-10" class="size-20 rounded-card" />
     </div>
 
-    <p class="mt-5 text-label font-semibold tracking-wider text-accent-ink uppercase">{{ type.label }}</p>
+    <p class="mt-5 eyebrow text-accent-ink">{{ info.type.label }}</p>
     <h1 class="mt-1 font-display text-h1 font-semibold" :class="event.status === 'cancelled' && 'text-muted line-through'">{{ event.title }}</h1>
     <div class="mt-2 flex flex-wrap items-center gap-2 text-meta text-muted">
       <StatusTag :status="event.status" />
@@ -84,20 +88,20 @@ function back() {
       <h2 class="mb-3 font-display text-h2 font-semibold">When &amp; where</h2>
       <div class="card flex flex-col gap-1 p-4">
         <div class="flex items-baseline gap-2">
-          <span class="font-display text-[2rem] leading-none font-semibold text-accent-ink tabular-nums">{{ String(p.date).padStart(2, '0') }}</span>
-          <span class="text-label font-semibold tracking-wider text-muted uppercase">{{ dayLine }}</span>
+          <span class="font-display text-h1 leading-none font-semibold tabular-nums">{{ String(info.p.date).padStart(2, '0') }}</span>
+          <span class="eyebrow text-muted">{{ info.dayLine }}</span>
         </div>
-        <span class="mt-1 text-body font-semibold tabular-nums">{{ multi ? 'Evenings from ' : '' }}{{ timeLabel(event.time) }} – {{ timeLabel(event.end) }}</span>
+        <span class="mt-1 text-body font-semibold tabular-nums">{{ info.multi ? 'Evenings from ' : '' }}{{ timeLabel(event.time) }} – {{ timeLabel(event.end) }}</span>
         <VenueLine :venue-id="event.venue" :place="event.place" />
-        <span v-if="venue" class="text-label text-muted">{{ event.place }}</span>
+        <span v-if="info.venue" class="text-label text-muted">{{ event.place }}</span>
         <UiBadge v-if="event.tag === 'Industry'" tone="info" class="mt-1">Industry</UiBadge>
       </div>
       <div class="mt-2.5 flex flex-wrap gap-2">
-        <UiButton v-if="!multi" :variant="isScheduled(event.id) ? 'primary' : 'secondary'" :aria-pressed="isScheduled(event.id)" @click="toggleScheduled(event.id)">
+        <UiButton v-if="!info.multi" :variant="isScheduled(event.id) ? 'primary' : 'secondary'" :aria-pressed="isScheduled(event.id)" @click="toggleScheduled(event.id)">
           <template v-if="isScheduled(event.id)"><CheckIcon /> Scheduled</template>
           <template v-else><PlusIcon /> Schedule</template>
         </UiButton>
-        <UiButton v-if="venue" variant="secondary" :href="directionsUrl(venue.address)"><NavigationIcon /> Directions</UiButton>
+        <UiButton v-if="info.venue" variant="secondary" :href="directionsUrl(info.venue.address)"><NavigationIcon /> Directions</UiButton>
       </div>
       <p class="mt-2.5 text-label text-subtle">Times and rooms are samples until AFRIFF publishes the schedule.</p>
     </section>
@@ -105,7 +109,7 @@ function back() {
     <section v-if="event.speaker" class="mt-8">
       <h2 class="mb-3 font-display text-h2 font-semibold">With</h2>
       <div class="flex items-start gap-3">
-        <div class="grid size-12 shrink-0 place-items-center rounded-tile border border-line bg-raised font-display text-h3 font-semibold text-accent-ink">{{ initials(event.speaker.replace(/\(.*\)/, '')) }}</div>
+        <div class="grid size-12 shrink-0 place-items-center rounded-tile border border-line bg-raised font-display text-h3 font-semibold text-muted">{{ initials(event.speaker.replace(/\(.*\)/, '')) }}</div>
         <div class="flex min-w-0 flex-col gap-0.5">
           <span class="text-body font-semibold">{{ event.speaker }}</span>
           <span class="text-meta text-muted">{{ event.speakerRole }}</span>

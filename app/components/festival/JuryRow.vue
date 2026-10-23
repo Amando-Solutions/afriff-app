@@ -1,13 +1,14 @@
-<script setup>
+<script setup lang="ts">
+import type { JuryMember } from '~/types/festival'
 import { ref } from 'vue'
-import { JURY } from '~/data/jury.js'
+import { JURY } from '~/data/jury'
 
 // "Meet the jury" row of faces (the Globe Awards page).
 // Tapping a face opens their bio; "See all" opens the Jury page.
-defineProps({ title: { type: String, default: 'Meet the jury' }, intro: { type: String, default: '' } })
-const member = ref(null)
+withDefaults(defineProps<{ title?: string; intro?: string }>(), { title: 'Meet the jury', intro: '' })
+const member = ref<JuryMember | null>(null)
 const open = ref(false)
-function show(m) {
+function show(m: JuryMember) {
   member.value = m
   open.value = true
 }

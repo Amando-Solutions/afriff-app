@@ -1,7 +1,8 @@
 import { onBeforeUnmount, ref } from 'vue';
-import { FESTIVAL, SCREENINGS } from '../data/programme.js';
-import { screeningStart } from './format.js';
-import { lagosDate, now, testSwitch } from './now.js';
+import type { Queue, Screening } from '~/types/festival';
+import { FESTIVAL, SCREENINGS } from '../data/programme';
+import { screeningStart } from './format';
+import { lagosDate, now, testSwitch } from './now';
 
 // LIVE QUEUES (build step 8)
 // Every screen asks this file for queue counts. The counts come from door
@@ -22,8 +23,9 @@ const CHECK_EVERY_MS = 60 * 1000;
 const SAMPLE = testSwitch('queues') === 'sample';
 
 // ---------- Live counts from door volunteers ----------
-let board = { date: null, queues: {} };
-const listeners = new Set();
+type BoardEntry = Omit<Queue, 'updatedAt'> & { venue: string; updatedAt: number | null };
+let board: { date: string | null; queues: Record<string, BoardEntry> } = { date: null, queues: {} };
+const listeners = new Set<() => void>();
 const tell = () => listeners.forEach((fn) => fn());
 
 const BOARD_DIRECT =
@@ -31,11 +33,14 @@ const BOARD_DIRECT =
 const KEY = 'AIzaSyCPxdNaQyK6r4OU97-zBZBKLqHsHunGzYo';
 
 // Firestore's REST format → plain counts (used if the relay can't be reached)
-function decode(documents = []) {
-  const n = (v) => Number(v?.integerValue ?? v?.doubleValue ?? 0);
-  const out = {};
+interface FsValue { integerValue?: string; doubleValue?: number; timestampValue?: string; mapValue?: { fields?: Record<string, FsValue> } }
+interface FsDoc { name: string; fields?: Record<string, FsValue> }
+
+function decode(documents: FsDoc[] = []): Record<string, BoardEntry> {
+  const n = (v: FsValue | undefined) => Number(v?.integerValue ?? v?.doubleValue ?? 0);
+  const out: Record<string, BoardEntry> = {};
   for (const d of documents) {
-    const venue = d.name.split('/').pop();
+    const venue = d.name.split('/').pop() ?? '';
     for (const [id, e] of Object.entries(d.fields?.s?.mapValue?.fields || {})) {
       const f = e.mapValue?.fields || {};
       out[id] = {
@@ -49,18 +54,18 @@ function decode(documents = []) {
   return out;
 }
 
-async function fetchBoard(date) {
+async function fetchBoard(date: string): Promise<Record<string, BoardEntry>> {
   try {
     const res = await fetch(`/api/queues?date=${date}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return (await res.json()).queues || {};
+    return ((await res.json()) as { queues?: Record<string, BoardEntry> }).queues || {};
   } catch {
     /* relay unreachable: read the database directly */
   }
   const res = await fetch(`${BOARD_DIRECT}${date}/venues?pageSize=50&key=${KEY}`, { cache: 'no-store' });
   if (res.status === 404) return {};
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return decode((await res.json()).documents);
+  return decode(((await res.json()) as { documents?: FsDoc[] }).documents);
 }
 
 async function refresh() {
@@ -86,9 +91,9 @@ export function startLiveQueues() {
 }
 
 // ---------- Pretend queues for testing (?queues=sample) ----------
-const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-function sampleAt(screening, t) {
+function sampleAt(screening: Screening, t: number): Queue | null {
   const startMs = screeningStart(screening).getTime();
   const slot = POST_EVERY_MINUTES * 60000;
   const postedAt = Math.floor(t / slot) * slot;
@@ -109,7 +114,7 @@ function sampleAt(screening, t) {
 // ---------- What every screen uses ----------
 
 // The latest count for a screening, or null if its queue isn't open.
-export function queueAt(screening, t = now().getTime()) {
+export function queueAt(screening: Screening, t: number = now().getTime()): Queue | null {
   if (screening.status === 'cancelled') return null;
   if (SAMPLE) return sampleAt(screening, t);
   const e = board.date === screening.date ? board.queues[screening.id] : null;
@@ -133,21 +138,23 @@ export function useLiveClock(everyMs = 30000) {
 }
 
 // All queues open right now, soonest screening first.
-export function openQueues(t) {
-  return SCREENINGS.map((s) => ({ screening: s, queue: queueAt(s, t) }))
-    .filter((x) => x.queue)
-    .sort((a, b) => screeningStart(a.screening) - screeningStart(b.screening));
+export interface OpenQueue { screening: Screening; queue: Queue }
+
+export function openQueues(t: number): OpenQueue[] {
+  return SCREENINGS.flatMap((s): OpenQueue[] => {
+    const queue = queueAt(s, t);
+    return queue ? [{ screening: s, queue }] : [];
+  }).sort((a, b) => screeningStart(a.screening).getTime() - screeningStart(b.screening).getTime());
 }
 
+const latestFirst = (a: OpenQueue, b: OpenQueue) =>
+  b.queue.updatedAt - a.queue.updatedAt || a.screening.time.localeCompare(b.screening.time);
+
 // Recent counts across all open queues, latest first.
-export function recentUpdates(t, limit = 10) {
-  if (!SAMPLE) {
-    return openQueues(t)
-      .sort((a, b) => b.queue.updatedAt - a.queue.updatedAt || a.screening.time.localeCompare(b.screening.time))
-      .slice(0, limit);
-  }
+export function recentUpdates(t: number, limit = 10): OpenQueue[] {
+  if (!SAMPLE) return openQueues(t).sort(latestFirst).slice(0, limit);
   const slot = POST_EVERY_MINUTES * 60000;
-  const updates = [];
+  const updates: OpenQueue[] = [];
   for (const { screening } of openQueues(t)) {
     for (let k = 0; k < 4; k++) {
       const q = sampleAt(screening, t - k * slot);
@@ -155,10 +162,10 @@ export function recentUpdates(t, limit = 10) {
       updates.push({ screening, queue: q });
     }
   }
-  return updates.sort((a, b) => b.queue.updatedAt - a.queue.updatedAt || a.screening.time.localeCompare(b.screening.time)).slice(0, limit);
+  return updates.sort(latestFirst).slice(0, limit);
 }
 
-export const minutesAgo = (t, at) => {
+export const minutesAgo = (t: number, at: number) => {
   const m = Math.max(0, Math.round((t - at) / 60000));
   return m === 0 ? 'just now' : `${m} min ago`;
 };

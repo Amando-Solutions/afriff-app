@@ -2,18 +2,20 @@
 // (published/current) that the attendee app downloads. Nothing reaches
 // attendees until this is pressed.
 import { collection, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
-import { db } from './firebase.js';
-import { COLLECTION_ORDER } from './schema.js';
+import { db } from './firebase';
+import { COLLECTION_ORDER } from './schema';
+import type { Profile } from './types';
 
 const MAX_BYTES = 900 * 1024; // the database allows 1 MB per document
 
-export async function publishToApp(profile) {
-  const snapshot = { version: Date.now(), publishedAt: new Date().toISOString() };
-  const counts = {};
+export async function publishToApp(profile: Profile) {
+  const snapshot: Record<string, unknown> & { version: number } = { version: Date.now(), publishedAt: new Date().toISOString() };
+  const counts: Record<string, number> = {};
   for (const col of COLLECTION_ORDER) {
     const snap = await getDocs(collection(db, col));
-    snapshot[col] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    counts[col] = snapshot[col].length;
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    snapshot[col] = docs;
+    counts[col] = docs.length;
   }
   const json = JSON.stringify(snapshot);
   if (json.length > MAX_BYTES) throw new Error(`The festival data is too big to publish in one go (${Math.round(json.length / 1024)} KB). Ask Claude to split it.`);

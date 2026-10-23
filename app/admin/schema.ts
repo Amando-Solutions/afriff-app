@@ -6,26 +6,58 @@
 // select (fixed options), ref (pick from another collection), checkbox,
 // color, datetime. A key with a dot ("link.url") is stored nested.
 
-import { BUILT_IN, DAY_THEMES, FESTIVAL, SECTIONS } from '../data/programme.js';
-import { BUILT_IN_EVENTS, EVENT_TYPES } from '../data/events.js';
-import { BUILT_IN_JURY } from '../data/jury.js';
-import { dayLabel, timeLabel } from '../lib/format.js';
+import { BUILT_IN, DAY_THEMES, FESTIVAL, SECTIONS } from '../data/programme';
+import { BUILT_IN_EVENTS, EVENT_TYPES } from '../data/events';
+import type { EventType } from '~/types/festival';
+import { BUILT_IN_JURY } from '../data/jury';
+import { dayLabel, timeLabel } from '../lib/format';
+import type { DataDoc, Refs } from './types';
 
-const dayOptions = FESTIVAL.days.map((d) => ({ value: d, label: `${dayLabel(d)} · ${DAY_THEMES[d] || ''}` }));
-const tagOptions = [{ value: 'Public', label: 'Public' }, { value: 'Industry', label: 'Industry' }];
+export type FieldType = 'text' | 'textarea' | 'number' | 'url' | 'time' | 'day' | 'select' | 'ref' | 'checkbox' | 'color' | 'datetime';
+export interface Option { value: string; label: string }
+export interface FieldDef {
+  key: string;
+  label: string;
+  type: FieldType;
+  required?: boolean;
+  hint?: string;
+  options?: Option[];
+  /** for type 'ref': the collection to pick from */
+  ref?: CollectionName;
+}
+/** form values: strings, or true/false for checkboxes */
+export type FormValues = Record<string, string | boolean>;
+type Doc = Partial<DataDoc> & Record<string, unknown>;
+export interface CollectionDef {
+  title: string;
+  single: string;
+  /** the field the new item's id is made from */
+  idFrom?: string;
+  label: (d: Doc, refs: Refs) => string;
+  sub: (d: Doc, refs: Refs) => string;
+  sort: (a: Doc, b: Doc) => number;
+  fields: FieldDef[];
+}
+
+/** read a field as text (database values can be anything) */
+const t = (v: unknown) => (v == null ? '' : String(v));
+const n = (v: unknown, d = 99) => (typeof v === 'number' ? v : d);
+
+const dayOptions: Option[] = FESTIVAL.days.map((d) => ({ value: d, label: `${dayLabel(d)} · ${DAY_THEMES[d] || ''}` }));
+const tagOptions: Option[] = [{ value: 'Public', label: 'Public' }, { value: 'Industry', label: 'Industry' }];
 
 // Shown as a tag on the item everywhere attendees see it
-export const STATUS_OPTIONS = [
+export const STATUS_OPTIONS: Option[] = [
   { value: 'moved', label: 'Moved (new venue or room)' },
   { value: 'time-changed', label: 'Time changed' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
-const statusField = { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, hint: 'Leave empty when it is going ahead as planned. Changing it here offers to post an alert.' };
+const statusField: FieldDef = { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, hint: 'Leave empty when it is going ahead as planned. Changing it here offers to post an alert.' };
 
 export const PREMIERE_OPTIONS = ['World Premiere', 'International Premiere', 'African Premiere', 'West African Premiere', 'Nigerian Premiere']
   .map((p) => ({ value: p, label: p }));
 
-export const NEWS_TYPES = [
+export const NEWS_TYPES: Option[] = [
   { value: 'venue-change', label: 'Venue change' },
   { value: 'time-change', label: 'Time change' },
   { value: 'cancelled', label: 'Cancelled' },
@@ -33,12 +65,12 @@ export const NEWS_TYPES = [
   { value: 'news', label: 'News' },
 ];
 
-export const COLLECTIONS = {
+export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
   films: {
     title: 'Films', single: 'film', idFrom: 'title',
-    label: (f) => f.title,
-    sub: (f) => [f.director, f.section].filter(Boolean).join(' · '),
-    sort: (a, b) => (a.title || '').localeCompare(b.title || ''),
+    label: (f) => t(f.title),
+    sub: (f) => [t(f.director), t(f.section)].filter(Boolean).join(' · '),
+    sort: (a, b) => t(a.title).localeCompare(t(b.title)),
     fields: [
       { key: 'title', label: 'Title', type: 'text', required: true },
       { key: 'director', label: 'Director(s)', type: 'text', required: true, hint: 'Separate two names with " & "' },
@@ -60,9 +92,9 @@ export const COLLECTIONS = {
 
   screenings: {
     title: 'Screenings', single: 'screening',
-    label: (s, refs) => refs.films?.[s.film]?.title || s.film || '(no film)',
-    sub: (s, refs) => [s.date && dayLabel(s.date), s.time && timeLabel(s.time), refs.venues?.[s.venue]?.name, s.screen].filter(Boolean).join(' · '),
-    sort: (a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`),
+    label: (s, refs) => t(refs.films?.[t(s.film)]?.title) || t(s.film) || '(no film)',
+    sub: (s, refs) => [s.date && dayLabel(t(s.date)), s.time && timeLabel(t(s.time)), t(refs.venues?.[t(s.venue)]?.name), t(s.screen)].filter(Boolean).join(' · '),
+    sort: (a, b) => `${t(a.date)}${t(a.time)}`.localeCompare(`${t(b.date)}${t(b.time)}`),
     fields: [
       { key: 'film', label: 'Film', type: 'ref', ref: 'films', required: true },
       { key: 'venue', label: 'Venue', type: 'ref', ref: 'venues', required: true },
@@ -78,9 +110,9 @@ export const COLLECTIONS = {
 
   events: {
     title: 'Masterclasses & events', single: 'event', idFrom: 'title',
-    label: (e) => e.title,
-    sub: (e) => [EVENT_TYPES[e.type]?.label, e.date && dayLabel(e.date), e.time && timeLabel(e.time), e.speaker].filter(Boolean).join(' · '),
-    sort: (a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`),
+    label: (e) => t(e.title),
+    sub: (e) => [EVENT_TYPES[t(e.type) as EventType]?.label, e.date && dayLabel(t(e.date)), e.time && timeLabel(t(e.time)), t(e.speaker)].filter(Boolean).join(' · '),
+    sort: (a, b) => `${t(a.date)}${t(a.time)}`.localeCompare(`${t(b.date)}${t(b.time)}`),
     fields: [
       { key: 'type', label: 'Type', type: 'select', required: true, options: Object.entries(EVENT_TYPES).map(([value, t]) => ({ value, label: t.label })) },
       { key: 'title', label: 'Title', type: 'text', required: true },
@@ -105,9 +137,9 @@ export const COLLECTIONS = {
 
   venues: {
     title: 'Venues', single: 'venue', idFrom: 'name',
-    label: (v) => v.name,
-    sub: (v) => v.area,
-    sort: (a, b) => (a.name || '').localeCompare(b.name || ''),
+    label: (v) => t(v.name),
+    sub: (v) => t(v.area),
+    sort: (a, b) => t(a.name).localeCompare(t(b.name)),
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'area', label: 'Area', type: 'text', hint: 'e.g. Victoria Island' },
@@ -118,9 +150,9 @@ export const COLLECTIONS = {
 
   news: {
     title: 'News & alerts', single: 'news item',
-    label: (n) => `${n.urgent ? '⚠ ' : ''}${n.title}`,
-    sub: (n) => (n.time ? new Date(n.time).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : ''),
-    sort: (a, b) => (b.time || '').localeCompare(a.time || ''),
+    label: (d) => `${d.urgent ? '⚠ ' : ''}${t(d.title)}`,
+    sub: (d) => (d.time ? new Date(t(d.time)).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : ''),
+    sort: (a, b) => t(b.time).localeCompare(t(a.time)),
     fields: [
       { key: 'title', label: 'Headline', type: 'text', required: true },
       { key: 'body', label: 'Message', type: 'textarea', required: true },
@@ -136,9 +168,9 @@ export const COLLECTIONS = {
 
   sponsors: {
     title: 'Sponsors', single: 'sponsor',
-    label: (s) => s.name,
-    sub: (s) => (s.order != null ? `Position ${s.order + 1}` : ''),
-    sort: (a, b) => (a.order ?? 99) - (b.order ?? 99),
+    label: (s) => t(s.name),
+    sub: (s) => (typeof s.order === 'number' ? `Position ${s.order + 1}` : ''),
+    sort: (a, b) => n(a.order) - n(b.order),
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'logo', label: 'Logo image link', type: 'url' },
@@ -158,9 +190,9 @@ export const COLLECTIONS = {
 
   jury: {
     title: 'Jury', single: 'jury member', idFrom: 'name',
-    label: (j) => j.name,
-    sub: (j) => [j.jury, j.country].filter(Boolean).join(' · '),
-    sort: (a, b) => `${a.jury}`.localeCompare(`${b.jury}`) || (a.order ?? 99) - (b.order ?? 99),
+    label: (j) => t(j.name),
+    sub: (j) => [t(j.jury), t(j.country)].filter(Boolean).join(' · '),
+    sort: (a, b) => t(a.jury).localeCompare(t(b.jury)) || n(a.order) - n(b.order),
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'roles', label: 'Roles', type: 'text', hint: 'e.g. Producer · Media executive' },
@@ -174,9 +206,9 @@ export const COLLECTIONS = {
 
   howToAttend: {
     title: 'How to attend', single: 'section',
-    label: (h) => h.title,
-    sub: (h) => (h.order != null ? `Position ${h.order + 1}` : ''),
-    sort: (a, b) => (a.order ?? 99) - (b.order ?? 99),
+    label: (h) => t(h.title),
+    sub: (h) => (typeof h.order === 'number' ? `Position ${h.order + 1}` : ''),
+    sort: (a, b) => n(a.order) - n(b.order),
     fields: [
       { key: 'title', label: 'Heading', type: 'text', required: true },
       { key: 'body', label: 'Text', type: 'textarea', required: true },
@@ -187,24 +219,31 @@ export const COLLECTIONS = {
   },
 };
 
-export const COLLECTION_ORDER = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'jury', 'howToAttend'];
+export type CollectionName = 'films' | 'screenings' | 'events' | 'venues' | 'news' | 'sponsors' | 'jury' | 'howToAttend';
+export const isCollection = (c: string | undefined): c is CollectionName => Boolean(c && c in COLLECTIONS);
+
+export const COLLECTION_ORDER: CollectionName[] = ['films', 'screenings', 'events', 'venues', 'news', 'sponsors', 'jury', 'howToAttend'];
 
 // ---------- Reading and writing dotted keys like "link.url" ----------
-export const getField = (obj, key) => key.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+export const getField = (obj: unknown, key: string): unknown =>
+  key.split('.').reduce<unknown>((o, k) => (o != null && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), obj);
 
 // Turn form values (all strings) into a clean document for the database
-export function fromForm(colName, values) {
-  const out = {};
+export function fromForm(colName: CollectionName, values: FormValues): Record<string, unknown> & { link?: { url?: string } } {
+  const out: Record<string, unknown> & { link?: { url?: string } } = {};
   for (const f of COLLECTIONS[colName].fields) {
-    let v = values[f.key];
-    if (f.type === 'number') v = v === '' || v == null ? null : Number(v);
-    else if (f.type === 'checkbox') v = Boolean(v);
-    else if (f.type === 'datetime') v = v ? new Date(`${v}:00+01:00`).toISOString() : '';
-    else v = (v ?? '').toString().trim();
+    const raw = values[f.key];
+    let v: unknown;
+    if (f.type === 'number') v = raw === '' || raw == null ? null : Number(raw);
+    else if (f.type === 'checkbox') v = Boolean(raw);
+    else if (f.type === 'datetime') v = raw ? new Date(`${raw}:00+01:00`).toISOString() : '';
+    else v = (raw ?? '').toString().trim();
     const parts = f.key.split('.');
-    if (parts.length === 2) {
-      out[parts[0]] = out[parts[0]] || {};
-      out[parts[0]][parts[1]] = v;
+    const [outer, inner] = parts;
+    if (outer && inner) {
+      const nested = (out[outer] as Record<string, unknown> | undefined) || {};
+      nested[inner] = v;
+      out[outer] = nested;
     } else {
       out[f.key] = v;
     }
@@ -215,25 +254,24 @@ export function fromForm(colName, values) {
 }
 
 // Turn a stored document into form values (strings)
-export function toForm(colName, doc) {
-  const values = {};
+export function toForm(colName: CollectionName, doc: unknown): FormValues {
+  const values: FormValues = {};
   for (const f of COLLECTIONS[colName].fields) {
-    let v = getField(doc, f.key);
-    if (f.type === 'checkbox') v = Boolean(v);
+    const v = getField(doc, f.key);
+    if (f.type === 'checkbox') values[f.key] = Boolean(v);
     else if (f.type === 'datetime') {
-      v = v ? new Date(v).toLocaleString('sv-SE', { timeZone: 'Africa/Lagos' }).slice(0, 16).replace(' ', 'T') : '';
-    } else v = v == null ? '' : String(v);
-    values[f.key] = v;
+      values[f.key] = v ? new Date(String(v)).toLocaleString('sv-SE', { timeZone: 'Africa/Lagos' }).slice(0, 16).replace(' ', 'T') : '';
+    } else values[f.key] = v == null ? '' : String(v);
   }
   return values;
 }
 
-export const slugify = (s) =>
+export const slugify = (s: string | null | undefined) =>
   (s || 'item').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'item';
 
 // ---------- The built-in data, ready to load into the database ----------
-const strip = ({ id, ...rest }) => rest;
-export function seedData() {
+const strip = <T extends { id: string }>({ id: _id, ...rest }: T) => rest;
+export function seedData(): Record<CollectionName, [string, Record<string, unknown>][]> {
   return {
     films: BUILT_IN.films.map((f) => [f.id, strip(f)]),
     screenings: BUILT_IN.screenings.map((s) => [s.id, strip(s)]),

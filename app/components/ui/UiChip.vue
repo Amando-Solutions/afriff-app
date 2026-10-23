@@ -1,6 +1,6 @@
-<script setup>
+<script setup lang="ts">
 /** A filter chip. `on` shows it selected (gold outline, as before). */
-defineProps({ on: Boolean, small: Boolean })
+defineProps<{ on?: boolean; small?: boolean }>()
 </script>
 
 <template>

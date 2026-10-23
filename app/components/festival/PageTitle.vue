@@ -1,6 +1,7 @@
-<script setup>
+<script setup lang="ts">
+import type { Component } from 'vue'
 // Page title with its icon, the same size on every page.
-defineProps({ title: { type: String, required: true }, icon: { type: [Object, Function], default: null }, description: { type: String, default: '' } })
+withDefaults(defineProps<{ title: string; icon?: Component | null; description?: string }>(), { icon: null, description: '' })
 </script>
 
 <template>
