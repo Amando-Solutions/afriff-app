@@ -750,6 +750,10 @@ heavy libraries) apply everywhere.
   numbers, mark full, 10 taps = 1 save, admin pickers, counting card, clear
   counts, editors refused, console tile → /door, #/door forwards. NOT
   tested by Claude with a real login → USER to test on a phone.
+- React version saved (commit c56a208, pushed) and DEPLOYED 22 Oct 2026:
+  live #/door showed the login. Rules are republished: live /api/queues
+  answered 200 with no counts yet (queues switched on). The Nuxt version
+  isn't deployed yet.
 
 ### GitHub (22 Oct 2026)
 - Code is on GitHub: https://github.com/TheoKwechi/afriff-app (PRIVATE),
