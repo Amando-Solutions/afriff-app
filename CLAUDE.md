@@ -79,9 +79,14 @@ so Home doesn't repeat them, and shortcuts carry no subtext.
 DAILY HIGHLIGHT (built 20 Oct 2026; collage = team-picked AND automatic,
 user decision). Home's top banner depends on the Lagos date:
 - Before 1 Nov: countdown hero (above) + "Opening day" list.
-- 1–7 Nov: `src/components/DailyHighlight.jsx`, "Today · Day N of 7" +
-  date, day theme (DAY_THEMES) as the headline, poster collage (1 big +
-  up to 4 small, last tile "+N" when more films), count chips
+- 1–7 Nov: `app/components/festival/DailyHighlight.vue`, "Today · Day N
+  of 7" + date, headline "Daily highlights" EVERY day (user, 23 Oct; day
+  themes are no longer the headline), swipeable FILMSTRIP (user chose it
+  over the bento collage on 23 Oct, after seeing bento / filmstrip / hero +
+  strip / equal grid / masonry / fanned stack): every film showing that
+  day, whole poster at 156 px height (never cropped; colour card if no
+  poster or the link breaks), title + its next time today or "Shown
+  earlier", last tile "See all N films" → Schedule on that day. Count chips
   (screenings / masterclasses / events, zeros hidden), "Next up" (next
   film or event to start, links to it; "That's a wrap for today.
   Tomorrow: <theme>" late; closing line on the last night), gold "See
@@ -90,7 +95,7 @@ user decision). Home's top banner depends on the Lagos date:
   list becomes "Today": the next 4 films AND events still to start,
   with + buttons; "Nothing else starts today. See tomorrow" when done.
 - After 7 Nov: thank-you banner + "Your watched list"; no day list.
-- Collage order (`src/lib/today.js`): films ticked "Feature on Home
+- Filmstrip order (`app/lib/today.ts`): films ticked "Feature on Home
   (daily highlight)" in the console (new film checkbox) → the Opening
   Movie → films with a real poster → films still to come, by time.
   One tile per film; cancelled screenings left out. Counts include
