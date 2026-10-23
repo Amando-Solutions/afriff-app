@@ -17,7 +17,7 @@ import { errMsg } from './util'
 //
 // Counts live in ONE record per venue per day: queueDays/{date}/venues/{venue}
 // with a map `s` of screeningId → { inLine, seatsLeft, seatsStart, updatedAt,
-// byName }. Phones read those records through the /api/queues relay.
+// byName }. Phones read those records directly with a live listener (lib/queues.ts).
 //
 // Taps show at once and are sent in small bundles (~1 second of tapping per
 // save) as "add N" / "take N away", never a fixed number, so two volunteers

@@ -1,7 +1,7 @@
 // Door counter storage: ONE record per venue per day,
 // queueDays/{date}/venues/{venue}, with a map `s` of screeningId →
 // { inLine, seatsLeft, seatsStart, updatedAt, byName }. Phones read those few
-// records through the /api/queues relay.
+// records directly with a live listener (lib/queues.ts).
 import { onBeforeUnmount, reactive, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';

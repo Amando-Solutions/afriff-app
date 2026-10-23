@@ -48,7 +48,9 @@ service cloud.firestore {
     match /jury/{id}        { allow read: if true; allow write: if isAdmin(); }
 
     // ---------- What attendees' phones download ----------
-    // One bundle written by an admin's "Publish to app" button.
+    // Written by an admin's "Publish to app" button: the bundle (published/current)
+    // and a tiny marker (published/version) that open phones watch live, read
+    // directly with the Firebase SDK. Anyone can read; only admins write.
     match /published/{id}   { allow read: if true; allow write: if isAdmin(); }
 
     // ---------- Changes waiting for an admin's approval ----------
@@ -75,7 +77,7 @@ service cloud.firestore {
     // ---------- Live queue counts ----------
     // One record per venue per festival day: queueDays/{date}/venues/{venueId},
     // holding every screening's count at that venue that day. Anyone can read
-    // (phones get it through the relay). Volunteers can only write their own venue.
+    // (phones listen to it directly). Volunteers can only write their own venue.
     match /queueDays/{date}/venues/{venueId} {
       allow read: if true;
       allow write: if isAdmin()

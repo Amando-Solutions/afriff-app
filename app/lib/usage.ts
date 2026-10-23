@@ -5,7 +5,8 @@
 // days the app was opened. Never a name, email, phone number or location.
 //
 // How often: at most once every 30 minutes, and only if something changed,
-// to stay inside Firebase's free daily limits.
+// to stay inside Firebase's free daily limits. Written directly to Firestore
+// (no server route); offline writes are queued on the phone by the SDK.
 // On by default; the switch in My Festival turns it off (and clears what
 // this phone shared before).
 //
@@ -13,9 +14,6 @@
 // unless ?share=1 is in the address.
 import { lagosDate, testSwitch } from './now';
 
-const DOC_URL = (id: string) =>
-  `https://firestore.googleapis.com/v1/projects/afriff-app/databases/(default)/documents/usage/${id}` +
-  '?key=AIzaSyCPxdNaQyK6r4OU97-zBZBKLqHsHunGzYo';
 const SHARE_KEY = 'afriff-share';
 const DEVICE_KEY = 'afriff-device';
 const LAST_KEY = 'afriff-usage-last';
@@ -59,23 +57,13 @@ function activeDays(): string[] {
   return days;
 }
 
-// Firestore's REST format for our three kinds of values
-const toFields = ({ planned, seen, days }: UsagePayload) => ({
-  v: { integerValue: '1' },
-  updatedAt: { timestampValue: new Date().toISOString() },
-  planned: { arrayValue: { values: planned.map((s) => ({ stringValue: s })) } },
-  days: { arrayValue: { values: days.map((s) => ({ stringValue: s })) } },
-  seen: { mapValue: { fields: Object.fromEntries(Object.entries(seen).map(([k, r]) => [k, { integerValue: String(r) }])) } },
-});
-
+// Saved straight to Firestore with the SDK (lib/firebase/live.ts, loaded only
+// when there's something to send). With no signal the write waits on the
+// phone, even across closing the app, and goes when the connection is back,
+// so there's nothing to retry here.
 async function send(payload: UsagePayload) {
-  const res = await fetch(DOC_URL(deviceId()), {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: toFields(payload) }),
-    keepalive: true,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const { writeUsage } = await import('./firebase/live');
+  writeUsage(deviceId(), payload);
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -96,7 +84,7 @@ async function flush() {
     store.set(LAST_KEY, JSON.stringify({ at: Date.now(), fingerprint }));
     pending = null;
   } catch {
-    /* offline: try again later */
+    /* the database code couldn't load (offline on a first visit): try again later */
     timer = setTimeout(flush, MIN_GAP);
   }
 }

@@ -1,49 +1,38 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { DownloadIcon, PlusSquareIcon, RefreshCwIcon, ShareIcon, XIcon } from 'lucide-vue-next'
+import { DownloadIcon, PlusSquareIcon, ShareIcon, XIcon } from 'lucide-vue-next'
 
 /**
- * The app's own little toasts above the bottom bar:
- * - "A new version is ready" (after an update was downloaded) → Reload
- * - Android / Chrome / Edge: "Install the AFRIFF app" → the browser's own install prompt
+ * The install toast above the bottom bar (logic in composables/useInstallApp.ts):
+ * - Android / Chrome / Edge: "Install the AFRIFF app" → the browser's own install dialog
  * - iPhone / iPad (Safari has no install prompt): how to use Share → Add to Home Screen
  * Not shown on top of the first-open welcome cards. "Not now" is remembered for a week.
+ *
+ * There's no "new version ready" toast any more: a new version installs by
+ * itself and the app reloads onto it when it's next reopened
+ * (plugins/sw-update.client.ts).
  */
-const pwa = usePWA()
+const install = useInstallApp()
 const welcomeOpen = useState('welcome-open', () => false)
 
-const SNOOZE_KEY = 'afriff-install-snoozed'
-const WEEK = 7 * 24 * 60 * 60 * 1000
-const snoozed = ref(true)
-const ios = ref(false)
-const iosOpen = ref(false)
-
+// give people a moment with the app before asking on iPhone
+const iosReady = ref(false)
 onMounted(() => {
-  try {
-    snoozed.value = Date.now() - Number(localStorage.getItem(SNOOZE_KEY) || 0) < WEEK
-  } catch {
-    snoozed.value = false
-  }
-  const ua = navigator.userAgent
-  const isIos = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
-  ios.value = isIos && !standalone
-  // give people a moment with the app before asking
-  if (ios.value) setTimeout(() => { iosOpen.value = true }, 15000)
+  setTimeout(() => { iosReady.value = true }, 15000)
 })
 
-function snooze() {
-  try { localStorage.setItem(SNOOZE_KEY, String(Date.now())) } catch { /* not saved, fine */ }
-  snoozed.value = true
-}
+const blocked = computed(() => welcomeOpen.value || install.snoozed.value)
+const showInstall = computed(() => !blocked.value && install.method.value === 'prompt')
+const showIos = computed(() => !blocked.value && install.method.value === 'ios' && iosReady.value)
 
-const showUpdate = computed(() => Boolean(pwa?.needRefresh))
-const showInstall = computed(() => !showUpdate.value && !welcomeOpen.value && !snoozed.value && Boolean(pwa?.showInstallPrompt))
-const showIos = computed(() => !showUpdate.value && !welcomeOpen.value && !snoozed.value && ios.value && iosOpen.value)
-
-function notNow() {
-  pwa?.cancelInstall()
-  snooze()
+const busy = ref(false)
+async function run() {
+  busy.value = true
+  try {
+    await install.install()
+  } finally {
+    busy.value = false
+  }
 }
 </script>
 
@@ -60,18 +49,7 @@ function notNow() {
       mode="out-in"
     >
       <div
-        v-if="showUpdate"
-        key="update"
-        class="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-card border border-line bg-surface p-2.5 pl-4 shadow-pop"
-      >
-        <RefreshCwIcon class="size-5 shrink-0 text-accent-ink" aria-hidden="true" />
-        <p class="flex-1 text-meta font-medium">A new version of the app is ready.</p>
-        <UiButton size="sm" variant="ghost" @click="pwa?.cancelPrompt()">Later</UiButton>
-        <UiButton size="sm" @click="pwa?.updateServiceWorker(true)">Reload</UiButton>
-      </div>
-
-      <div
-        v-else-if="showInstall"
+        v-if="showInstall"
         key="install"
         class="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-card border border-line bg-surface p-4 shadow-pop"
       >
@@ -80,14 +58,14 @@ function notNow() {
           <p class="font-semibold">Install the AFRIFF app</p>
           <p class="mt-0.5 text-meta text-muted">One tap from your home screen, and it works without data.</p>
           <div class="mt-3 flex gap-2">
-            <UiButton size="sm" @click="pwa?.install()">
+            <UiButton size="sm" :disabled="busy" @click="run">
               <DownloadIcon aria-hidden="true" />
               Install
             </UiButton>
-            <UiButton size="sm" variant="ghost" @click="notNow">Not now</UiButton>
+            <UiButton size="sm" variant="ghost" @click="install.snooze()">Not now</UiButton>
           </div>
         </div>
-        <button type="button" class="pressable -m-1 grid size-8 place-items-center rounded-full text-muted hover:bg-hover hover:text-ink" aria-label="Dismiss" @click="notNow">
+        <button type="button" class="pressable -m-1 grid size-8 place-items-center rounded-full text-muted hover:bg-hover hover:text-ink" aria-label="Dismiss" @click="install.snooze()">
           <XIcon class="size-4" />
         </button>
       </div>
@@ -104,8 +82,9 @@ function notNow() {
             <li class="flex items-center gap-1.5">1. Tap <ShareIcon class="size-4 text-accent-ink" aria-label="Share" /> in Safari’s toolbar</li>
             <li class="flex items-center gap-1.5">2. Choose <span class="inline-flex items-center gap-1 font-medium text-ink"><PlusSquareIcon class="size-4" aria-hidden="true" /> Add to Home Screen</span></li>
           </ol>
+          <p class="mt-2 text-label text-subtle">No Share button? You’re in another app’s browser. Open this page in Safari first.</p>
         </div>
-        <button type="button" class="pressable -m-1 grid size-8 place-items-center rounded-full text-muted hover:bg-hover hover:text-ink" aria-label="Dismiss" @click="snooze">
+        <button type="button" class="pressable -m-1 grid size-8 place-items-center rounded-full text-muted hover:bg-hover hover:text-ink" aria-label="Dismiss" @click="install.snooze()">
           <XIcon class="size-4" />
         </button>
       </div>
