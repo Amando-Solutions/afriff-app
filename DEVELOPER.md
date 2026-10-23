@@ -19,49 +19,77 @@ Your job is to make sure it's technically solid for the festival
 | Vercel project `afriff-app` | Hobby plan = owner only for now; deploys go through the owner (see §5) |
 
 There are **no secrets or `.env` files**. The Firebase web config in
-`src/admin/firebase.js` is the public kind; access is controlled by
+`app/admin/firebase.js` is the public kind; access is controlled by
 `firestore.rules`.
 
 ## 2. Run it locally
-Requires Node.js 20+.
+Requires Node.js 20.19+ (22 recommended).
 ```
 npm install
-npm run dev        # http://localhost:5173 (phones on the same Wi-Fi: http://<laptop-ip>:5173)
-npm run build      # production build into dist/
+npm run dev        # http://localhost:3000 (phones on the same Wi-Fi: http://<laptop-ip>:3000)
+npm run build      # production build into .output/ (what Vercel runs)
+npm run preview    # run that production build locally, with the service worker (offline, install)
 ```
 Windows note: if PowerShell blocks `npx`, use `npx.cmd`. Don't change the
 execution policy on the owner's laptop.
 
-**Testing switches** go in the address *before* the `#`:
+The offline/installable parts (service worker) only run in a production
+build: use `npm run build` then `npm run preview` to try them. To try them in
+`npm run dev`, set `pwa.devOptions.enabled: true` in `nuxt.config.ts`.
+
+**Testing switches** go in the address, e.g. `/programme?now=2026-11-03T13:00`.
+They're remembered for that browser tab (so they survive moving between
+pages and reloading); close the tab to clear them.
 - `?now=2026-11-03T13:00` acts as if it's that Lagos time. Drives the
   countdown, the daily highlight on Home (1–7 Nov), the timeline's red line
   and queues. Try `?now=2026-10-25T10:00` (before), `?now=2026-11-03T13:00`
   (festival day), `?now=2026-11-08T10:00` (after).
+- `?queues=sample` shows pretend queues (use with `?now=` on a festival day).
 - `?welcome=1` shows the first-open welcome cards again.
 - `?share=1` lets the dev build send anonymous usage counts (it never sends otherwise).
 
 ## 3. Stack and shape
-- **React 19 + Vite 8, plain JavaScript** (no TypeScript), icons from
-  `lucide-react`, font Manrope. No router library: hash routes (`#/film/<id>`)
-  in `src/lib/router.js`.
-- **Colours** live only in `src/theme.css` (CSS variables). Mobile-first, max width 520px.
-- **Admin console is lazy-loaded** (`src/admin/`), so attendees never download
-  Firebase. Attendee bundle ≈ 111 KB gzipped. Keep it that way: no Firebase
-  SDK imports outside `src/admin/`.
+- **Nuxt 4 (Vue 3), SPA mode (`ssr: false`), plain JavaScript** (no
+  TypeScript), Tailwind CSS 4, icons from `lucide-vue-next`, fonts Archivo
+  (headings) + Onest (text), bundled with the app so they work offline.
+  Real addresses (`/film/<id>`, `/programme/films`, `/admin/data/films`);
+  old `#/...` links are forwarded by `app/middleware/old-hash.global.js`.
+- **PWA** via `@vite-pwa/nuxt` (`nuxt.config.ts` → `pwa`): web manifest and
+  icons, a service worker that keeps the app shell, fonts and icons on the
+  phone (every page opens with no signal; images are cached as they're
+  seen), an "Install the AFRIFF app" prompt on Android/Chrome, an "Add to
+  Home Screen" guide on iPhone, an offline banner, and a "new version ready
+  → Reload" toast. All in `app/components/app/`.
+- **Design tokens** (colours, type sizes, radii, shadows) live only in
+  `app/assets/css/main.css`: the AFRIFF navy + gold system from the earlier
+  attendee build. Venue dot colours stay with the venues in `app/data/programme.js`.
+  Mobile-first, max width 36rem.
+- **Admin console is lazy-loaded** (`app/pages/admin/` → `app/admin/`), so
+  attendees never download Firebase (it's also kept out of the offline
+  download). Attendee JS ≈ 140 KB gzipped. Keep it that way: no Firebase SDK
+  imports outside `app/admin/`.
 
 ```
-src/
-  screens/     attendee pages (Home, Programme, FilmPage, EventPage, MyFestival, Queues, Venues, News, JuryPage)
-  components/  shared UI (header/nav, bottom sheets, sponsor marquee, jury, events, DailyHighlight)
-  data/        built-in festival data: programme.js, events.js, jury.js
-  lib/         liveData (published data), store (phone storage), queues, alerts, usage, plan,
-               today (what's on a festival day), format, now (clock + test clock), router
-  admin/       console: schema.js drives every form/list, data.js (save/approve/import/backup),
-               Publish, Reports, DoorCounter, Team, Login
-public/masterclasses/  AFRIFF's official masterclass graphics, served by the app itself
-api/festival.js        Vercel relay for published festival data (see below)
-api/queues.js          Vercel relay for live queue counts
-firestore.rules        database security rules
+app/
+  pages/        one file per address: index (Home), programme/[[tab]], film/[id], event/[id],
+                my (My Festival), queues, venues, news, jury, admin/[...path], door (volunteers)
+  components/   ui/ (buttons, sheets, chips, badges), app/ (header, bottom bar, PWA prompts,
+                welcome cards, sponsor marquee), festival/ (posters, rows, jury, daily highlight),
+                programme/ (day picker, venue chips, timeline, My plan sheet, search)
+  layouts/      default (attendee frame) and admin
+  data/         built-in festival data: programme.js, events.js, jury.js
+  lib/          liveData (published data), store (phone storage), queues, alerts, usage, plan,
+                today (what's on a festival day), format, now (clock + test switches), dayItems,
+                programmeMemory
+  admin/        console: schema.js drives every form/list, data.js (save/approve/import/backup),
+                publish.js, reports.js, board.js (door counts) + the Admin*.vue screens
+  plugins/festival.client.js   loads the saved copy, checks for new data, starts live queues
+  assets/css/main.css          design tokens and shared styles
+server/api/festival.get.js     relay for published festival data (see below)
+server/api/queues.get.js       relay for live queue counts
+public/masterclasses/          AFRIFF's official masterclass graphics
+public/brand/, public/*.png    official AFRIFF emblem and the app icons
+firestore.rules                database security rules
 ```
 
 ## 4. How data flows (the important bit)
@@ -70,27 +98,27 @@ firestore.rules        database security rules
    Editors' changes wait in `changes` for an admin to approve.
 2. **Publish to app** (admins) packs everything into one document,
    `published/current`.
-3. **`/api/festival`** (Vercel function) reads that one doc and serves it
+3. **`/api/festival`** (Nuxt server route, a Vercel function when deployed) reads that one doc and serves it
    with CDN caching (`s-maxage=60, stale-while-revalidate=10`), so ~1
    database read per minute in total. Reason: the free Firestore Spark plan
    allows 50k reads a day. (The stale window used to be 600 s; with little
    traffic that made a publish take 5+ minutes to show. Keep it short.)
-4. **Phones** (`src/lib/liveData.js`) cache it in localStorage
+4. **Phones** (`app/lib/liveData.js`) cache it in localStorage
    (`afriff-data-v1`) and check for a newer version on start, every 5 min and
    on reopen. If there's nothing published, or the relay fails, they fall
-   back to Firestore REST and then to the built-in data in `src/data/`.
+   back to Firestore REST and then to the built-in data in `app/data/`.
 
 Rules of the road:
 - **Never overwrite database items with the built-in copy.** The console's
-  "Add missing festival data" (`importAll` in `src/admin/data.js`) only:
+  "Add missing festival data" (`importAll` in `app/admin/data.js`) only:
   adds items whose ID is missing; fills fields an item doesn't have at all;
   and swaps values listed in `REPLACED_LINKS` / `REPLACED_VALUES`
-  (`src/data/events.js`) **only while the database still holds exactly that
+  (`app/data/events.js`) **only while the database still holds exactly that
   old value**. That last rule is how corrections we ship (e.g. new
   masterclass graphics, a changed speaker) reach the database without ever
   touching something the team typed. Add to those lists when you correct
   built-in data that's already been imported.
-- To add a field: add one line to `src/admin/schema.js`. The form, list and
+- To add a field: add one line to `app/admin/schema.js`. The form, list and
   import pick it up. Then read the field in the attendee screen.
 - **`firestore.rules` is not deployed automatically.** Paste it into
   Firebase console → Firestore → Rules → Publish whenever it changes.
@@ -100,15 +128,19 @@ Other data on phones: plans, Seen it and star ratings are in localStorage
 `usage/{randomDeviceId}`, at most every 30 min, with an opt-out switch in My
 Festival. The admin Reports page reads them.
 
-**Home** (`src/screens/Home.jsx`) changes with the Lagos date: countdown
+**Home** (`app/pages/index.vue`) changes with the Lagos date: countdown
 banner + "Opening day" before 1 Nov; `DailyHighlight` (day N of 7, theme,
 poster collage, counts, next up) + a "Today" list during the festival;
-a thank-you banner after. Collage order lives in `src/lib/today.js`: films
+a thank-you banner after. Collage order lives in `app/lib/today.js`: films
 ticked "Feature on Home" in the console first, then the opening film, then
 films with real posters, then by start time.
 
 ## 5. Deploying and hosting
 Currently manual, from the owner's laptop: `npx.cmd vercel deploy --prod --yes`.
+Vercel builds it with `nuxt build` (`vercel.json` tells Vercel the project
+is now Nuxt, not Vite) and runs the two `/api` relays as
+functions. The first deploy after the move from React is the one to watch:
+check `/`, `/film/lady`, `/admin`, `/api/festival` and `/api/queues` answer.
 `.vercelignore` keeps `reference/` (design screenshots, not in the repo)
 out of uploads. Uploads with the graphics take a few minutes.
 
@@ -125,9 +157,12 @@ address (e.g. app.afriff.com) at it before the QR codes are printed.
 ## 6. What's left / what to check
 **Live queues (step 8, built 22 Oct):** volunteers' taps are bundled and
 saved to one record per venue per day (`queueDays/{date}/venues/{venue}`);
-phones read them through `api/queues.js` (30 s cache) once a minute on
-festival days. Details in CLAUDE.md "Step 8". Still to test with real
-logins at a door; `?queues=sample` shows pretend queues for demos.
+phones read them through `server/api/queues.get.js` (30 s cache) once a minute on
+festival days. Volunteers count in the **door view** at `/door`
+(`app/admin/AdminDoorCounter.vue` + `AdminDoorScreening.vue`): "Joined the
+queue" / "Let in" (seats count down automatically), undo, fix, wake lock,
+admin "Clear counts". Details in CLAUDE.md "Step 8" and "Door view". Still
+to test with real logins at a door; `?queues=sample` shows pretend queues for demos.
 
 **Before launch:**
 - Real screening and event times. All current times are **samples**
@@ -139,8 +174,8 @@ logins at a door; `?queues=sample` shows pretend queues for demos.
   the official logo (`public/logo.svg`); add bios for Erin G. Wesley, Chuka
   Ejorh and Tunde Babalola (left empty rather than invented).
 - Hosting decision above.
-- PWA bits: there's no web manifest or service worker yet ("add to home
-  screen", offline). The brief requires add-to-home-screen.
+- PWA: done (manifest, offline service worker, install prompt, iPhone guide,
+  update toast). Check "Add to Home Screen" on a real Android and iPhone after deploying.
 - Known gap: approving an old editor request overwrites newer live edits to the same item.
 
 **Worth a technical review:** firestore.rules (especially the public

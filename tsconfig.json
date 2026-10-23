@@ -1,0 +1,11 @@
+{
+  // Lets the editor find Nuxt's types (defineNuxtConfig, auto-imports, etc.).
+  // The real settings are generated in .nuxt/ by `nuxt prepare` (runs after npm install).
+  "files": [],
+  "references": [
+    { "path": "./.nuxt/tsconfig.app.json" },
+    { "path": "./.nuxt/tsconfig.server.json" },
+    { "path": "./.nuxt/tsconfig.shared.json" },
+    { "path": "./.nuxt/tsconfig.node.json" }
+  ]
+}

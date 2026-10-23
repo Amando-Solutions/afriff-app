@@ -1,6 +1,8 @@
 # Files Vercel should never upload
 reference/
 node_modules/
+.nuxt/
+.output/
 dist/
 .claude/
 .env*

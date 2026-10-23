@@ -1,8 +1,11 @@
 node_modules
+.nuxt
+.output
+.data
+.nitro
+.cache
 dist
 .vercel
 .env*
 # design references stay on this laptop, never shipped or uploaded
 reference/
-
-.vercel

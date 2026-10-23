@@ -199,6 +199,7 @@ next, anything I need to do.)
 ### Decisions made (session 1, 18 Oct 2026)
 - Tech: React + Vite (plain JavaScript), icons from lucide-react.
   Pages switch with `#/...` addresses (e.g. `#/film/harmattan`).
+  CHANGED 22 Oct 2026: now a Nuxt PWA. See "Move to Nuxt PWA" below.
 - Font: Manrope (Google Fonts).
 - Colours: all in `src/theme.css`. Venue dot colours in
   `src/data/programme.js`: Filmhouse Landmark teal #3CCFB8, Filmhouse
@@ -717,6 +718,39 @@ heavy libraries) apply everywhere.
   days (cached, ~1 KB). Fine on Pro; on the free Hobby plan heavy use could
   approach its monthly request allowance (part of the hosting decision).
 
+### Door view for volunteers (built 22 Oct 2026, user request)
+- Own address `/door` (old link `#/door` forwards there): same logins,
+  only downloaded when opened (like the console), no console around it.
+  Volunteers save it to their home screen. Admins + volunteers only (others
+  told to ask an admin). Console "Door counter" tile now opens /door.
+- Today list (`app/admin/AdminDoorCounter.vue`): volunteer's venue, today
+  (admins pick venue + day). Gold "Count now" card = screening being
+  counted, else the next to start within 2 h; other rows tagged Done
+  (faded, "Final: …"), Counting, Count now, Next.
+- Counter (`app/admin/AdminDoorScreening.vue`), USER'S DESIGN: two big
+  buttons instead of four +/−: "+ Joined the queue" (in line +1) and
+  "✓ Let in" (in line −1 AND seats left −1 together, so seats count down by
+  themselves; walk-ins with no queue just use a seat). Small: "Let in 5",
+  "Undo" (this phone's taps), "Fix numbers" (−/+ for line and seats, Mark
+  as full). Start counting asks "Seats available at the door" (pre-filled
+  from the console's Seats; change if seats are reserved/sold in advance)
+  → saved as seatsStart; screen shows "of N". At 0 seats: Full label, red
+  note "Let the N people still in line know", Let in disabled.
+- Screen stays awake while counting (Wake Lock), short vibration per
+  tap, "Saving… / Saved just now" dot. Same bundled saving as step 8.
+  Quick double-taps read the latest numbers.
+- Admin-only "Clear counts for this venue and day" (deletes that day's
+  venue record) so test counts never show on the real day.
+- First built in the React version (commit c56a208, deployed 22 Oct), then
+  carried into the Nuxt app on 23 Oct with the Nuxt app's look (same
+  buttons, cards, icons and colours as the rest of the app).
+- Tested (Nuxt, 23 Oct) with a pretend in-memory database swapped in for
+  Firebase in a throwaway test build (never in the repo): volunteer list,
+  start with 150 seats, joins / let in / let in 5 with walk-ins, undo, fix
+  numbers, mark full, 10 taps = 1 save, admin pickers, counting card, clear
+  counts, editors refused, console tile → /door, #/door forwards. NOT
+  tested by Claude with a real login → USER to test on a phone.
+
 ### GitHub (22 Oct 2026)
 - Code is on GitHub: https://github.com/TheoKwechi/afriff-app (PRIVATE),
   branch main, remote `origin`. First push done from the Terminal panel
@@ -728,6 +762,48 @@ heavy libraries) apply everywhere.
 - After each checkpoint, also `git push` so GitHub stays current.
   Deploys are still manual to Vercel (not connected to GitHub).
 
+### Move to Nuxt PWA (22 Oct 2026, decision by Michael, the developer)
+- SAME APP, SAME SCOPE, NEW FRAMEWORK: everything above (screens, admin
+  console, Firebase, publish step, relays, queues, reports) is unchanged in
+  behaviour. Only the framework and the look changed.
+- Tech: Nuxt 4 (Vue 3) in SPA mode, plain JavaScript, Tailwind CSS 4,
+  icons from lucide-vue-next. Code moved from `src/` to `app/`; the file
+  map is in DEVELOPER.md section 3. Data files (`app/data/*.js`) and most of
+  `app/lib/` are the same code as before.
+- Addresses are real paths now: `/film/lady`, `/programme/events`, `/my`,
+  `/admin/data/films`. Old `#/...` links (already shared, or in a QR code)
+  are forwarded to the matching page automatically.
+- Relays moved from `api/*.js` to Nuxt server routes `server/api/festival.get.js`
+  and `server/api/queues.get.js`. Same URLs, same caching, same answers.
+- LOOK: sizes, colours, spacing, icons and fonts now follow the AFRIFF
+  design system from the earlier attendee build (deep navy + festival gold,
+  Archivo headings + Onest text, one radius system, the official AFRIFF
+  emblem and app icons). The layout and structure of every screen stays as
+  described in this brief. Tokens live in `app/assets/css/main.css` (this
+  replaces `src/theme.css`; the colours are the same family, e.g. page
+  #060A26, card #0B1135, gold #D9A441, light gold #E9C262). Dark only (no
+  colour themes, as before). Fonts are bundled, not loaded from Google.
+  Page titles are no longer in capitals (the earlier design system's style).
+- PWA (the brief's "add to home screen", now done): web manifest + icons;
+  service worker keeps the app shell, fonts and icons on the phone so every
+  page opens with no signal (images are kept once seen; the admin console
+  is never downloaded by attendees); "Install the AFRIFF app" prompt on
+  Android/Chrome; "Add to Home Screen" guide on iPhone (Safari has no
+  install button), "Not now" remembered for a week; offline banner; "A new
+  version is ready → Reload" toast after a deploy.
+- Testing switches (`?now=`, `?queues=sample`, `?welcome=1`, `?share=1`)
+  now go straight after the address, e.g. `/programme?now=2026-11-03T13:00`,
+  and are remembered for the browser tab.
+- Hosting: `vercel.json` tells Vercel the project is Nuxt now (it was set
+  up as Vite). Deploy the same way as before.
+- Checked (cloud browser at phone size): every screen, welcome cards, plan
+  and Seen it saved across reloads, My plan sheet, search, timeline,
+  festival-day Home (`?now=`), sample queues + Queues tab dot, News clears
+  the bell, Jury bio sheet, old `#/` link forwarding, 404 page, admin login
+  screen, relays (with pretend database answers), offline reload of deep
+  links. NOT checked: admin logins (Firebase accounts), install prompts on
+  real phones.
+
 ### How to deploy (publish an update)
 - From this folder: `npx.cmd vercel deploy --prod --yes`
   (`npx.cmd`, not `npx`: Windows PowerShell blocks npx.ps1 scripts on
@@ -736,8 +812,10 @@ heavy libraries) apply everywhere.
   upload. Not connected to GitHub yet, so deploys are manual.
 
 ### How to run it
-- `npm run dev` in this folder, then open http://localhost:5173 on the
-  laptop, or http://<laptop Wi-Fi IP>:5173 on a phone on the same Wi-Fi.
+- `npm install` once (after the move to Nuxt), then `npm run dev` in this
+  folder and open http://localhost:3000 on the laptop, or
+  http://<laptop Wi-Fi IP>:3000 on a phone on the same Wi-Fi.
+- To try offline and install: `npm run build`, then `npm run preview`.
 
 ### Next
 - Step 2: admin console and logins (needs Firebase account, free tier).
