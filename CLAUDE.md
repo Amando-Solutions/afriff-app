@@ -825,7 +825,10 @@ heavy libraries) apply everywhere.
     heading → item title → details → small capital labels.
   - Programme: the All / Films / Events switch sits on the same row as
     Public/Industry; a heading above the list shows the day, its theme and
-    how many items; the selected day is a soft gold tile.
+    how many items. (The day picker briefly became gold tiles; on 23 Oct
+    it went back to the original strip: day name, big date number with
+    month/year beside it, picked day light gold with a gold underline,
+    others faded, in the app's own type sizes.)
   - Rows (schedule, events, My Festival, My plan): big white time on the
     left, title, then venue, then a small grey category label; masterclasses
     show a green "Free" tag; cancelled rows fade.
