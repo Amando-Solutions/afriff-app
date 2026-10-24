@@ -1,0 +1,31 @@
+{
+  "name": "afriff-pwa",
+  "private": true,
+  "type": "module",
+  "description": "AFRIFF attendee app: the festival companion PWA attendees open from a QR code.",
+  "scripts": {
+    "dev": "nuxt dev --host",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "vue-tsc --noEmit -p .nuxt/tsconfig.app.json"
+  },
+  "dependencies": {
+    "@afriff/core": "*",
+    "@afriff/pwa": "*",
+    "@afriff/theme": "*",
+    "@vueuse/core": "^15.0.0",
+    "@vueuse/nuxt": "^15.0.0",
+    "firebase": "^13.0.0",
+    "lucide-vue-next": "^1.0.0",
+    "nuxt": "^4.6.2",
+    "vue": "^3.5.44",
+    "vue-router": "^5.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~5.9",
+    "vue-tsc": "^3.3.13"
+  }
+}

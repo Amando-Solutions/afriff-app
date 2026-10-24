@@ -1,0 +1,10 @@
+{
+  // Nuxt writes the real settings into .nuxt/ (run `npm run postinstall` or `nuxt prepare` if they're missing).
+  "files": [],
+  "references": [
+    { "path": "./.nuxt/tsconfig.app.json" },
+    { "path": "./.nuxt/tsconfig.server.json" },
+    { "path": "./.nuxt/tsconfig.shared.json" },
+    { "path": "./.nuxt/tsconfig.node.json" }
+  ]
+}

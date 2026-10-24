@@ -1,0 +1,15 @@
+/*
+  This app's stylesheet entry. Everything visual (colours, type sizes, radii,
+  shared utilities) comes from the shared design system,
+  packages/theme/styles/theme.css (@afriff/theme). Tailwind is imported here,
+  then the tokens, so both stay in one Tailwind root and utilities like
+  `bg-surface` exist (same setup as DP Fitness).
+*/
+@import "tailwindcss" source(none);
+
+/* Where Tailwind looks for class names: this app, and the shared layers' components. */
+@source "../..";
+@source "../../../../../packages/theme/components";
+@source "../../../../../packages/pwa/app";
+
+@import "@afriff/theme/styles/theme.css";

@@ -1,0 +1,19 @@
+{
+  "name": "@afriff/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AFRIFF shared code for both apps: festival data shapes (types), the built-in festival data, date/time helpers, the Firebase setup with its offline cache, and the published-data feed. Also a tiny Nuxt layer carrying the Firebase project details.",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./*": "./src/*.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "firebase": "^13.0.0"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.6.2",
+    "vue": "^3.5.44"
+  }
+}
