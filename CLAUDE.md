@@ -948,6 +948,17 @@ heavy libraries) apply everywhere.
   Blaze before the festival.
 
 ### How to deploy (publish an update)
+- HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on
+  HIS OWN Vercel account (new project, deployed with `npx vercel --prod`
+  from his clone). Reason: the owner's Vercel Hobby account is one person
+  only and can't add him. Owner's to-dos: confirm his GitHub invite is
+  accepted; add his new address to Firebase → Authentication → Settings →
+  Authorized domains (else admin/door logins fail there); once his link
+  works, share it with testers and delete the old afriff-app-mu project.
+  Agreed to raise: transfer of the Vercel project to AFRIFF/owner after the
+  festival (Vercel "Transfer project"), whether his plan allows commercial
+  use, and a permanent address (ideally app.afriff.com) before printing QR
+  codes. Firebase (database, logins, data) stays in the owner's project.
 - SINCE 23 OCT: Michael deploys. Changes reach him as GitHub pull
   requests; he merges into main and deploys the Nuxt app to Vercel
   (`vercel.json` says framework nuxtjs; Vercel's automatic deploys from
