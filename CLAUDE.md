@@ -982,6 +982,18 @@ heavy libraries) apply everywhere.
   Firebase → Authentication → Authorized domains. Details in DEVELOPER.md §5.
 
 ### How to deploy (publish an update)
+- HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on
+  HIS OWN Vercel account (new projects, one per app since the monorepo
+  split, deployed from his clone; steps below). Reason: the owner's Vercel
+  Hobby account is one person
+  only and can't add him. Owner's to-dos: confirm his GitHub invite is
+  accepted; add his new address to Firebase → Authentication → Settings →
+  Authorized domains (else admin/door logins fail there); once his link
+  works, share it with testers and delete the old afriff-app-mu project.
+  Agreed to raise: transfer of the Vercel project to AFRIFF/owner after the
+  festival (Vercel "Transfer project"), whether his plan allows commercial
+  use, and a permanent address (ideally app.afriff.com) before printing QR
+  codes. Firebase (database, logins, data) stays in the owner's project.
 - SINCE 23 OCT: Michael deploys. Changes reach him as GitHub pull
   requests; he merges into main and deploys both apps to Vercel (see
   below; Vercel's automatic deploys from GitHub are switched off, so
