@@ -6,6 +6,8 @@ node_modules
 .cache
 dist
 .vercel
+.firebase
+firebase-debug.log
 .env*
 !.env.example
 # design references stay on this laptop, never shipped or uploaded

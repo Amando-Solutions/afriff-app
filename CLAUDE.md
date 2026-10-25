@@ -233,6 +233,14 @@ Read this first; the dated sections below are the detailed history.
   updating → move to Blaze + budget alert. (2) Vercel Hobby is
   non-commercial → Vercel Pro or Firebase Hosting (Blaze). (3) Sample
   times. (4) Nothing tested end to end on real phones with real logins.
+  (5) admin@yopmail.com (password in `scripts/seed-admin.mjs`) was made an
+  admin on 25 Oct with a temporary self-admin rule, since removed from
+  `firestore.rules`. yopmail inboxes are public, so delete that account
+  before 1 Nov.
+- Deploy commands (25 Oct, Firebase CLI, all to afriff-app): `npm run
+  deploy:rules`, `deploy:functions` (no Cloud
+  Functions exist yet; they'd need the paid Blaze plan). Pasting rules into
+  the Firebase console still works.
 - NEEDED FROM AFRIFF: real schedule (times, rooms), official synopses,
   poster / logo / jury photo files to host ourselves, sponsors' OK to show
   logos, confirm 3 "How to attend" sections, bios for Erin G. Wesley,
