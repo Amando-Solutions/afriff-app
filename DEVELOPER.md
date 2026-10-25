@@ -205,8 +205,12 @@ Rules of the road:
 - To add a field: add it to the type in `packages/core/src/types/festival.ts`,
   then one line in `apps/admin/app/admin/schema.ts` (the form, list and
   import pick it up). Then read the field in the attendee screen.
-- **`firestore.rules` is not deployed automatically.** Paste it into
-  Firebase console → Firestore → Rules → Publish whenever it changes.
+- **`firestore.rules` is not deployed automatically.** From the main folder
+  (Firebase CLI, signed in with `firebase login`; all go to afriff-app):
+  - `npm run deploy:rules`: the normal rules (production).
+  - `npm run deploy:functions`: Cloud Functions. There are none yet
+    (`firebase init functions` adds them; deploying needs the Blaze plan).
+  Add `-- --dry-run` to any of them to validate without changing anything.
 
 Other data on phones: plans, Seen it and star ratings are in localStorage
 `afriff-my-v1` (no accounts, by design). Anonymous usage counts go to

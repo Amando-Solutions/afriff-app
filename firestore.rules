@@ -1,8 +1,8 @@
 rules_version = '2';
 
 // AFRIFF database rules: who can read and change what.
-// Paste this into Firebase console → Firestore → Rules → Publish
-// whenever it changes.
+// Deploy with `npm run deploy:rules` whenever it changes (or paste it into
+// Firebase console → Firestore → Rules → Publish).
 //
 // Roles live in users/{uid}.role:
 //   pending   – signed up, no access yet (an admin must give a role)
