@@ -79,7 +79,7 @@ so Home doesn't repeat them, and shortcuts carry no subtext.
 DAILY HIGHLIGHT (built 20 Oct 2026; collage = team-picked AND automatic,
 user decision). Home's top banner depends on the Lagos date:
 - Before 1 Nov: countdown hero (above) + "Opening day" list.
-- 1–7 Nov: `app/components/festival/DailyHighlight.vue`, "Today · Day N
+- 1–7 Nov: `apps/pwa/app/components/festival/DailyHighlight.vue`, "Today · Day N
   of 7" + date, headline "Daily highlights" EVERY day (user, 23 Oct; day
   themes are no longer the headline), swipeable FILMSTRIP (user chose it
   over the bento collage on 23 Oct, after seeing bento / filmstrip / hero +
@@ -91,11 +91,11 @@ user decision). Home's top banner depends on the Lagos date:
   film or event to start, links to it; "That's a wrap for today.
   Tomorrow: <theme>" late; closing line on the last night), gold "See
   today" (opens the Schedule on today via `openProgrammeDay()` in
-  `app/lib/programmeMemory.ts`, even if another day was picked). The "Opening day"
+  `apps/pwa/app/lib/programmeMemory.ts`, even if another day was picked). The "Opening day"
   list becomes "Today": the next 4 films AND events still to start,
   with + buttons; "Nothing else starts today. See tomorrow" when done.
 - After 7 Nov: thank-you banner + "Your watched list"; no day list.
-- Filmstrip order (`app/lib/today.ts`): films ticked "Feature on Home
+- Filmstrip order (`apps/pwa/app/lib/today.ts`): films ticked "Feature on Home
   (daily highlight)" in the console (new film checkbox) → the Opening
   Movie → films with a real poster → films still to come, by time.
   One tile per film; cancelled screenings left out. Counts include
@@ -210,8 +210,10 @@ Read this first; the dated sections below are the detailed history.
   Claude no longer deploys from this laptop (doing so would overwrite
   Michael's version). React version is kept only as local branch
   `backup/react-filmstrip`.
-- Code: Nuxt 4 + TypeScript PWA in `app/` (Michael's rebuild, 22–23 Oct),
-  GitHub TheoKwechi/afriff-app, branch main. Live:
+- Code: Nuxt 4 + TypeScript PWA (Michael's rebuild, 22–23 Oct), split on
+  24 Oct into a monorepo: attendee app `apps/pwa`, staff app `apps/admin`,
+  shared `packages/` (see "Monorepo" below). GitHub TheoKwechi/afriff-app,
+  branch main. Live:
   https://afriff-app-mu.vercel.app runs Michael's Nuxt version.
 - Build steps: 1 look ✅ · 2 admin console + logins ✅ (owner's own login
   tests of Team / Approvals / Reports outstanding) · 3 real data ✅ (but
@@ -222,9 +224,10 @@ Read this first; the dated sections below are the detailed history.
 - Extras built on request: masterclasses + events, jury page, film page
   extras, simplified Home, daily highlight, admin reports, home-screen
   install + offline (Michael).
-- Waiting: branch `claude/daily-highlights-filmstrip` (filmstrip +
-  "Daily highlights" headline) uploaded 23 Oct; pull request to open and
-  Michael to review, merge, deploy.
+- Branch `claude/daily-highlights-filmstrip` (filmstrip + "Daily
+  highlights" headline) MERGED INTO main 23 Oct (pull request #3). The
+  monorepo split (branch dev) is rebased on top of it; dev → main still
+  to merge and deploy.
 - OPEN RISKS before 1 Nov: (1) Firestore free plan: phones now read the
   database directly, so live queues can pass 50,000 reads/day and stop
   updating → move to Blaze + budget alert. (2) Vercel Hobby is
@@ -947,28 +950,89 @@ heavy libraries) apply everywhere.
   Android and iPhone (install, airplane mode, back online), and decide on
   Blaze before the festival.
 
+### Monorepo: attendee app + staff console (24 Oct 2026, decision by Michael)
+- WHAT CHANGED FOR ATTENDEES: nothing they'd notice, except the app they
+  download no longer contains any staff code (a little smaller and lighter).
+- WHAT CHANGED FOR STAFF: the admin console and the door view are now their
+  OWN app at their OWN address (a second Vercel project), called "AFRIFF
+  Staff" when installed. Opening it sends volunteers straight to the door
+  counter and everyone else to the console. Old links still work: /admin,
+  /door, #/admin and #/door on the attendee app forward to the staff app.
+- WHY: same architecture as Michael's DP Fitness project. One folder
+  ("monorepo") with two apps split by who uses them, and shared packages for
+  everything both must agree on, so they can't drift apart:
+  - `apps/pwa`: the attendee app.
+  - `apps/admin`: the staff console + door view.
+  - `packages/theme`: the look (colours, sizes, fonts, buttons, sheets, logo).
+  - `packages/pwa`: offline, updates, install prompts, offline banner.
+  - `packages/core`: festival data, data shapes, date/time helpers, Firebase.
+- Tool: npm workspaces (same `npm` commands, run from the main folder).
+  Versions of every library unchanged.
+- Checked (cloud browser at phone size, pretend database, throwaway test
+  builds): the full attendee test run again (29 checks: live publish, live
+  queues, offline, back online, queued writes, install toast…), plus the
+  staff app (sign-in screen on /admin and /door, its own install details,
+  "/" sends you to the console), old /admin and #/door links forwarding to
+  it, and a deploy reaching both apps (the door view still waits until the
+  volunteer leaves the app). Typecheck and both builds pass. NOT checked:
+  real logins, the real database, real phones.
+- USER TO DO (once): create the second Vercel project for the staff app,
+  set the attendee project's Root Directory to `apps/pwa` and its
+  `NUXT_PUBLIC_ADMIN_URL` to the staff app's address, add that address to
+  Firebase → Authentication → Authorized domains. Details in DEVELOPER.md §5.
+
 ### How to deploy (publish an update)
+- HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on
+  HIS OWN Vercel account (new projects, one per app since the monorepo
+  split, deployed from his clone; steps below). Reason: the owner's Vercel
+  Hobby account is one person
+  only and can't add him. Owner's to-dos: confirm his GitHub invite is
+  accepted; add his new address to Firebase → Authentication → Settings →
+  Authorized domains (else admin/door logins fail there); once his link
+  works, share it with testers and delete the old afriff-app-mu project.
+  Agreed to raise: transfer of the Vercel project to AFRIFF/owner after the
+  festival (Vercel "Transfer project"), whether his plan allows commercial
+  use, and a permanent address (ideally app.afriff.com) before printing QR
+  codes. Firebase (database, logins, data) stays in the owner's project.
 - SINCE 23 OCT: Michael deploys. Changes reach him as GitHub pull
-  requests; he merges into main and deploys the Nuxt app to Vercel
-  (`vercel.json` says framework nuxtjs; Vercel's automatic deploys from
-  GitHub are switched off, so deploys are manual).
+  requests; he merges into main and deploys both apps to Vercel (see
+  below; Vercel's automatic deploys from GitHub are switched off, so
+  deploys are manual).
 - Do NOT run `vercel deploy` from this laptop unless Michael agrees: it
   would publish whatever is on this laptop over his version.
-- (Old laptop command, for reference: `npx.cmd vercel deploy --prod --yes`;
-  `npx.cmd`, not `npx`, because Windows PowerShell blocks npx.ps1 here.
-  Don't change the execution policy.)
+- Two Vercel projects since 24 Oct: the attendee app (Root Directory
+  `apps/pwa`) and the staff app (Root Directory `apps/admin`). Always run the
+  commands from the MAIN folder, not inside apps/:
+  `npx.cmd vercel link --repo` (once), then `npx.cmd vercel deploy --prod`
+  deploys the linked project; `npx.cmd vercel link` switches to the other
+  one, then deploy again. Full steps in DEVELOPER.md §5.
+  (`npx.cmd`, not `npx`: Windows PowerShell blocks npx.ps1 scripts on
+  this laptop. Don't change the execution policy; use .cmd instead.)
+- `.vercelignore` keeps `reference/` and other local files out of the
+  upload. Git auto-deploys are off (`apps/*/vercel.json`), so deploys are manual.
+- Settings (24 Oct 2026): local files `apps/pwa/.env` and `apps/admin/.env`
+  (not in Git, never uploaded), with sample values. The 6 Firebase settings
+  are the SAME in both apps: on Vercel they go in ONCE as Shared Environment
+  Variables (Team Settings → Environment Variables, linked to both projects).
+  Attendee project only: `NUXT_PUBLIC_ADMIN_URL` (staff app's address).
+  Staff project only: `NUXT_PUBLIC_ATTENDEE_URL` (attendee app's address).
+  Change one on Vercel → redeploy both apps (values are baked in at build).
 - After any deploy that adds data fields: Add missing festival data, then
   Publish to app (also creates the `published/version` marker).
 
 ### How to run it
-- `npm install` once (after the move to Nuxt), then `npm run dev` in this
-  folder and open http://localhost:3000 on the laptop, or
-  http://<laptop Wi-Fi IP>:3000 on a phone on the same Wi-Fi.
-- To try offline, updates and install: `npm run build`, then `npm run preview`.
+- `npm install` once in the main folder (it installs both apps and the
+  shared packages). Then, from the main folder:
+  - `npm run dev:pwa`: attendee app at http://localhost:3000 (or
+    http://<laptop Wi-Fi IP>:3000 on a phone on the same Wi-Fi).
+  - `npm run dev:admin`: staff app at http://localhost:3001 (/admin, /door).
+- To try offline, updates and install: `npm run build`, then
+  `npm run preview:pwa` or `npm run preview:admin`.
 
 ### Next (as of 23 Oct 2026; festival opens 1 Nov)
-1. Open the pull request for `claude/daily-highlights-filmstrip`; Michael
-   reviews, merges, deploys.
+1. Filmstrip is in main (pull request #3). Push dev (monorepo split,
+   rebased on main), open a pull request dev → main; Michael reviews,
+   merges, deploys both apps.
 2. Decide and pay for: Firebase Blaze (+ budget alert) and hosting
    (Vercel Pro, or Firebase Hosting on Blaze). Payments/deposits message
    drafted 21 Oct.

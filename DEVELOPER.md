@@ -5,7 +5,9 @@ Your job is to make sure it's technically solid for the festival
 (Lagos, **1–7 Nov 2026**) and to finish what's left.
 
 - **Live app:** https://afriff-app-mu.vercel.app
-- **Admin console:** https://afriff-app-mu.vercel.app/#/admin (not linked from the app)
+- **Staff console** (admin console + door view): its own app and address since
+  24 Oct (`apps/admin`). Old `/admin`, `/door`, `#/admin` and `#/door` links
+  on the attendee app forward there.
 - **Full decision log:** [CLAUDE.md](CLAUDE.md). It records why each thing
   is the way it is, so read it before changing behaviour. Keep it updated:
   the product owner and Claude Code both rely on it.
@@ -15,30 +17,40 @@ Your job is to make sure it's technically solid for the festival
 |---|---|
 | Code (GitHub, private repo) | Collaborator invite from the product owner |
 | Firebase project `afriff-app` (Firestore + Auth) | Added as **Editor** under Project settings → Users and permissions |
-| Admin console role | Sign up at `/#/admin`; an admin sets your role to *admin* on the Team page |
-| Vercel project `afriff-app` | Hobby plan = owner only for now; deploys go through the owner (see §5) |
+| Admin console role | Sign up on the staff console at `/admin`; an admin sets your role to *admin* on the Team page |
+| Vercel projects `afriff-app` (attendee) and the staff console project | Hobby plan = owner only for now; deploys go through the owner (see §5) |
 
-There are **no secrets or `.env` files**. The Firebase web config lives in
-`runtimeConfig.public.firebase` in `nuxt.config.ts`; it's the public kind,
-and access is controlled by `firestore.rules`. To point a build at another
-Firebase project, set the `NUXT_PUBLIC_FIREBASE_*` variables in
-`.env.example`.
+There are **no secrets**. The Firebase web config lives in
+`runtimeConfig.public.firebase` in `packages/core/nuxt.config.ts`; it's the
+public kind, and access is controlled by `firestore.rules`. To point a build
+at another Firebase project, set the `NUXT_PUBLIC_FIREBASE_*` variables listed
+in `.env.example` (in `apps/pwa/.env` / `apps/admin/.env`, or on the host).
+The one setting you must give the attendee app in production is
+`NUXT_PUBLIC_ADMIN_URL` (the staff console's address), so old admin and door
+links forward there.
 
 ## 2. Run it locally
-Requires Node.ts 20.19+ (22 recommended).
+Requires Node 20.19+ (22 recommended). It's an npm-workspaces monorepo:
+run everything **from the repo root**.
 ```
-npm install
-npm run dev        # http://localhost:3000 (phones on the same Wi-Fi: http://<laptop-ip>:3000)
-npm run build      # production build into .output/ (what Vercel runs)
-npm run preview    # run that production build locally, with the service worker (offline, install)
-npm run typecheck  # TypeScript check of the app (run before every commit)
+npm install            # installs every app and package (one lockfile, at the root)
+npm run dev:pwa        # attendee app  → http://localhost:3000 (phones on the same Wi-Fi: http://<laptop-ip>:3000)
+npm run dev:admin      # staff console → http://localhost:3001 (/admin, /door)
+npm run build          # build both (or build:pwa / build:admin); output in apps/<app>/.output/
+npm run preview:pwa    # run a production build with the service worker (offline, install, updates)
+npm run preview:admin
+npm run typecheck      # TypeScript check of both apps and the shared packages (run before every commit)
 ```
+Add a dependency to the app or package that uses it, e.g.
+`npm install some-lib -w afriff-pwa` or `-w @afriff/core`.
+Run a build with that app's dev server stopped (both write to `.nuxt`).
 Windows note: if PowerShell blocks `npx`, use `npx.cmd`. Don't change the
 execution policy on the owner's laptop.
 
 The offline/installable parts (service worker, updates, install prompt) only
-run in a production build: use `npm run build` then `npm run preview` to try
-them. `npm run dev` talks to the real Firestore like the live app does.
+run in a production build: build, then `npm run preview:pwa` /
+`preview:admin` to try them. Dev servers talk to the real Firestore like the
+live apps do.
 
 **Testing switches** go in the address, e.g. `/programme?now=2026-11-03T13:00`.
 They're remembered for that browser tab (so they survive moving between
@@ -52,63 +64,94 @@ pages and reloading); close the tab to clear them.
 - `?share=1` lets the dev build send anonymous usage counts (it never sends otherwise).
 
 ## 3. Stack and shape
+A monorepo, set up like the DP Fitness repo: split **by audience**, with
+everything both apps must agree on in shared packages.
+```
+apps/
+  pwa/      afriff-pwa: the attendee app (QR code → phone)          → :3000
+  admin/    afriff-admin: the staff console (/admin) + door view (/door) → :3001
+packages/
+  theme/    @afriff/theme: design system (Nuxt layer)
+  pwa/      @afriff/pwa:   PWA behaviour (Nuxt layer)
+  core/     @afriff/core:  shared data, types, utils, Firebase
+firestore.rules   database security rules (both apps)
+```
+- **Why two apps:** attendees should never download staff code (sign-in,
+  forms, reports), and staff get their own installable app with its own
+  icon and start page (volunteers open straight onto `/door`). Same look,
+  same data, same offline behaviour, because both build on the packages.
 - **Nuxt 4 (Vue 3), SPA mode (`ssr: false`), TypeScript throughout**
   (strict, plus `noUncheckedIndexedAccess`). Every `.vue` file uses
   `<script setup lang="ts">` with typed `defineProps<…>()` /
-  `defineEmits<…>()` / `defineModel<…>()`; every module is `.ts`. There are
-  no `.js` files in `app/` or `server/`; plain JavaScript is only for
-  throwaway scripts. Shared shapes live in `app/types/festival.ts`
-  (Film, Screening, FestivalEvent, Venue, NewsItem, JuryMember, Queue…) and
-  `app/admin/types.ts` (Profile, ChangeDoc, board records). Tailwind CSS 4, icons from `lucide-vue-next`, fonts Archivo
-  (headings) + Onest (text), bundled with the app so they work offline.
-  Real addresses (`/film/<id>`, `/programme/films`, `/admin/data/films`);
-  old `#/...` links are forwarded by `app/middleware/old-hash.global.ts`.
-- **PWA**, set up like the DP Fitness PWA (see "How the PWA works" below):
-  `@vite-pwa/nuxt` builds the manifest and service worker; registering it,
-  update checks, the install offer and reloading onto new versions are ours
-  (`app/plugins/pwa.client.ts`, `app/lib/installPrompt.ts`,
-  `app/composables/useInstallApp.ts`). The whole app is precached, so every
-  page (the console and door view too) opens with no signal. Live data comes
-  straight from Firestore with its offline cache on the phone. Offline banner
-  with "Back online", install toast on Android/Chrome, Add to Home Screen
-  guide on iPhone, splash screen (`app/spa-loading-template.html`).
-- **Design tokens** (colours, type sizes, radii, shadows) live only in
-  `app/assets/css/main.css`: the AFRIFF navy + gold system from the earlier
-  attendee build. Venue dot colours stay with the venues in `app/data/programme.ts`.
-  Mobile-first, max width 36rem.
-- **Firebase loads after first paint.** The first screen's code doesn't
-  include Firebase (~29 KB gzipped for the entry). The Firestore SDK
-  (~170 KB gzipped) is pulled in with a dynamic `import()` once the first
-  screen is showing (`app/lib/firebase/live.ts`), or when the console / door
-  view opens. Firebase Auth is only ever imported by `app/admin/`. Keep it
-  that way: no static `firebase/*` imports in attendee screens or in modules
-  they import statically; go through `lib/firebase/live.ts` with `import()`.
+  `defineEmits<…>()` / `defineModel<…>()`; every module is `.ts`. Tailwind
+  CSS 4, icons from `lucide-vue-next`, fonts Archivo (headings) + Onest
+  (text), bundled so they work offline. Real addresses (`/film/<id>`,
+  `/programme/films`); old `#/...` links are forwarded by
+  `apps/pwa/app/middleware/old-hash.global.ts`.
+- **Each app `extends` the three layers** in its `nuxt.config.ts`
+  (`['@afriff/theme', '@afriff/pwa', '@afriff/core']`) and only holds what's
+  particular to it: its pages, its own components, its manifest.
+
+**`packages/theme` (@afriff/theme)** — the design system, as a Nuxt layer:
+- `styles/theme.css`: every token (colours, type sizes, radii, shadows) and
+  shared utility (`card`, `eyebrow`, `scroll-row`…). The AFRIFF navy + gold
+  system. Change it once, both apps change.
+- `components/ui/` (UiButton, UiSheet, UiChip, UiBadge, UiSegmented,
+  UiToggle, UiEmptyState, UiSectionHeader) and `components/brand/`
+  (BrandEmblem, BrandWordmark, AppLogo), usable by file name in either app.
+- `public/`: the official emblem and app icons, served by both apps.
+- Not registered as a `css` entry, on purpose (Tailwind v4 only publishes
+  utilities for tokens inside the stylesheet that imported Tailwind): each
+  app's `app/assets/css/main.css` imports Tailwind, then
+  `@afriff/theme/styles/theme.css`. Same trick as DP Fitness.
+
+**`packages/pwa` (@afriff/pwa)** — what makes each app a proper PWA (see
+"How the PWA works" below): `@vite-pwa/nuxt` with the shared service-worker
+setup, `app/plugins/pwa.client.ts` (register, update checks, reload rules,
+install offer), `app/composables/useInstallApp.ts` + `app/lib/installPrompt.ts`
+(install toast logic), `app/components/AppOfflineBanner.vue`. Each app adds
+only its manifest.
+
+**`packages/core` (@afriff/core)** — plain TypeScript both apps import as
+`@afriff/core/<path>`:
+- `types/festival.ts`: the shapes of films, screenings, events, venues,
+  news, jury, queue counts, the published bundle.
+- `data/`: built-in festival data (`programme.ts`, `events.ts`, `jury.ts`),
+  the first-visit fallback and the console's import source.
+- `utils/format.ts` (dates, times, queue labels), `utils/now.ts` (Lagos
+  clock + test switches).
+- `firebase/config.ts` + `firebase/app.ts`: the Firebase app and Firestore
+  with the offline cache on the device; `firebase/published.ts` +
+  `published.ts`: the published-data feed (both apps use it).
+- Its tiny `nuxt.config.ts` carries the Firebase project details.
 
 ```
-app/
-  pages/        one file per address: index (Home), programme/[[tab]], film/[id], event/[id],
-                my (My Festival), queues, venues, news, jury, admin/[...path], door (volunteers)
-  components/   ui/ (buttons, sheets, chips, badges), app/ (header, bottom bar, PWA prompts,
-                welcome cards, sponsor marquee), festival/ (posters, rows, jury, daily highlight),
+apps/pwa/app/
+  pages/        index (Home), programme/[[tab]], film/[id], event/[id], my (My Festival),
+                queues, venues, news, jury; admin/[...path] + door only forward to the console
+  components/   app/ (header, bottom bar, install toast, welcome cards, sponsor marquee,
+                StaffRedirect), festival/ (posters, rows, jury, daily highlight),
                 programme/ (day picker, venue chips, timeline, My plan sheet, search)
-  layouts/      default (attendee frame) and admin
-  data/         built-in festival data: programme.ts, events.ts, jury.ts
-  lib/          liveData (published data), store (phone storage), queues, alerts, usage, plan,
-                today (what's on a festival day), format, now (clock + test switches), dayItems,
-                programmeMemory, installPrompt + platform (install offer)
-  lib/firebase/ config (project details), app (Firebase + Firestore with the offline cache),
-                live (everything attendees read/write: published data, queues, usage)
-  composables/  useInstallApp (install toast logic)
-  admin/        console: schema.ts drives every form/list, data.ts (save/approve/import/backup),
-                publish.ts, reports.ts, board.ts (door counts) + the Admin*.vue screens
+  layouts/      default (attendee frame)
+  lib/          store (phone storage), queues, alerts, usage, plan, today, dayItems,
+                eventLook, programmeMemory; firebase/live.ts (live queues + usage writes)
   plugins/festival.client.ts   loads the saved copy, then follows published data and live queues
-  plugins/pwa.client.ts        registers the service worker, update checks, install offer
   spa-loading-template.html    splash shown before the app's code has started
-  assets/css/main.css          design tokens and shared styles
-public/masterclasses/          AFRIFF's official masterclass graphics
-public/brand/, public/*.png    official AFRIFF emblem and the app icons
-firestore.rules                database security rules
+apps/pwa/public/masterclasses/ AFRIFF's official masterclass graphics
+apps/admin/app/
+  pages/        index (sends volunteers to /door, everyone else to /admin), admin/[...path], door
+  admin/        console: schema.ts drives every form/list, data.ts (save/approve/import/backup),
+                publish.ts, reports.ts, board.ts (door counts), firebase.ts (Auth) + the Admin*.vue screens
+  plugins/published.client.ts  the published-data feed (venue names etc. stay current)
 ```
+
+- **Firebase loads after first paint** in the attendee app. Its first
+  screen's code has no Firebase (~29 KB gzipped entry). The Firestore SDK
+  (~170 KB gzipped) arrives with a dynamic `import()` once the first screen
+  is showing (`@afriff/core/published`, `apps/pwa/app/lib/firebase/live.ts`).
+  Firebase Auth exists only in `apps/admin`. Keep it that way: no static
+  `firebase/*` imports in attendee screens or in modules they import
+  statically.
 
 - **Visual hierarchy rules** (keep new screens consistent):
   - One gold thing per area: gold (`accent`) is for actions, the selected
@@ -135,9 +178,9 @@ firestore.rules                database security rules
    Alongside it, it writes a tiny marker, `published/version` ({version}).
 3. **Phones read Firestore directly** with the Firebase SDK (no server
    routes; the old `/api/festival` and `/api/queues` relays are gone).
-   `app/lib/liveData.ts`: on start the phone shows its saved copy
-   (localStorage `afriff-data-v1`, or the built-in data in `app/data/` on a
-   first visit), then watches `published/version` live. Only when the marker
+   `@afriff/core/published` (`packages/core/src/published.ts`): on start the
+   device shows its saved copy (localStorage `afriff-data-v1`, or the
+   built-in data in `packages/core/src/data/` on a first visit), then watches `published/version` live. Only when the marker
    is newer than what the phone has does it download `published/current`,
    so each phone reads the big bundle once per publish (not once per visit)
    and a publish reaches open phones within seconds. If the marker doesn't
@@ -147,20 +190,21 @@ firestore.rules                database security rules
    the phone's IndexedDB (`persistentLocalCache`, multi-tab), so listeners
    answer from the cache offline, writes made offline are queued (even across
    closing the app) and sent when the connection is back, and listeners
-   catch up by themselves. See `app/lib/firebase/app.ts`.
+   catch up by themselves. See `packages/core/src/firebase/app.ts`.
 
 Rules of the road:
 - **Never overwrite database items with the built-in copy.** The console's
-  "Add missing festival data" (`importAll` in `app/admin/data.ts`) only:
+  "Add missing festival data" (`importAll` in `apps/admin/app/admin/data.ts`) only:
   adds items whose ID is missing; fills fields an item doesn't have at all;
   and swaps values listed in `REPLACED_LINKS` / `REPLACED_VALUES`
-  (`app/data/events.ts`) **only while the database still holds exactly that
+  (`packages/core/src/data/events.ts`) **only while the database still holds exactly that
   old value**. That last rule is how corrections we ship (e.g. new
   masterclass graphics, a changed speaker) reach the database without ever
   touching something the team typed. Add to those lists when you correct
   built-in data that's already been imported.
-- To add a field: add one line to `app/admin/schema.ts`. The form, list and
-  import pick it up. Then read the field in the attendee screen.
+- To add a field: add it to the type in `packages/core/src/types/festival.ts`,
+  then one line in `apps/admin/app/admin/schema.ts` (the form, list and
+  import pick it up). Then read the field in the attendee screen.
 - **`firestore.rules` is not deployed automatically.** Paste it into
   Firebase console → Firestore → Rules → Publish whenever it changes.
 
@@ -171,15 +215,16 @@ most every 30 min, with an opt-out switch in My Festival. The admin Reports
 page reads them.
 
 ### How the PWA works (same approach as the DP Fitness PWA)
-- **Service worker** (generated by `@vite-pwa/nuxt` from `nuxt.config.ts` →
-  `pwa.workbox`): precaches the whole build (app shell prerendered as `/`,
-  every page's code incl. the Firebase SDK, the console and door view,
-  fonts, icons); every address falls back to the shell, so deep links open
+All of this lives in `packages/pwa` and applies to both apps.
+- **Service worker** (generated by `@vite-pwa/nuxt` from
+  `packages/pwa/nuxt.config.ts` → `pwa.workbox`; each app adds its manifest):
+  precaches that app's whole build (app shell prerendered as `/`, every
+  page's code incl. the Firebase SDK, fonts, icons); every address falls back to the shell, so deep links open
   offline. Images are cached as they're seen (our own: cache-first; other
   sites': show saved copy, refresh in background). Firestore traffic is never
   touched by the worker.
 - **Updates**: `skipWaiting` + `clientsClaim`, so a new version takes over
-  without waiting for tabs to close. `app/plugins/pwa.client.ts` checks for a
+  without waiting for tabs to close. `packages/pwa/app/plugins/pwa.client.ts` checks for a
   new `/sw.js` whenever the app returns to the foreground (plus on reconnect,
   focus and hourly), because phones resume frozen pages instead of reloading
   them. When a new version takes over, attendee screens reload onto it at
@@ -196,21 +241,47 @@ page reads them.
   offline, "Back online" for a moment on return. Queues says when counts are
   the last ones received, and only shows "Live" when they are.
 
-**Home** (`app/pages/index.vue`) changes with the Lagos date: countdown
+**Home** (`apps/pwa/app/pages/index.vue`) changes with the Lagos date: countdown
 banner + "Opening day" before 1 Nov; `DailyHighlight` (day N of 7, theme,
 poster collage, counts, next up) + a "Today" list during the festival;
-a thank-you banner after. Collage order lives in `app/lib/today.ts`: films
+a thank-you banner after. Collage order lives in `apps/pwa/app/lib/today.ts`: films
 ticked "Feature on Home" in the console first, then the opening film, then
 films with real posters, then by start time.
 
 ## 5. Deploying and hosting
-Currently manual, from the owner's laptop: `npx.cmd vercel deploy --prod --yes`.
-Vercel builds it with `nuxt build` (`vercel.json` tells Vercel the project
-is now Nuxt, not Vite). There are no server functions any more; the host only
-serves files. After a deploy, check `/`, `/film/lady`, `/admin` and `/door`
-open, and that `/sw.js` comes back with `Cache-Control: no-cache`.
+Two Vercel projects from this one repo, one per app:
+
+| Vercel project | Root Directory | Settings |
+|---|---|---|
+| `afriff-app` (existing, attendee) | `apps/pwa` | env `NUXT_PUBLIC_ADMIN_URL` = the console's address |
+| staff console (new, e.g. `afriff-staff`) | `apps/admin` | env `NUXT_PUBLIC_ATTENDEE_URL` (optional) |
+
+The six `NUXT_PUBLIC_FIREBASE_*` variables are the same for both apps: add
+them once as Vercel **Shared Environment Variables** (Team Settings →
+Environment Variables) linked to both projects, not per project (a project's
+own variable with the same name overrides the shared one). They're optional
+while both apps use the live `afriff-app` Firebase project (the code falls
+back to it). Values are baked in at build time: redeploy both apps after a
+change. Locally: `apps/pwa/.env` and `apps/admin/.env` (not in Git), with the
+shared block marked in each; `.env.example` lists them all.
+
+Vercel sees the npm workspaces (root `package.json` + root lockfile),
+installs from the root, and builds each app with `nuxt build`
+(`apps/*/vercel.json` say it's Nuxt; Git auto-deploys are off). Deploys are
+manual, **always from the repo root** (Vercel's CLI must not be run from a
+subfolder):
+```
+npx.cmd vercel link --repo     # once: links both projects to this repo
+npx.cmd vercel deploy --prod   # deploys the currently linked project
+npx.cmd vercel link            # switch to the other project, then deploy again
+```
+There are no server functions; the host only serves files. After a deploy,
+check `/`, `/film/lady` and `/admin` (should forward to the console) on the
+attendee app, `/admin` and `/door` on the console, and that `/sw.js` comes
+back with `Cache-Control: no-cache` on both. Add the console's domain to
+Firebase → Authentication → Settings → Authorized domains.
 `.vercelignore` keeps `reference/` (design screenshots, not in the repo)
-out of uploads. Uploads with the graphics take a few minutes.
+out of uploads.
 
 **Open decision: Vercel vs Firebase Hosting.** Vercel Hobby is
 non-commercial, so it can't be the launch host as is. Options under
@@ -224,7 +295,7 @@ discussion with the owner:
   are the big one: every saved count is one read for every phone listening.
   Listening is limited to festival days, while the app is on screen, from
   3 h before the day's first screening to the start of its last
-  (`app/lib/queues.ts`), but at festival scale this can pass Spark's 50k
+  (`apps/pwa/app/lib/queues.ts`), but at festival scale this can pass Spark's 50k
   reads/day. Budget for **Blaze** during the festival (a few cents per 100k
   reads) with a budget alert.
 Whichever is chosen, set a Blaze **budget alert**, and point the final
@@ -234,8 +305,9 @@ address (e.g. app.afriff.com) at it before the QR codes are printed.
 **Live queues (step 8, built 22 Oct):** volunteers' taps are bundled and
 saved to one record per venue per day (`queueDays/{date}/venues/{venue}`);
 phones listen to that day's records directly (live, ~3 small docs) during
-screening hours on festival days. Volunteers count in the **door view** at `/door`
-(`app/admin/AdminDoorCounter.vue` + `AdminDoorScreening.vue`): "Joined the
+screening hours on festival days. Volunteers count in the **door view** at
+`/door` on the staff console (`apps/admin/app/admin/AdminDoorCounter.vue` +
+`AdminDoorScreening.vue`): "Joined the
 queue" / "Let in" (seats count down automatically), undo, fix, wake lock,
 admin "Clear counts". Details in CLAUDE.md "Step 8" and "Door view". Still
 to test with real logins at a door; `?queues=sample` shows pretend queues for demos.
@@ -245,9 +317,9 @@ to test with real logins at a door; `?queues=sample` shows pretend queues for de
   (including the new Writers Workshop, Wed 4 Nov 3 PM).
 - Host film posters, sponsor logos and jury photos ourselves. They're still
   hot-linked from AFRIFF's site (the masterclass graphics are now in
-  `public/masterclasses/`, except Producing and Animation).
+  `apps/pwa/public/masterclasses/`, except Producing and Animation).
 - AFRIFF to confirm the 3 "How to attend" sections marked CONFIRM; swap in
-  the official logo (`public/logo.svg`); add bios for Erin G. Wesley, Chuka
+  the official logo (`packages/theme/public/`); add bios for Erin G. Wesley, Chuka
   Ejorh and Tunde Babalola (left empty rather than invented).
 - Hosting decision above.
 - PWA: done (see "How the PWA works"). Check on a real Android and iPhone

@@ -1,0 +1,20 @@
+{
+  "name": "@afriff/pwa",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AFRIFF PWA layer shared by both apps: service worker defaults, update checks, install offer, offline banner. Each app adds its own manifest.",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@vite-pwa/nuxt": "^1.1.1",
+    "@vueuse/core": "^15.0.0",
+    "lucide-vue-next": "^1.0.0"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.6.2",
+    "vue": "^3.5.44"
+  }
+}

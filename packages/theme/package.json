@@ -1,0 +1,25 @@
+{
+  "name": "@afriff/theme",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AFRIFF design system: tokens, type scale, fonts, UI and brand components, brand artwork. A Nuxt layer both apps extend.",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./styles/theme.css": "./styles/theme.css",
+    "./components/*": "./components/*",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource-variable/onest": "^5.3.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vueuse/core": "^15.0.0",
+    "lucide-vue-next": "^1.0.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.6.2",
+    "vue": "^3.5.44"
+  }
+}
