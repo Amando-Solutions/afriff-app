@@ -76,7 +76,7 @@ function back() {
       {{ event.link.label || 'More on afriff.com' }} <ArrowUpRightIcon />
     </UiButton>
 
-    <section class="mt-8">
+    <section v-if="event.about" class="mt-8">
       <h2 class="mb-2 font-display text-h2 font-semibold">About</h2>
       <p class="text-prose text-ink/90">{{ event.about }}</p>
     </section>
@@ -92,8 +92,8 @@ function back() {
           <span class="eyebrow text-muted">{{ info.dayLine }}</span>
         </div>
         <span class="mt-1 text-body font-semibold tabular-nums">{{ info.multi ? 'Evenings from ' : '' }}{{ timeLabel(event.time) }} – {{ timeLabel(event.end) }}</span>
-        <VenueLine :venue-id="event.venue" :place="event.place" />
-        <span v-if="info.venue" class="text-label text-muted">{{ event.place }}</span>
+        <VenueLine v-if="event.venue || event.place" :venue-id="event.venue" :place="event.place" />
+        <span v-if="info.venue && event.place" class="text-label text-muted">{{ event.place }}</span>
         <UiBadge v-if="event.tag === 'Industry'" tone="info" class="mt-1">Industry</UiBadge>
       </div>
       <div class="mt-2.5 flex flex-wrap gap-2">
@@ -112,7 +112,7 @@ function back() {
         <div class="grid size-12 shrink-0 place-items-center rounded-tile border border-line bg-raised font-display text-h3 font-semibold text-muted">{{ initials(event.speaker.replace(/\(.*\)/, '')) }}</div>
         <div class="flex min-w-0 flex-col gap-0.5">
           <span class="text-body font-semibold">{{ event.speaker }}</span>
-          <span class="text-meta text-muted">{{ event.speakerRole }}</span>
+          <span v-if="event.speakerRole" class="text-meta text-muted">{{ event.speakerRole }}</span>
           <p v-if="event.bio" class="mt-2 text-prose text-ink/90">{{ event.bio }}</p>
         </div>
       </div>

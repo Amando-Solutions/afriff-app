@@ -4,6 +4,7 @@
 // ourselves before launch. The database (console → Jury) is the master
 // copy once published; this file is the starting point.
 
+import { finished } from '../utils/unfinished';
 import type { JuryMember } from '../types/festival';
 
 export const JURY_LINKS = {
@@ -73,7 +74,7 @@ export const BUILT_IN_JURY = JURY;
 export function replaceJury(list: Partial<JuryMember>[]) {
   JURY = list
     .filter((j) => j.id && j.name)
-    .map((j): JuryMember => ({ ...j, id: j.id!, name: j.name!, jury: j.jury || INTL, roles: j.roles || '', country: j.country || '', bio: j.bio || '', photo: j.photo || '' }))
+    .map((j): JuryMember => ({ ...j, id: j.id!, name: j.name!, jury: j.jury || INTL, roles: j.roles || '', country: j.country || '', bio: finished(j.bio), photo: j.photo || '' }))
     .sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
 }
 

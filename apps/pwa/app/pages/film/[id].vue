@@ -132,8 +132,8 @@ const more = computed(() => {
     </div>
 
     <!-- Synopsis, 3 lines until Read more -->
-    <p class="mt-5 text-prose text-ink/90" :class="!expanded && 'clamp-3'">{{ film.synopsis }}</p>
-    <button type="button" class="mt-1 text-meta font-medium text-accent-ink" @click="expanded = !expanded">{{ expanded ? 'Show less' : 'Read more' }}</button>
+    <p v-if="film.synopsis" class="mt-5 text-prose text-ink/90" :class="!expanded && 'clamp-3'">{{ film.synopsis }}</p>
+    <button v-if="film.synopsis.length > 100" type="button" class="mt-1 text-meta font-medium text-accent-ink" @click="expanded = !expanded">{{ expanded ? 'Show less' : 'Read more' }}</button>
 
     <!-- Showtimes -->
     <section id="showtimes" class="mt-8 scroll-mt-20">

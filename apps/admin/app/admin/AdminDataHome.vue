@@ -60,7 +60,7 @@ async function runBackup() {
         <UiButton size="sm" class="self-start" :disabled="imp.busy" @click="runImport">{{ imp.busy ? imp.progress : 'Add missing festival data' }}</UiButton>
         <p v-if="imp.done" class="text-meta text-success">
           {{ importAdded() ? `Added ${importAdded()}.` : 'No items were missing.' }}
-          {{ imp.done.filled ? `Filled in ${imp.done.filled} new field${imp.done.filled === 1 ? '' : 's'} (such as sponsor logos) on existing items. ` : '' }}
+          {{ imp.done.filled ? `Filled in or corrected ${imp.done.filled} field${imp.done.filled === 1 ? '' : 's'} on existing items (such as new sponsor logos or fixed synopses). ` : '' }}
           {{ importKept() ? 'Everything your team already entered was left as it is.' : '' }}
         </p>
         <p v-if="imp.error" class="text-meta text-danger">Couldn't load: {{ imp.error }}</p>

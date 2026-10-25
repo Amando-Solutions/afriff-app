@@ -9,6 +9,7 @@ import { db } from './firebase';
 import { seedData, type CollectionName } from './schema';
 import { REPLACED_LINKS, REPLACED_VALUES } from '@afriff/core/data/events';
 import { FESTIVAL } from '@afriff/core/data/programme';
+import { CORRECTIONS, stillOurs } from '@afriff/core/data/corrections';
 import type { ChangeDoc, DataDoc, DocMap, Profile } from './types';
 
 // Live list of one collection, e.g. useCollection('films').
@@ -122,6 +123,8 @@ export async function rejectChange(change: ChangeDoc, admin: Profile, note: stri
 //  - for items already there, only adds fields they don't have at all
 //    (e.g. a newly introduced "logo" field). A field your team filled in or
 //    cleared is never changed.
+//  - applies the corrections in @afriff/core/data/corrections.ts, each only
+//    while the database still holds the value we shipped.
 const REPLACED = new Set(REPLACED_LINKS);
 
 export interface ImportResult {
@@ -159,6 +162,11 @@ export async function importAll(onProgress?: (done: number, total: number) => vo
       // corrected values we now leave empty (e.g. a bio for the old speaker)
       for (const [k, old] of Object.entries(corrected)) {
         if (!(k in data) && current[k] === old) newFields[k] = '';
+      }
+      // shipped corrections (2:Love's synopsis, the Sun 1 Nov line-up…), only
+      // while the field still holds the value we shipped
+      for (const [k, fix] of Object.entries(CORRECTIONS[col]?.[id] || {})) {
+        if (current[k] !== fix.to && stillOurs(fix, current[k])) newFields[k] = fix.to;
       }
       if (Object.keys(newFields).length) {
         filled += Object.keys(newFields).length;

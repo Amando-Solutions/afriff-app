@@ -4,6 +4,7 @@
 // afriff.com on 19 Oct 2026. Descriptions and bios are short summaries
 // written for this app. TIMES AND ROOMS ARE SAMPLES until AFRIFF publishes them.
 
+import { finished } from '../utils/unfinished';
 import type { EventGroup, EventType, FestivalEvent, Link, Tag } from '../types/festival';
 
 export const EVENT_TYPES: Record<EventType, { label: string; group: EventGroup }> = {
@@ -29,7 +30,8 @@ const MASTERCLASS_URL = 'https://afriff.com/program/masterclasses';
 const FREE = 'Free · registration required';
 const register: Link = { label: 'Register on afriff.com', url: MASTERCLASS_URL };
 
-export let EVENTS: FestivalEvent[] = [
+// The built-in list as shipped (also what "Add missing festival data" loads).
+const SHIPPED_EVENTS: FestivalEvent[] = [
   // ---------- All week ----------
   {
     id: 'festival-meetups', type: 'networking', title: 'Festival meetups',
@@ -181,6 +183,18 @@ export let EVENTS: FestivalEvent[] = [
   },
 ];
 
+// Attendees never see unfinished text ("Details coming soon", "Venue to be
+// announced"…): those fields are left empty instead.
+function cleanEvent(e: FestivalEvent): FestivalEvent {
+  return {
+    ...e,
+    about: finished(e.about), access: finished(e.access), place: finished(e.place),
+    bio: finished(e.bio), speakerRole: finished(e.speakerRole),
+  };
+}
+
+export let EVENTS: FestivalEvent[] = SHIPPED_EVENTS.map(cleanEvent);
+
 export const eventById = (id: string | null | undefined) => EVENTS.find((e) => e.id === id);
 export const isMultiDay = (e: Pick<FestivalEvent, 'date' | 'endDate'>) => Boolean(e.endDate && e.endDate !== e.date);
 // Single-day events on a given day (multi-day ones are shown under "All week")
@@ -209,13 +223,13 @@ export const REPLACED_LINKS: string[] = [
 ];
 
 // ---------- Live data (build step 3) ----------
-export const BUILT_IN_EVENTS = EVENTS;
+export const BUILT_IN_EVENTS = SHIPPED_EVENTS;
 
 // Swap in the events an admin published from the console.
 export function replaceEvents(list: Partial<FestivalEvent>[], venueIds: Set<string>) {
   EVENTS = list
     .filter((e) => e.id && e.title && e.date && e.time)
-    .map((e): FestivalEvent => ({
+    .map((e): FestivalEvent => cleanEvent({
       ...e,
       id: e.id!, title: e.title!, date: e.date!, time: e.time!,
       type: e.type && EVENT_TYPES[e.type] ? e.type : 'networking',

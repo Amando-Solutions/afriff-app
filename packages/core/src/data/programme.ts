@@ -3,6 +3,7 @@
 // on 18 Oct 2026. Synopses are short summaries written for this app.
 // SCREENING TIMES ARE SAMPLES: AFRIFF hasn't published the timetable yet.
 
+import { finished } from '../utils/unfinished';
 import type { Film, HowToSection, NewsItem, PosterStyle, PublishedSnapshot, Screening, Sponsor, Tag, Venue } from '../types/festival';
 
 export const FESTIVAL = {
@@ -86,7 +87,7 @@ kubana|Kubana|DOC|Canada|99|2026|Alunaya|English, French, Kinyarwanda, Swahili|D
 a-gram-of-deception|A Gram of Deception|DOC|India, United States|21|2026|Rintu Thomas & Sushmit Ghosh|English, Spanish|Documentary|||Two filmmakers trace the hidden power networks behind a small but deadly everyday object.
 for-life|For Life|DOC|Türkiye|90|2026|Ahmet Seven|Arabic|Documentary||96df235c-ee96-4be1-815f-510652f1de11/for-life.jpg|A Palestinian woman risks a secret journey to have a child with her imprisoned husband.
 soul-catcher|Soul Catcher|SHORTS|Canada|15|2026|Amanda Strong & Pamela Post||Short|||Short film. Synopsis coming soon.
-2-love|2:Love|SHORTS|Belgium, France, Israel|11||Ronni Shalev||Short|||Short film. Synopsis coming soon.
+2-love|2:Love|SHORTS|Belgium, France, Israel|11|2026|Ronni Shalev|English, French|Animation|||An animated short set on a tennis court: two ball girls on opposite sides of a tense, bitter match catch each other's eye, and their rivalry turns into attraction as they look for a way out of the competition keeping them apart.
 in-the-shadows-75|In the Shadows 75|SHORTS|United Kingdom|18|2025|Zubayr Zubayr|English|Drama|https://vimeo.com/1234971996|409ae995-baeb-46e8-96fa-30f684e41749/in-the-shadows-75.jpg|In 1970s Libya, two migrants hiding on the road to Europe share confessions before a knock at the door.
 serubawon|Serubawon|SHORTS|United Kingdom|19|2026|Samuel Adeoye|English|Thriller|||A first-date conversation about the meaning of a name spirals into paranoia and a dangerous misunderstanding.
 leopard-of-congo|Leopard of Congo|SHORTS|United Kingdom|10|2025|Kiosa Sukami|French, Swahili|Sports drama||895e3510-efff-48a9-bb6c-1df7dd6171b5/leopard-of-congo.jpg|How a gifted Congolese team under Mobutu won the 1974 Africa Cup of Nations and reached the World Cup.
@@ -130,7 +131,7 @@ export let FILMS: Film[] = RAW.trim().split('\n').map((line): Film => {
   const [id = '', title = '', code = '', country = '', runtime, year, director = '', language = '', genre = '', trailer = '', poster, synopsis = ''] = line.split('|');
   return {
     id, title, section: SECTION_CODES[code] ?? '', country, runtime: Number(runtime), year: year ? Number(year) : null,
-    director, language, genre, trailer, synopsis,
+    director, language, genre, trailer, synopsis: finished(synopsis),
     image: poster ? POSTER_BASE + poster : '',
     poster: posterArt(id),
   };
@@ -179,7 +180,34 @@ function buildTimetable(): Screening[] {
   return list;
 }
 
-export let SCREENINGS: Screening[] = buildTimetable();
+// Sun 1 Nov demo line-up (24 Oct 2026): opening day only shows films that have
+// a poster, across all three venues. Each pair trades films between an opening-
+// day screening and a later one (times are samples), so every film keeps the
+// same number of showings. [opening-day screening, later screening, film it
+// had, film it gets]. Already-loaded databases get the same swap from
+// "Add missing festival data" (see corrections.ts).
+export const DAY_ONE_SWAPS: [string, string, string, string][] = [
+  ['s10', 's11', 'a-girl-unknown', 'abeni'], // Landmark Screen 2, 1:30 PM
+  ['s24', 's29', '2-6-seconds-death-in-the-outback', 'three-black-men'], // Twinwaters Screen 2, 1:30 PM
+  ['s31', 's14', 'mon-taxi', 'slum-bomber'], // The Palms Screen 1, 1:30 PM
+  ['s38', 's12', 'colors-curves', 'hadda'], // Landmark Screen 1, 4:00 PM (ends before the gala)
+  ['s52', 's16', 'lalela', 'one-woman-one-bra'], // Twinwaters Screen 1, 4:00 PM
+];
+
+function withDayOneSwaps(list: Screening[]) {
+  const byId = new Map(list.map((s) => [s.id, s]));
+  for (const [day1, later, oldFilm, newFilm] of DAY_ONE_SWAPS) {
+    const a = byId.get(day1);
+    const b = byId.get(later);
+    if (a?.film === oldFilm && b?.film === newFilm) {
+      a.film = newFilm;
+      b.film = oldFilm;
+    }
+  }
+  return list;
+}
+
+export let SCREENINGS: Screening[] = withDayOneSwaps(buildTimetable());
 
 export let NEWS: NewsItem[] = [
   { id: 'n1', urgent: true, time: '2026-10-18T09:00:00+01:00', title: 'Times are samples for now', body: 'AFRIFF has not published times for screenings, masterclasses or events yet. The times in this app are placeholders until the official schedule is out.' },
@@ -262,7 +290,7 @@ export function replaceProgramme(d: PublishedSnapshot) {
       ...f,
       id: f.id!, title: f.title!, country: f.country || '', language: f.language || '', genre: f.genre || '',
       year: f.year ?? null, runtime: Number(f.runtime) || 0, image: f.image || '', trailer: f.trailer || '',
-      synopsis: f.synopsis || '', director: f.director || '', section: f.section || '',
+      synopsis: finished(f.synopsis), cast: finished(f.cast), director: f.director || '', section: f.section || '',
       // films added in the console get placeholder poster colours like the rest
       poster: f.poster?.style ? f.poster : posterArt(f.id!),
     }));

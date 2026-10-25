@@ -98,7 +98,7 @@ function rowInfo(x: UpcomingItem): DayRow {
   const e = x.item
   return {
     id: e.id, to: `/event/${e.id}`, title: e.title.split(':')[0] ?? e.title, event: e, status: e.status,
-    meta: `${timeLabel(e.time)} · ${e.venue ? venueShort(e.venue) : e.place}`, full: false,
+    meta: [timeLabel(e.time), e.venue ? venueShort(e.venue) : e.place].filter(Boolean).join(' · '), full: false,
   }
 }
 

@@ -6,7 +6,7 @@ import { ArrowUpRightIcon, AwardIcon, ChevronRightIcon, LayoutGridIcon, ListIcon
 import { JURY_LINKS, juryGroups } from '@afriff/core/data/jury'
 
 // THE JURY: one heading per jury, a card per member; tapping a card slides up
-// their bio. Grid by default, with a list toggle (the phone remembers the choice).
+// their bio (members with no bio yet aren't tappable, so nobody opens an empty sheet). Grid by default, with a list toggle (the phone remembers the choice).
 useHead({ title: 'The Jury' })
 const VIEW_KEY = 'afriff-jury-view'
 const groups = computed(() => juryGroups())
@@ -38,23 +38,23 @@ function show(m: JuryMember) {
     <section v-for="g in groups" :key="g.name" class="mt-7">
       <h2 class="mb-3 flex items-baseline gap-2 font-display text-h2 font-semibold">{{ g.name }} <span class="text-label font-normal text-muted tabular-nums">{{ g.members.length }}</span></h2>
       <div v-if="view === 'grid'" class="grid grid-cols-2 gap-x-3 gap-y-5">
-        <button v-for="m in g.members" :key="m.id" type="button" class="pressable flex flex-col items-start gap-0.5 text-left" @click="show(m)">
+        <component :is="m.bio ? 'button' : 'div'" v-for="m in g.members" :key="m.id" :type="m.bio ? 'button' : undefined" class="flex flex-col items-start gap-0.5 text-left" :class="m.bio && 'pressable'" @click="m.bio && show(m)">
           <JuryPhoto :member="m" />
           <span class="mt-2 text-body leading-snug font-semibold">{{ m.name }}</span>
           <span class="line-clamp-2 text-label text-muted">{{ m.roles }}</span>
           <span class="text-label text-subtle">{{ m.country }}</span>
-        </button>
+        </component>
       </div>
       <div v-else class="flex flex-col gap-2.5">
-        <button v-for="m in g.members" :key="m.id" type="button" class="card card-interactive flex items-center gap-3 p-3 text-left" @click="show(m)">
+        <component :is="m.bio ? 'button' : 'div'" v-for="m in g.members" :key="m.id" :type="m.bio ? 'button' : undefined" class="card flex items-center gap-3 p-3 text-left" :class="m.bio && 'card-interactive'" @click="m.bio && show(m)">
           <JuryAvatar :member="m" :size="56" />
           <span class="flex min-w-0 flex-1 flex-col">
             <span class="text-body font-semibold">{{ m.name }}</span>
             <span class="text-meta text-muted">{{ m.roles }}</span>
             <span class="text-label text-subtle">{{ m.country }}</span>
           </span>
-          <ChevronRightIcon class="size-[1.125rem] shrink-0 text-muted" />
-        </button>
+          <ChevronRightIcon v-if="m.bio" class="size-[1.125rem] shrink-0 text-muted" />
+        </component>
       </div>
     </section>
 
