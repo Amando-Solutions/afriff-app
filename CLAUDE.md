@@ -204,6 +204,16 @@ next, anything I need to do.)
 
 ### STATUS AT A GLANCE (updated 23 Oct 2026; festival opens 1 Nov)
 Read this first; the dated sections below are the detailed history.
+- ⚠ DESIGN FREEZE (owner decision, 26 Oct 2026): do NOT change the UI.
+  The owner's approved design is the REFERENCE at
+  https://afriff-original-ui.vercel.app (the React version, local branch
+  `backup/react-filmstrip`, commit af8f9c8, incl. the Daily highlights
+  filmstrip; Vercel project "afriff-original-ui" on the owner's account,
+  NOT linked to GitHub, so it never changes by itself). The Nuxt app must
+  match its look and layout (Manrope font, colours in the brief above,
+  screen layouts) unless the owner approves a change. Admin logins don't
+  work on that reference link (not a Firebase authorized domain); the
+  attendee screens use the same live festival data.
 - Who: product owner (this laptop, with Claude Code) + Michael
   (developer, GitHub michaelkyng). WORKING AGREEMENT: every change goes
   to GitHub as a pull request; Michael reviews, merges and deploys.
