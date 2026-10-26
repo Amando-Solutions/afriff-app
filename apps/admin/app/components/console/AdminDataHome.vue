@@ -52,7 +52,9 @@ async function runBackup() {
     </p>
 
     <template v-if="profile.role === 'admin'">
-      <div class="card mt-4 flex flex-col gap-2.5 p-4">
+      <AdminSyncStatus />
+
+      <div class="card mt-3 flex flex-col gap-2.5 p-4">
         <h2 class="flex items-center gap-2 text-h3 font-semibold"><DownloadCloudIcon class="size-5 text-accent-ink" /> Festival data from afriff.com</h2>
         <p class="text-meta text-muted">
           Copies the films, events, venues, partners and How to attend text collected from afriff.com (plus sample times) into the database. It only adds what's missing (whole items, or new fields like sponsor logos): anything already filled in, including your team's edits, is never overwritten, so it's safe to press again.

@@ -74,6 +74,8 @@ packages/
   theme/    @afriff/theme: design system (Nuxt layer)
   pwa/      @afriff/pwa:   PWA behaviour (Nuxt layer)
   core/     @afriff/core:  shared data, types, utils, Firebase
+functions/  Cloud Functions (Firebase): syncFromAfriff, the afriff.com film sync.
+            Own package.json + lockfile, NOT an npm workspace.
 firestore.rules   database security rules (both apps)
 ```
 - **Why two apps:** attendees should never download staff code (sign-in,
@@ -215,8 +217,8 @@ Rules of the road:
 - **`firestore.rules` is not deployed automatically.** From the main folder
   (Firebase CLI, signed in with `firebase login`; all go to afriff-app):
   - `npm run deploy:rules`: the normal rules (production).
-  - `npm run deploy:functions`: Cloud Functions. There are none yet
-    (`firebase init functions` adds them; deploying needs the Blaze plan).
+  - `npm run deploy:functions`: Cloud Functions (`functions/`, see "afriff.com
+    film sync" below; deploying needs the Blaze plan).
   Add `-- --dry-run` to any of them to validate without changing anything.
 
 Other data on phones: plans, Seen it and star ratings are in localStorage
@@ -259,13 +261,99 @@ a thank-you banner after. Collage order lives in `apps/pwa/app/lib/today.ts`: fi
 ticked "Feature on Home" in the console first, then the opening film, then
 films with real posters, then by start time.
 
+### Push notifications for announcements (26 Oct 2026)
+Attendees opt in with **"Alerts on this phone"** (News page and My Festival,
+`apps/pwa/app/components/app/AlertsSwitch.vue`). Admins don't press anything
+extra: a news item ticked **"Send as a push notification"** (ticked by default
+on new items and on the "Tell attendees?" alerts) is sent once, the first time
+it's published.
+- **Phone side** (`apps/pwa/app/lib/push.ts`): permission from the tap →
+  FCM registration token (`lib/firebase/messaging.ts`, `firebase/messaging`,
+  lazy-loaded, ~8 KB gz) using the app's own service worker → POST the token to
+  the **staff app's** `/api/push/subscribe`, which adds it to the FCM topic
+  `news`. Off = `/api/push/unsubscribe` + `deleteToken`. On each start
+  (`plugins/push.client.ts`) it re-joins if FCM renewed the token (or weekly),
+  and notices if notifications were blocked in the phone's settings. We store
+  no list of phones; only localStorage `afriff-push` on the phone.
+- **Showing it**: `apps/pwa/public/push-sw.js`, added to the generated service
+  worker with `pwa.workbox.importScripts` (attendee app only). Messages are
+  data-only `{ title, body, url, tag }`; tapping opens `/news` (or moves an
+  open app there without reloading). `tag` = `news-<id>`, so a repeat replaces.
+- **Sending** (`apps/admin/server/api/push/send.post.ts`, admins only, ID token
+  checked + `users/{uid}.role == 'admin'`): the console's Publish page calls it
+  right after publishing. It reads `published/current` (so a notification never
+  mentions something attendees can't see yet), picks the due items with
+  `duePushes()` in `apps/admin/shared/push.ts` (the console uses the same
+  function to list them before publishing): ticked, not in `pushLog`, banner
+  not expired, newest first, **at most 3 per publish** (extras are logged as
+  skipped, never sent later). `pushLog/{newsId}` is created before sending
+  (create fails if it exists, so two admins can't double-send) and removed if
+  FCM fails, so the next publish retries. One `send()` to the topic reaches
+  every phone: FCM does the fan-out, free, no Firestore reads per phone.
+- **Server routes**: the staff app now has three (`server/api/push/*`, Vercel
+  functions) and depends on `firebase-admin` 13 (Node 18+). Subscribe/unsubscribe
+  allow cross-site calls (phones call them from the attendee app's address;
+  they send `text/plain` to skip the CORS preflight on slow data). The
+  attendee app still has no server routes.
+- **iPhone**: web push only works in the app added to the Home Screen
+  (iOS 16.4+); in Safari the switch is replaced by that instruction.
+- **Testing locally**: no service worker in `npm run dev`, so the switch is
+  hidden there. Use `npm run build` + preview with both settings below, or
+  test on the deployed apps. FCM topic management through the Admin SDK is
+  the current Google-supported route (Google retires older Admin SDK versions'
+  topic calls after 29 Sep 2027; keep `firebase-admin` up to date after that).
+
+### afriff.com film sync (Cloud Function, 26 Oct 2026)
+`functions/` holds one scheduled function, `syncFromAfriff` (every 15 min,
+europe-west2, Node 22, 512 MiB, max 1 instance, no retries). It keeps
+`films/*` in step with afriff.com without overwriting the team's edits.
+Full behaviour and decisions: CLAUDE.md "afriff.com film sync".
+- **Reading afriff.com** (`src/afriff/`): there's no feed. `site.ts` finds
+  the film-list module (`film-selection-…js`, linked from `/program`; falls
+  back to searching the other linked chunks). Vite fingerprints file names,
+  so the same URL means the same data: an unchanged check costs one page
+  download and one small status write. `sandbox.ts` evaluates the module in
+  QuickJS-WASM (`quickjs-emscripten-core` + the release-sync variant):
+  imports are replaced by pass-through stand-ins, with a 64 MB / 5 s cap, and
+  only JSON comes out. Never `eval` or `vm` this code in Node: it would run
+  with the function's admin credentials. `films.ts` picks the film array and
+  section map out of the exports and cleans them into our `Film` fields.
+- **The merge** (`src/sync/plan.ts`, pure): three-way, per field, against a
+  baseline of afriff.com's previous values (`sync/afriff-baseline`). afriff
+  unchanged → skip; we still hold afriff's old value → write; we hold
+  something else → a `changes` doc with `fields: [...]` for Approvals (one
+  open proposal per film, merged across checks); afriff emptied it → keep
+  ours. First run (no baseline) only learns. Never deletes; doesn't re-add
+  films the team deleted. `approveChange` (apps/admin `lib/data.ts`) writes
+  only `fields` when present.
+- **Saving** (`src/sync/run.ts`): one batch per check (film updates with
+  `lastUpdateTime` preconditions, creates, proposals, baseline, status
+  `sync/afriff`, run log `syncRuns/{id}`). A precondition failure aborts it
+  all; `status.filmsFile` only moves on success, so the next check retries.
+  `src/sync/store.ts` wraps Firestore (Admin SDK) and an in-memory twin for
+  tests.
+- **Commands** (from the repo root): `npm run functions:install` once;
+  `npm run functions:test` (typecheck + 37 tests, no network);
+  `npm run functions:check` (dry run against live afriff.com and the public
+  published copy; writes nothing); `npm run deploy:functions` (firebase.json
+  predeploy runs typecheck, tests and the esbuild bundle → `functions/lib/`).
+  Logs: `npm --prefix functions run logs`. Run a check now: Cloud Scheduler
+  → firebase-schedule-syncFromAfriff-europe-west2 → Force run.
+- **When afriff.com publishes screening times**: the status card flags it
+  (schedule page fingerprint / new keys on film records, `KNOWN_SOURCE_KEYS`
+  in `src/config.ts`). Then add a parser for their format and plan
+  screenings the same way (match on film + date + venue; leave the console's
+  sample screenings alone until the team decides).
+- To sync more fields, add them to `SYNCED_FIELDS` + `cleanFilm`: existing
+  films learn the new field on the next check rather than being overwritten.
+
 ## 5. Deploying and hosting
 Two Vercel projects from this one repo, one per app:
 
 | Vercel project | Root Directory | Settings |
 |---|---|---|
-| `afriff-app` (existing, attendee) | `apps/pwa` | env `NUXT_PUBLIC_ADMIN_URL` = the console's address |
-| staff console (new, e.g. `afriff-staff`) | `apps/admin` | env `NUXT_PUBLIC_ATTENDEE_URL` (optional) |
+| `afriff-app` (existing, attendee) | `apps/pwa` | env `NUXT_PUBLIC_ADMIN_URL` = the console's address; `NUXT_PUBLIC_FIREBASE_VAPID_KEY` (push, public) |
+| staff console (new, e.g. `afriff-staff`) | `apps/admin` | env `NUXT_PUBLIC_ATTENDEE_URL` (optional); `NUXT_FIREBASE_SERVICE_ACCOUNT` (push, **secret**: mark Sensitive) |
 
 The six `NUXT_PUBLIC_FIREBASE_*` variables are the same for both apps: add
 them once as Vercel **Shared Environment Variables** (Team Settings →
@@ -286,7 +374,8 @@ npx.cmd vercel link --repo     # once: links both projects to this repo
 npx.cmd vercel deploy --prod   # deploys the currently linked project
 npx.cmd vercel link            # switch to the other project, then deploy again
 ```
-There are no server functions; the host only serves files. After a deploy,
+The attendee app has no server functions (the host only serves files); the
+staff app has the three push routes (`/api/push/*`). After a deploy,
 check `/`, `/film/lady` and `/admin` (should forward to the console) on the
 attendee app, `/` (should go to `/login`), `/admin` and `/door` on the console, and that `/sw.js` comes
 back with `Cache-Control: no-cache` on both. Add the console's domain to

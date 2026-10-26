@@ -26,6 +26,10 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
+    // SERVER ONLY, secret: the Firebase service-account key (the whole .json
+    // file) used to send push notifications (server/utils/firebaseAdmin.ts).
+    // Set NUXT_FIREBASE_SERVICE_ACCOUNT on the staff project; read at run time.
+    firebaseServiceAccount: '',
     public: {
       // The attendee app's address, for "View the attendee app" links.
       // NUXT_PUBLIC_ATTENDEE_URL on the host if it moves (e.g. app.afriff.com).
@@ -34,6 +38,10 @@ export default defineNuxtConfig({
   },
 
   devServer: { port: 3001 },
+
+  // server/api/push/*: sends announcements as push notifications (admins,
+  // from the console) and adds attendee phones to the "news" topic (from the
+  // attendee app, a different address: see server/utils/pushTopic.ts).
 
   vite: {
     server: { allowedHosts: true },

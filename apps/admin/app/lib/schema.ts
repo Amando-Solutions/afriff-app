@@ -24,6 +24,8 @@ export interface FieldDef {
   options?: Option[];
   /** for type 'ref': the collection to pick from */
   ref?: CollectionName;
+  /** starting value on a NEW item's form (existing items keep what they have) */
+  default?: string | boolean;
 }
 /** form values: strings, or true/false for checkboxes */
 export type FormValues = Record<string, string | boolean>;
@@ -163,6 +165,10 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
       { key: 'event', label: 'About this event (optional)', type: 'ref', ref: 'events' },
       { key: 'time', label: 'Date and time (Lagos)', type: 'datetime', required: true },
       { key: 'url', label: 'Link for more (optional)', type: 'url' },
+      {
+        key: 'push', label: 'Send as a push notification to phones with alerts on', type: 'checkbox', default: true,
+        hint: 'Sent once, when this is next published (Publish to app). Editing it later never sends it again.',
+      },
     ],
   },
 
@@ -252,6 +258,10 @@ export function fromForm(colName: CollectionName, values: FormValues): Record<st
   if (out.link && !out.link.url) delete out.link;
   return out;
 }
+
+// The starting values for a new item's form
+export const newItemDefaults = (colName: CollectionName): Record<string, unknown> =>
+  Object.fromEntries(COLLECTIONS[colName].fields.filter((f) => f.default !== undefined).map((f) => [f.key, f.default]));
 
 // Turn a stored document into form values (strings)
 export function toForm(colName: CollectionName, doc: unknown): FormValues {

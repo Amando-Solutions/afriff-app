@@ -163,6 +163,7 @@ const rate = (filmId: string, current: number, n: number) => rateWatched(filmId,
     </section>
 
     <p class="mt-6 text-center text-label text-subtle">Kept on this phone. No account needed.</p>
+    <AlertsSwitch class="mt-4" />
     <label class="card mt-4 flex cursor-pointer items-center gap-4 p-4">
       <span class="flex flex-1 flex-col gap-1">
         <span class="text-body font-semibold">Share anonymous counts with AFRIFF</span>

@@ -32,6 +32,8 @@ export interface ChangeDoc {
   action: 'create' | 'update' | 'delete';
   data: Record<string, unknown> | null;
   before: Record<string, unknown> | null;
+  /** only these fields change on approval (set by the afriff.com sync); missing = the whole item */
+  fields?: string[];
   summary: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedBy: string;

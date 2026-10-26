@@ -30,6 +30,7 @@ const items = computed(() => NEWS.map((n) => {
 <template>
   <div>
     <PageTitle title="News & alerts" :icon="BellIcon" description="Changes to screenings and events, and festival news. Newest first." />
+    <AlertsSwitch class="mt-4" />
     <UiEmptyState v-if="NEWS.length === 0" :icon="BellIcon" title="No news yet" description="Changes to the programme will appear here." />
     <div class="mt-5 flex flex-col gap-3">
       <article v-for="{ n, tag, link, alert } in items" :key="n.id" class="card flex flex-col gap-1 p-4" :class="alert && 'border-danger/40'">

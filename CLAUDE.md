@@ -202,7 +202,7 @@ Start with sample African films and 4 sample venues.
 (Update this section at the end of each session: what's done, what's
 next, anything I need to do.)
 
-### STATUS AT A GLANCE (updated 25 Oct 2026; festival opens 1 Nov)
+### STATUS AT A GLANCE (updated 26 Oct 2026; festival opens 1 Nov)
 Read this first; the dated sections below are the detailed history.
 - Who: product owner (this laptop, with Claude Code) + Michael
   (developer, GitHub michaelkyng). WORKING AGREEMENT: every change goes
@@ -220,12 +220,15 @@ Read this first; the dated sections below are the detailed history.
 - Build steps: 1 look ✅ · 2 admin console + logins ✅ (owner's own login
   tests of Team / Approvals / Reports outstanding) · 3 real data ✅ (but
   screening + event TIMES ARE SAMPLES) · 4 My Festival + Share my day ✅ ·
-  5 news + alerts ✅ (no push notifications, by design) · 6 sponsors +
+  5 news + alerts ✅ (+ push notifications, built 26 Oct; need 2 keys set
+  up, see "Push notifications") · 6 sponsors +
   venues ✅ · 7 watched log + Letterboxd ✅ · 8 live queues ✅ built, plus
   the volunteer door view; NOT yet tested with real logins on real phones.
 - Extras built on request: masterclasses + events, jury page, film page
   extras, simplified Home, daily highlight, admin reports, home-screen
-  install + offline (Michael).
+  install + offline (Michael), afriff.com film sync every 15 minutes
+  (26 Oct; built and tested, NOT deployed: needs Blaze; see "afriff.com
+  film sync").
 - Branch `claude/daily-highlights-filmstrip` (filmstrip + "Daily
   highlights" headline) MERGED INTO main 23 Oct (pull request #3). The
   monorepo split (branch dev) is rebased on top of it; dev → main still
@@ -240,10 +243,12 @@ Read this first; the dated sections below are the detailed history.
   anyone can use "Forgot password?" and read the reset email, and the
   admin's password is in GitHub history (commit 7d49371). User decision
   25 Oct: keep them for the demo, then move them to private addresses or
-  delete them before 1 Nov.
+  delete them before 1 Nov. (6) Push notifications stay switched off until
+  their two Firebase keys are added on Vercel (see "Push notifications for
+  announcements"); not yet tried on a real phone.
 - Deploy commands (25 Oct, Firebase CLI, all to afriff-app): `npm run
-  deploy:rules`, `deploy:functions` (no Cloud
-  Functions exist yet; they'd need the paid Blaze plan). Pasting rules into
+  deploy:rules`, `deploy:functions` (the afriff.com sync in `functions/`;
+  needs the paid Blaze plan). Pasting rules into
   the Firebase console still works.
 - NEEDED FROM AFRIFF: real schedule (times, rooms), premiere status per
   film (afriff.com doesn't publish it, so no premiere badges yet), posters
@@ -621,7 +626,8 @@ heavy libraries) apply everywhere.
 - STEP 4: `src/lib/store.jsx` saves plans (screenings + events), Seen it
   (date + 1–5 stars) and queues checked on the phone (localStorage key
   `afriff-my-v1`). First visit starts EMPTY (demo sample picks removed).
-- ALERTS (step 5, no push notifications):
+- ALERTS (step 5; push notifications added 26 Oct, see "Push notifications
+  for announcements"):
   - Console: screenings/events have `status` ('' / moved / time-changed
     / cancelled). News has `type` (venue-change, time-change, cancelled,
     sold-out, news), `urgent`, `until` (banner end time), optional
@@ -1069,6 +1075,134 @@ heavy libraries) apply everywhere.
 - Removed the `demo:logins` and `seed:admin` npm scripts (their files were
   deleted on 25 Oct).
 
+### Push notifications for announcements (26 Oct 2026, user request)
+- CHANGED DECISION: this brief said "no push notifications, by design".
+  The user asked for them on 26 Oct, so they're built.
+- WHAT ATTENDEES SEE: an "Alerts on this phone" switch at the top of News
+  and at the bottom of My Festival. Off until they turn it on (the phone
+  then asks permission). Tapping a notification opens News. iPhone: only
+  works once AFRIFF is added to the Home Screen (iOS 16.4 or later); in
+  Safari the card says so instead of showing the switch.
+- WHAT THE TEAM DOES: nothing new. News items have a new tick box, "Send as
+  a push notification to phones with alerts on", ticked by default on NEW
+  items and on "Tell attendees?" alerts (existing items stay unticked). It's
+  sent ONCE, the first time it's published with Publish to app. Editing and
+  publishing again never re-sends it. Editors' items go through approval as
+  before. The Publish page lists what will be sent before you press it, and
+  says "Push notification sent: …" after.
+- SAFETY RULES: at most 3 notifications per publish (newest first; extras
+  are never sent later); nothing sent once its banner end time ("until")
+  has passed; a phone offline for over 24 h doesn't get it late. The
+  notification is the headline plus the first 180 characters of the message.
+- COST: none expected. Google's Firebase Cloud Messaging is free on the
+  current free plan (no Blaze needed). Each publish that sends uses a few
+  database reads; each phone turning alerts on is one small request to the
+  staff app.
+- HOW (for the developer): FCM topic "news"; the staff app now has three
+  small server routes, `/api/push/*` (send = admins only; subscribe /
+  unsubscribe = called by phones); Firestore `pushLog` remembers what was
+  sent. Details in DEVELOPER.md "Push notifications for announcements".
+- SETUP BEFORE IT WORKS (once, all free; Michael or the owner):
+  1. Firebase console → Project settings → Cloud Messaging → Web Push
+     certificates → Generate key pair. Copy the key into the ATTENDEE
+     Vercel project as `NUXT_PUBLIC_FIREBASE_VAPID_KEY`; redeploy it.
+  2. Firebase console → Project settings → Service accounts → Generate new
+     private key (downloads a .json file; it's a SECRET: never put it in
+     GitHub, chat or email). Paste the whole file into the STAFF Vercel
+     project as `NUXT_FIREBASE_SERVICE_ACCOUNT`, marked Sensitive; redeploy it.
+  3. `npm run deploy:rules` (new `pushLog` rule, so the Publish page can list
+     what it will send).
+  Until 1 and 2 are done, the switch stays hidden and publishing works as
+  before; publishing a ticked item then says push isn't set up yet.
+- TESTED (26 Oct, by Claude): typecheck and both builds; the sending rules;
+  the staff app's routes with a pretend Firebase (editor refused, first
+  publish sends the 3 newest and skips the rest, publishing again sends
+  nothing, a failed send is retried next publish, phones join and leave the
+  list, key pasted as JSON or base64, clear messages for a missing or broken
+  key); the attendee app in a phone-sized test browser with Google faked
+  (switch on → phone on the list; push → notification shown; same one twice
+  → one notification; tap → News without reloading; renewed phone address
+  re-joined on start; switch off → removed; blocked in settings → explained;
+  iPhone Safari → "add to Home Screen first"). Found and fixed on the way:
+  Nuxt turns a JSON setting into an object, which would have stopped sending
+  on Vercel. NOT TESTED: a real notification to a real phone (needs the two
+  keys), and the Publish page with a real admin login.
+
+### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
+- WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
+  afriff.com every 15 minutes and brings the FILMS in the database up to
+  date: title, synopsis, poster, director, cast, country, language, genre,
+  running time, year, programme section, trailer. Films new on afriff.com
+  are added. Nothing is ever deleted. It never publishes: attendees see the
+  changes after an admin presses Publish to app (the brief's approval rule).
+- TIMES AND DATES: afriff.com has none to fetch yet. Its schedule page says
+  "Screening times are added when the programme is out", its film records
+  have no showtime field, and masterclasses have no per-class dates. The
+  function WATCHES for them: the console card says when the schedule page
+  changes or the film records gain new kinds of details. Adding times to the
+  sync is then a small job, once their format is known.
+- THE RULE (keeps "the database is the master copy"): a field only changes
+  when afriff.com changes it, and only if ours still holds afriff.com's
+  previous value. If the team edited that field, the change waits in
+  Approvals ("afriff.com changed the synopsis of …", from "afriff.com sync
+  (automatic)"); approving writes only those fields (`approveChange` now
+  honours a change's `fields`). afriff.com emptying a field never empties
+  ours. A film the team deleted isn't added back. The FIRST check changes
+  nothing; it only learns what afriff.com says. So the 25 Oct cleanup
+  (capitals, 2:Love's synopsis, removed trailers, "Not Specified"…) stays.
+- CLEANING (same as the 25 Oct sync by hand): ALL-CAPS titles and names get
+  normal capitals; "Not Specified" countries and "Other" languages dropped;
+  only YouTube / Vimeo trailer links (Drive / Mega screeners ignored);
+  poster paths become https://afriff.com/__l5e/... links; "coming soon"
+  synopses count as none; genre = afriff.com's first 2 tags; afriff.com's
+  duplicate "Ife Ati Iku" listing only fills gaps in ours (`ALIASES` in
+  `functions/src/config.ts`). NOT checked: whether a YouTube / Vimeo
+  trailer is private (this Mac can't reach YouTube or Vimeo to test it).
+  Clear a bad one in the console and the sync never puts it back.
+- HOW IT READS afriff.com: there's no feed. The film list is a JavaScript
+  file (film-selection-test-<fingerprint>.js) linked from afriff.com/program.
+  Its name only changes when its contents do, so each check downloads just
+  /program and /program/schedule (~150 KB), plus the film file only when its
+  name changed. The file runs inside QuickJS, a JavaScript engine compiled to
+  WebAssembly (no network, no files, no access to our keys; 64 MB and 5 s
+  limits), and only plain data comes out.
+- SAFETY: fewer than 20 films, under half of last time, or many without
+  titles → change nothing and show the error. One all-or-nothing save per
+  check; if someone saves a film in the console mid-save, nothing is saved
+  and the next check redoes it. Every check that changes something leaves a
+  log with before/after values (Firestore `syncRuns`).
+- WHERE TO SEE IT: console → Festival data → "afriff.com sync" card
+  (admins): last check, last change, "Not on phones yet: Publish to app",
+  afriff.com changes waiting in Approvals, the schedule watch, films no
+  longer on afriff.com, and a warning if there's been no check for 45 min.
+  Firestore: `sync/afriff` (status), `sync/afriff-baseline` (what
+  afriff.com said last time), `syncRuns` (logs). New rule `match
+  /sync/{id}` (admins read) → `npm run deploy:rules`.
+- COST: needs Blaze (Cloud Functions and the Cloud Scheduler job aren't on
+  the free Spark plan). Expected about $0: 2,880 runs a month of a few
+  seconds each (free allowance: 2 million), 1 scheduler job (3 free per
+  account), ~2 tiny database writes per check; at most a few cents a month
+  to store the function's code. Set a budget alert anyway.
+- TESTED: `npm run functions:test` (37 tests: cleaning, sandbox limits, the
+  rule above, a "whole season" of checks against a pretend afriff.com and a
+  pretend database, a broken site, an edit during a save).
+  `npm run functions:check` = dry run against live afriff.com and the
+  published copy; changes nothing. Live rehearsal 26 Oct (real afriff.com,
+  pretend database holding our published films): check 1 learned 104 films
+  and changed nothing; check 2 said "unchanged" in 2 s. Rules compile
+  (dry run); staff console typecheck + build pass. NOT TESTED: the real
+  deploy (needs Blaze), the card with a real admin login.
+- NOT SYNCED: masterclasses, jury and partner logos (films only for now;
+  the same code can be extended).
+- TO DEPLOY (Michael, once on Blaze): `npm run functions:install`, `npm run
+  deploy:rules`, `npm run deploy:functions` (runs typecheck, tests and the
+  build first). The first check comes within 15 minutes and the card says
+  "first check done". To run one now: Google Cloud console → Cloud Scheduler
+  → firebase-schedule-syncFromAfriff-europe-west2 → Force run. Logs:
+  `npm --prefix functions run logs`. The `functions/` folder has its own
+  package.json and lockfile, outside the npm workspaces, so the apps'
+  installs and Vercel builds don't change.
+
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on
   HIS OWN Vercel account (new projects, one per app since the monorepo
@@ -1128,3 +1262,9 @@ heavy libraries) apply everywhere.
    an alert end to end, Reports, install + airplane mode; then Clear counts.
 4. Load AFRIFF's real schedule and content in the console; Publish to app.
 5. Host posters / logos / jury photos ourselves; final address + QR codes.
+6. Push notifications: add the two keys (see "Push notifications for
+   announcements"), deploy rules, then on a real Android and iPhone turn
+   alerts on, publish a ticked test item, check it arrives, then delete it.
+7. afriff.com film sync: once on Blaze, deploy rules + functions (see
+   "afriff.com film sync"), then check the card on Festival data after
+   15 minutes.

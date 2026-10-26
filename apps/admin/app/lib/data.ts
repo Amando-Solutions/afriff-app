@@ -102,6 +102,9 @@ export async function approveChange(change: ChangeDoc, admin: Profile) {
   const batch = writeBatch(db);
   const target = doc(db, change.collection, change.docId);
   if (change.action === 'delete') batch.delete(target);
+  // proposals from the afriff.com sync name the fields they change: only those
+  // are written, so edits made to the item since the proposal aren't undone
+  else if (change.fields?.length) batch.set(target, Object.fromEntries(change.fields.map((f) => [f, change.data?.[f] ?? ''])), { merge: true });
   else batch.set(target, change.data ?? {});
   batch.update(doc(db, 'changes', change.id), {
     status: 'approved', reviewedBy: admin.id, reviewedByName: admin.name || admin.email, reviewedAt: serverTimestamp(),

@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { BellIcon, ChevronLeftIcon } from 'lucide-vue-next'
 import { dayLabel, timeLabel } from '@afriff/core/utils/format'
-import { COLLECTIONS, fromForm, slugify, toForm, type CollectionName, type FormValues } from '~/lib/schema'
+import { COLLECTIONS, fromForm, newItemDefaults, slugify, toForm, type CollectionName, type FormValues } from '~/lib/schema'
 import type { Profile } from '~/lib/types'
 import { errMsg } from '~/lib/util'
 
@@ -26,7 +26,7 @@ const alertDraft = ref<AlertDraft | null>(null)
 
 // fill the form once the item has loaded
 watch(existing, (e) => {
-  if (values.value == null && (isNew || e)) values.value = toForm(props.col, isNew ? {} : e)
+  if (values.value == null && (isNew || e)) values.value = toForm(props.col, isNew ? newItemDefaults(props.col) : e)
 }, { immediate: true })
 const missing = computed(() => !isNew && state.items && !existing.value)
 
@@ -61,7 +61,7 @@ async function postAlert() {
   Object.assign(alertState, { busy: true, msg: '', error: '' })
   try {
     if (!alertDraft.value) return
-    const news = { ...alertDraft.value, urgent: true, time: new Date().toISOString(), url: '', until: '' }
+    const news = { ...alertDraft.value, urgent: true, push: true, time: new Date().toISOString(), url: '', until: '' }
     const id = `alert-${Date.now().toString(36)}`
     const result = await saveItem({ profile: props.profile, col: 'news', id, data: news, before: null, summary: `New alert: ${news.title}` })
     Object.assign(alertState, { busy: false, msg: result === 'saved' ? 'Alert saved. Press Publish to app so attendees see it.' : 'Alert sent for approval.' })
@@ -124,7 +124,7 @@ async function remove() {
 
       <div v-if="alertDraft" class="card mt-6 flex flex-col gap-3 border-accent/50 p-4">
         <h2 class="flex items-center gap-2 text-h3 font-semibold"><BellIcon class="size-[1.125rem] text-accent-ink" /> Tell attendees?</h2>
-        <p class="text-meta text-muted">You changed when or where this happens. Post an urgent alert? It shows as a banner on Home and in News, linked to this item.</p>
+        <p class="text-meta text-muted">You changed when or where this happens. Post an urgent alert? It shows as a banner on Home and in News, linked to this item, and as a push notification on phones with alerts on.</p>
         <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Headline<input v-model="alertDraft.title" class="field-input" /></label>
         <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Message<textarea v-model="alertDraft.body" rows="3" class="field-input" /></label>
         <p v-if="alertState.error" class="text-meta text-danger">{{ alertState.error }}</p>

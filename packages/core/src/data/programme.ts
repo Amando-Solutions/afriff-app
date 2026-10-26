@@ -123,7 +123,7 @@ const STYLES: PosterStyle[] = ['glow', 'stripes', 'split'];
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 // colour art for a film without a poster image, always the same for the same film
-function posterArt(id: string) {
+export function posterArt(id: string) {
   const h = hash(id);
   const [a, b] = PALETTE[h % PALETTE.length]!;
   return { style: STYLES[h % STYLES.length]!, a, b };
