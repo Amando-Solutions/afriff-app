@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onBeforeUnmount, reactive, ref } from 'vue'
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore'
-import type { Profile } from './types'
-import { errMsg, whenLagos } from './util'
+import type { Profile } from '~/lib/types'
+import { errMsg, whenLagos } from '~/lib/util'
 import { SendIcon } from 'lucide-vue-next'
-import { db } from './firebase'
-import { COLLECTIONS, isCollection } from './schema'
-import { publishToApp } from './publish'
+import { db } from '~/lib/firebase'
+import { COLLECTIONS, isCollection } from '~/lib/schema'
+import { publishToApp } from '~/lib/publish'
 
 interface PublishedInfo { version?: number; counts?: Record<string, number>; publishedAt?: Timestamp; publishedByName?: string }
 const props = defineProps<{ profile: Profile }>()
@@ -22,7 +22,7 @@ const stop = onSnapshot(
 onBeforeUnmount(stop)
 
 async function run() {
-  if (!window.confirm('Publish the current festival data to the attendee app? Everyone will see it within about a minute.')) return
+  if (!window.confirm('Publish the current festival data to the attendee app? Open phones pick it up within seconds.')) return
   Object.assign(state, { busy: true, done: null, error: '' })
   try {
     Object.assign(state, { busy: false, done: await publishToApp(props.profile) })

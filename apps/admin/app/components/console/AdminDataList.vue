@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, SearchIcon } from 'lucide-vue-next'
-import { COLLECTIONS, type CollectionName } from './schema'
-import { useCollection } from './data'
-import { useRefs } from './refs'
+import { COLLECTIONS, type CollectionName } from '~/lib/schema'
+import { useCollection } from '~/lib/data'
+import { useRefs } from '~/lib/refs'
 
 // List of one kind of data, with search.
 const props = defineProps<{ col: CollectionName }>()

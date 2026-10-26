@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
 import { ChevronRightIcon, DownloadCloudIcon, SaveIcon } from 'lucide-vue-next'
-import { COLLECTIONS, COLLECTION_ORDER, isCollection, type CollectionName } from './schema'
-import { downloadBackup, importAll, useCollection, type ImportResult } from './data'
-import type { Profile } from './types'
-import { errMsg } from './util'
+import { COLLECTIONS, COLLECTION_ORDER, isCollection, type CollectionName } from '~/lib/schema'
+import { downloadBackup, importAll, useCollection, type ImportResult } from '~/lib/data'
+import type { Profile } from '~/lib/types'
+import { errMsg } from '~/lib/util'
 
 // Festival data home: one card per kind of data, plus import and backup for admins.
 defineProps<{ profile: Profile }>()

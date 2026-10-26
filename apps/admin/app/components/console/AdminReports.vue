@@ -4,8 +4,8 @@ import { ChartColumnIcon, DownloadIcon, RefreshCwIcon } from 'lucide-vue-next'
 import { FESTIVAL } from '@afriff/core/data/programme'
 import { dayLabel, timeLabel } from '@afriff/core/utils/format'
 import { lagosDate } from '@afriff/core/utils/now'
-import { SELL_OUT_SHARE, csvDownload, loadReport, type Report } from './reports'
-import { errMsg } from './util'
+import { SELL_OUT_SHARE, csvDownload, loadReport, type Report } from '~/lib/reports'
+import { errMsg } from '~/lib/util'
 
 // Admins: anonymous counts from attendees' phones (only phones with sharing on).
 const state = reactive({ busy: false, report: null as Report | null, error: '' })

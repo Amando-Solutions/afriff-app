@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { COLLECTIONS, type FieldDef } from './schema'
-import type { DataDoc, Refs } from './types'
+import { COLLECTIONS, type FieldDef } from '~/lib/schema'
+import type { DataDoc, Refs } from '~/lib/types'
 
 const INPUT_TYPES: Partial<Record<FieldDef['type'], string>> = { number: 'number', url: 'url', time: 'time', color: 'color', datetime: 'datetime-local' }
 

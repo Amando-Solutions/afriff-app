@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useChanges } from './data'
-import type { ChangeDoc, Profile } from './types'
+import { useChanges } from '~/lib/data'
+import type { ChangeDoc, Profile } from '~/lib/types'
 import type { BadgeTone } from '@afriff/theme/components/ui/UiBadge.vue'
-import { whenLagos } from './util'
+import { whenLagos } from '~/lib/util'
 
 // Editors: everything they've sent for approval, newest first.
 const props = defineProps<{ profile: Profile }>()

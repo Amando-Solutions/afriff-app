@@ -31,7 +31,9 @@ const summary = computed(() => {
 function shareDay(date: string) {
   const p = dateParts(date)
   const lines = (byDay.value[date] || []).map((item) => `• ${timeLabel(item.time)}: ${item.title} (${planWhere(item)})`)
-  const text = `My AFRIFF day, ${p.day} ${p.date} ${p.month}:\n${lines.join('\n')}`
+  // link back to the app, open on that day's schedule
+  const link = `${window.location.origin}/programme?day=${date}`
+  const text = `My AFRIFF day, ${p.day} ${p.date} ${p.month}:\n${lines.join('\n')}\n\nFull programme: ${link}`
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
 }
 

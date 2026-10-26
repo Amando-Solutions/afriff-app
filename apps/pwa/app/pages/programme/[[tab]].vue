@@ -11,7 +11,7 @@ import { EVENTS, EVENT_FILTERS, EVENT_TYPES, eventsOn, isMultiDay } from '@afrif
 import { dateParts } from '@afriff/core/utils/format'
 import { dayItems, type DayItemType } from '~/lib/dayItems'
 import { planForDay } from '~/lib/plan'
-import { programmeMemory as memory } from '~/lib/programmeMemory'
+import { openProgrammeDay, programmeMemory as memory } from '~/lib/programmeMemory'
 import { useLiveClock } from '~/lib/queues'
 import { useFestival } from '~/lib/store'
 
@@ -20,6 +20,8 @@ import { useFestival } from '~/lib/store'
 const route = useRoute()
 const tab = computed(() => (route.params.tab === 'films' || route.params.tab === 'events' ? route.params.tab : 'schedule'))
 useHead({ title: 'Programme' })
+// /programme?day=2026-11-03 opens the Schedule on that day (links in "Share my day")
+if (typeof route.query.day === 'string' && FESTIVAL.days.includes(route.query.day)) openProgrammeDay(route.query.day)
 
 const searching = ref(false)
 const { state, isWatched, toggleWatched } = useFestival()
@@ -174,7 +176,7 @@ const eventDays = computed(() =>
             <FilmPoster :film="f" class="aspect-[2/3] w-10 rounded-thumb" />
             <span class="flex min-w-0 flex-col">
               <span class="truncate text-body font-semibold">{{ f.title }}</span>
-              <span class="truncate text-meta text-muted">{{ f.director }} · {{ f.country }}</span>
+              <span class="truncate text-meta text-muted">{{ [f.director, f.country].filter(Boolean).join(' · ') }}</span>
             </span>
           </NuxtLink>
           <span class="flex shrink-0 gap-1" aria-label="Venues"><VenueDot v-for="v in venuesOf(f.id)" :key="v" :venue-id="v" /></span>

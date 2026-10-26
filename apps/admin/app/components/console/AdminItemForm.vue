@@ -2,17 +2,16 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { BellIcon, ChevronLeftIcon } from 'lucide-vue-next'
 import { dayLabel, timeLabel } from '@afriff/core/utils/format'
-import { COLLECTIONS, fromForm, slugify, toForm, type CollectionName, type FormValues } from './schema'
-import type { Profile } from './types'
-import { errMsg } from './util'
+import { COLLECTIONS, fromForm, slugify, toForm, type CollectionName, type FormValues } from '~/lib/schema'
+import type { Profile } from '~/lib/types'
+import { errMsg } from '~/lib/util'
 
 type Doc = Record<string, unknown>
 interface AlertDraft { type: string; title: string; body: string; screening?: string; event?: string }
 /** read a database value as text */
 const t = (v: unknown) => (v == null ? '' : String(v))
-import { deleteItem, saveItem, useCollection } from './data'
-import { useRefs } from './refs'
-import AdminField from './AdminField.vue'
+import { deleteItem, saveItem, useCollection } from '~/lib/data'
+import { useRefs } from '~/lib/refs'
 
 // Edit (or create) one item. Admins save straight away; editors send it for approval.
 const props = defineProps<{ col: CollectionName; id: string; profile: Profile }>()

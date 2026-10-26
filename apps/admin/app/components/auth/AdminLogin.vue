@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { createProfile } from './useAdminAuth'
-import { auth } from './firebase'
+import { createProfile } from '~/lib/useAdminAuth'
+import { auth } from '~/lib/firebase'
 
 // the attendee app is its own app and address (apps/pwa)
 const attendeeUrl = useRuntimeConfig().public.attendeeUrl as string

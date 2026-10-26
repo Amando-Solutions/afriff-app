@@ -35,10 +35,12 @@ export let VENUES: Venue[] = [
 ];
 
 // Programme sections, in the order they appear on the "All films" tab.
-export const SECTIONS = ['Opening Movie', 'Special Presentations', 'Features', 'Documentary', 'Jury Selection', 'Audience', 'Shorts'];
-const SECTION_CODES: Record<string, string> = { OPEN: 'Opening Movie', SP: 'Special Presentations', FEAT: 'Features', DOC: 'Documentary', JURY: 'Jury Selection', AUD: 'Audience', SHORTS: 'Shorts' };
+export const SECTIONS = ['Opening Movie', 'Special Presentations', 'Features', 'Documentary', 'Jury Selection', 'Audience', 'Shorts', 'Out of Competition'];
+const SECTION_CODES: Record<string, string> = { OPEN: 'Opening Movie', SP: 'Special Presentations', FEAT: 'Features', DOC: 'Documentary', JURY: 'Jury Selection', AUD: 'Audience', SHORTS: 'Shorts', OOC: 'Out of Competition' };
 
-const POSTER_BASE = 'https://afriff-revival.lovable.app/__l5e/assets-v1/';
+// Posters, logos and jury photos are linked straight from afriff.com (the
+// old afriff-revival.lovable.app links only redirect there).
+const POSTER_BASE = 'https://afriff.com/__l5e/assets-v1/';
 
 // id | title | section | country | minutes | year | director | language | genre | trailer | poster | synopsis
 const RAW = `
@@ -252,7 +254,7 @@ export let HOW_TO_ATTEND: HowToSection[] = [
 // 'original' (keeps its colours; already works on dark), 'knockout'
 // (a picture with a white background: the white is dropped).
 // Keep names stable: they become the database IDs.
-const LOGO_BASE = 'https://afriff-revival.lovable.app/__l5e/assets-v1/';
+const LOGO_BASE = 'https://afriff.com/__l5e/assets-v1/';
 export let SPONSORS: Sponsor[] = [
   { name: 'MTN', logo: `${LOGO_BASE}2ff9abc3-f2d4-4ce5-b405-2e79443f0e78/mtn.png`, logoStyle: 'original' },
   { name: 'Filmhouse Group', logo: `${LOGO_BASE}f20b24e7-e2ab-4e76-a61e-f013c21d4f58/filmhouse-group.png` },

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { collection, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore'
-import { db } from './firebase'
-import { ROLES } from './useAdminAuth'
-import type { Profile, Role } from './types'
-import { errMsg } from './util'
+import { db } from '~/lib/firebase'
+import { ROLES } from '~/lib/useAdminAuth'
+import type { Profile, Role } from '~/lib/types'
+import { errMsg } from '~/lib/util'
 import { VENUES } from '@afriff/core/data/programme'
 
 // Admins only: everyone who has signed up, and what they're allowed to do.

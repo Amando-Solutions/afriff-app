@@ -169,8 +169,8 @@ const more = computed(() => {
       </div>
     </section>
 
-    <!-- Queue -->
-    <section class="mt-8">
+    <!-- Queue (only for films with showings) -->
+    <section v-if="showings.length > 0" class="mt-8">
       <h2 class="mb-3 font-display text-h2 font-semibold">Queue</h2>
       <p v-if="allDone" class="text-muted">Every showing has screened. No queues left for this film.</p>
       <p v-else-if="openQueuesHere.length === 0" class="text-muted">Queues open 2 hours before each showing. Check back then for a live count.</p>
@@ -212,7 +212,7 @@ const more = computed(() => {
             <span v-if="!f.image" class="absolute inset-x-2 bottom-2 z-2 line-clamp-3 text-meta leading-tight font-semibold text-white">{{ f.title }}</span>
           </FilmPoster>
           <span class="mt-1 truncate text-meta font-semibold">{{ f.title }}</span>
-          <span class="text-label text-muted">{{ runtimeLabel(f.runtime) }}</span>
+          <span v-if="f.runtime > 0" class="text-label text-muted">{{ runtimeLabel(f.runtime) }}</span>
         </NuxtLink>
       </div>
     </section>

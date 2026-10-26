@@ -1,4 +1,4 @@
-// AFRIFF staff console (apps/admin): the admin console (/admin: festival data,
+// AFRIFF staff console (apps/admin): sign-in (/login), the admin console (/admin: festival data,
 // approvals, publish to app, reports, team) and the door volunteers' view
 // (/door). Its own app and address, so attendees' phones never download staff
 // code. Nuxt PWA in SPA mode, like the attendee app: volunteers install it on
@@ -54,7 +54,8 @@ export default defineNuxtConfig({
   },
 
   // The shared service-worker setup is in @afriff/pwa; this is the console's identity.
-  // Opens at "/", which sends volunteers to /door and everyone else to /admin.
+  // Opens at "/", which sends signed-out people to /login, volunteers to /door
+  // and everyone else to /admin (app/lib/access.ts).
   pwa: {
     manifest: {
       id: '/',

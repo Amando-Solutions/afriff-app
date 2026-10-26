@@ -202,7 +202,7 @@ Start with sample African films and 4 sample venues.
 (Update this section at the end of each session: what's done, what's
 next, anything I need to do.)
 
-### STATUS AT A GLANCE (updated 23 Oct 2026; festival opens 1 Nov)
+### STATUS AT A GLANCE (updated 25 Oct 2026; festival opens 1 Nov)
 Read this first; the dated sections below are the detailed history.
 - Who: product owner (this laptop, with Claude Code) + Michael
   (developer, GitHub michaelkyng). WORKING AGREEMENT: every change goes
@@ -214,7 +214,9 @@ Read this first; the dated sections below are the detailed history.
   24 Oct into a monorepo: attendee app `apps/pwa`, staff app `apps/admin`,
   shared `packages/` (see "Monorepo" below). GitHub TheoKwechi/afriff-app,
   branch main. Live:
-  https://afriff-app-mu.vercel.app runs Michael's Nuxt version.
+  https://afriff-app-mu.vercel.app runs an OLDER Nuxt build (checked 25 Oct:
+  from before the 24 Oct monorepo split). Point demo links / QR codes at the
+  address Michael actually deploys to.
 - Build steps: 1 look ✅ · 2 admin console + logins ✅ (owner's own login
   tests of Team / Approvals / Reports outstanding) · 3 real data ✅ (but
   screening + event TIMES ARE SAMPLES) · 4 My Festival + Share my day ✅ ·
@@ -233,19 +235,24 @@ Read this first; the dated sections below are the detailed history.
   updating → move to Blaze + budget alert. (2) Vercel Hobby is
   non-commercial → Vercel Pro or Firebase Hosting (Blaze). (3) Sample
   times. (4) Nothing tested end to end on real phones with real logins.
-  (5) admin@yopmail.com (password in `scripts/seed-admin.mjs`) was made an
-  admin on 25 Oct with a temporary self-admin rule, since removed from
-  `firestore.rules`. yopmail inboxes are public, so delete that account
-  before 1 Nov.
+  (5) ALL THREE demo logins are yopmail addresses (admin@, editor@,
+  volunteer@yopmail.com; checked 25 Oct). yopmail inboxes are public, so
+  anyone can use "Forgot password?" and read the reset email, and the
+  admin's password is in GitHub history (commit 7d49371). User decision
+  25 Oct: keep them for the demo, then move them to private addresses or
+  delete them before 1 Nov.
 - Deploy commands (25 Oct, Firebase CLI, all to afriff-app): `npm run
   deploy:rules`, `deploy:functions` (no Cloud
   Functions exist yet; they'd need the paid Blaze plan). Pasting rules into
   the Firebase console still works.
-- NEEDED FROM AFRIFF: real schedule (times, rooms), official synopses,
-  poster / logo / jury photo files to host ourselves, sponsors' OK to show
-  logos, confirm 3 "How to attend" sections, bios for Erin G. Wesley,
-  Chuka Ejorh, Tunde Babalola, graphics for Producing + Animation, fixes
-  for afriff.com data errors, and (optional) an app.afriff.com address.
+- NEEDED FROM AFRIFF: real schedule (times, rooms), premiere status per
+  film (afriff.com doesn't publish it, so no premiere badges yet), posters
+  for the 18 films that have none, details for the 36 Out of Competition
+  films (synopsis, runtime, country), poster / logo / jury photo files to
+  host ourselves, sponsors' OK to show logos, confirm 3 "How to attend"
+  sections, bios for Erin G. Wesley, Chuka Ejorh, Tunde Babalola, date +
+  details for "From Idea to the Screen" (Banwo & Ighodalo), fixes for
+  afriff.com data errors, and (optional) an app.afriff.com address.
 
 ### Decisions made (session 1, 18 Oct 2026)
 - Tech: React + Vite (plain JavaScript), icons from lucide-react.
@@ -267,9 +274,14 @@ Read this first; the dated sections below are the detailed history.
   - Synopses are short one-liners written for the app, not copied from
     afriff.com (that text belongs to AFRIFF/filmmakers). AFRIFF should
     enter the official synopses through the admin console.
+    CHANGED 25 Oct 2026 (user decision): the database now holds AFRIFF's
+    official synopses from afriff.com. See "Data sync from afriff.com".
   - Posters are linked from AFRIFF's site (afriff-revival.lovable.app);
     films without one show a colour placeholder. Before launch, get the
     poster files from AFRIFF and host them ourselves.
+    CHANGED 25 Oct 2026: linked straight from afriff.com
+    (https://afriff.com/__l5e/assets-v1/...); the lovable.app links only
+    redirected there.
   - Trailers: only public YouTube/Vimeo trailer links are used.
     afriff.com also lists Google Drive / Mega / private Vimeo links that
     look like screeners; left out on purpose.
@@ -287,6 +299,7 @@ Read this first; the dated sections below are the detailed history.
   films also have a `genre`. Sections are AFRIFF's own, in order:
   Opening Movie, Special Presentations, Features, Documentary, Jury
   Selection, Audience, Shorts (Jury Selection and Audience are empty).
+  ADDED 25 Oct 2026: Out of Competition (36 films, new on afriff.com).
 - Test clock: add `?now=2026-11-01T17:15` before the `#` in the address
   to make the app act as if it's that Lagos time (for testing the
   timeline's red line, live queues, countdown). Code: `src/lib/now.js`.
@@ -963,7 +976,8 @@ heavy libraries) apply everywhere.
   download no longer contains any staff code (a little smaller and lighter).
 - WHAT CHANGED FOR STAFF: the admin console and the door view are now their
   OWN app at their OWN address (a second Vercel project), called "AFRIFF
-  Staff" when installed. Opening it sends volunteers straight to the door
+  Staff" when installed. (25 Oct: signed-out people now land on /login.)
+  Opening it sends volunteers straight to the door
   counter and everyone else to the console. Old links still work: /admin,
   /door, #/admin and #/door on the attendee app forward to the staff app.
 - WHY: same architecture as Michael's DP Fitness project. One folder
@@ -988,6 +1002,72 @@ heavy libraries) apply everywhere.
   set the attendee project's Root Directory to `apps/pwa` and its
   `NUXT_PUBLIC_ADMIN_URL` to the staff app's address, add that address to
   Firebase → Authentication → Authorized domains. Details in DEVELOPER.md §5.
+
+### Staff app routing + data sync from afriff.com (25 Oct 2026, Michael's request)
+- STAFF APP ROUTING (apps/admin): the old catch-all page (`admin/[...path]`
+  + one big AdminApp component) is replaced by one Nuxt page per address.
+  "/" no longer sends signed-out people to /admin: they land on **/login**.
+  Addresses: /login, /pending (signed in, no role yet), /door, /admin
+  (tiles), /admin/team, /admin/approvals, /admin/publish, /admin/reports,
+  /admin/mine, /admin/data, /admin/data/<collection>, /admin/data/
+  <collection>/<id or new>; /admin/door forwards to /door. Deep links
+  survive sign-in (/login?redirect=...). Who may open what is in ONE file,
+  `apps/admin/app/lib/access.ts` (used by `middleware/auth.global.ts` and
+  `plugins/auth-guard.client.ts`, which also moves people on by themselves
+  when they log out or an admin changes their role).
+- Folders: screens in `apps/admin/app/components/` (auth/, console/, door/),
+  helpers in `apps/admin/app/lib/` (same pattern as the attendee app); the
+  old `app/admin/` folder is gone. Console top bar = `layouts/console.vue`.
+- Tested: 45 role × address combinations of the access rules, signed-out
+  redirects in a browser, typecheck + both builds. NOT tested by Claude:
+  signing in with a real account (Claude may not create logins) → test
+  admin, editor and volunteer logins once.
+- ATTENDEE APP FIXES: Share my day now ends with "Full programme: <link>",
+  which opens the Schedule on that day (`/programme?day=2026-11-03`).
+  Films with no screenings hide the Queue section; no "0m" for films
+  without a running time; no stray "·" when a film has no country.
+- DATA SYNC (written straight to Firestore with the Firebase CLI's admin
+  sign-in on Michael's Mac, then published; backup taken first, kept in
+  /Users/mac/Documents/afriff-backups/ outside the project because it holds
+  team emails):
+  - Source: afriff.com's own film list (105 films). All posters, jury photos,
+    sponsor logos and masterclass graphics now link straight to
+    https://afriff.com/__l5e/assets-v1/... (6 posters come from IMDb's image
+    server, as on afriff.com). 23 posters switched to AFRIFF's newer uploads,
+    15 films got a poster for the first time. 18 films still have none.
+  - Official afriff.com synopses for 64 films (user decision). Kept ours for
+    2:Love (afriff.com shows the wrong film's synopsis) and for 4 films with
+    none on afriff.com (2.6 Seconds, Eseuseu, Maktoub, Soul Catcher).
+  - Cast filled in for 45 films (empty before); missing languages filled.
+    Titles, directors, countries kept as we had them (afriff.com differs
+    only in capitals or has known errors).
+  - 36 NEW "Out of Competition" films (user decision): title, director and
+    poster only (afriff.com has nothing else yet). afriff.com lists "Ife Ati
+    Iku" twice; it's our "Ìfẹ́ àti Ikú (Love and Death)", so not added again
+    (ours got its poster). All-caps titles title-cased (Yes, Two, Calabash,
+    The Other Gaze).
+  - Trailers: added public Vimeo trailers for For Life and Hope is a Word;
+    removed In the Shadows 75's (Vimeo: private or deleted).
+  - 2:Love corrections and the Sun 1 Nov line-up swaps from corrections.ts
+    applied (every opening-day film has a poster).
+  - NEW masterclass (user decision) "From Idea to the Screen" with Banwo &
+    Ighodalo (law firm), graphic from afriff.com, SAMPLE date Mon 2 Nov
+    16:30–18:30, Twinwaters Masterclass room (the first suggested slot,
+    Thu 10:00, clashed with the Producing Masterclass).
+  - How to attend → Tickets: "Prices and sale dates are coming soon" →
+    "will be announced on afriff.com" (prices still unannounced).
+  - Not changed: "Times are samples for now" urgent banner (still true);
+    premiere badges (afriff.com doesn't say which films are premieres;
+    only Lady is ticked "In competition", by the team).
+  - Published to the app 25 Oct 20:55 UTC ("Data sync from afriff.com
+    (Claude, for Michael)"), which also created the `published/version`
+    marker for the first time, so open phones now get publishes live.
+- Built-in copy (`packages/core/src/data/`): image addresses switched to
+  afriff.com, section "Out of Competition" added. Synopses and the 36 new
+  films live only in the database (the master copy); the built-in files
+  stay the starting point / offline fallback.
+- Removed the `demo:logins` and `seed:admin` npm scripts (their files were
+  deleted on 25 Oct).
 
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on

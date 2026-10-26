@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useChanges } from './data'
+import { useChanges } from '~/lib/data'
 
 const changes = useChanges({ pendingOnly: true })
 </script>

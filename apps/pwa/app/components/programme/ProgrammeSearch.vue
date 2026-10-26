@@ -54,7 +54,7 @@ const events = computed(() => (query.value ? EVENTS.filter((e) => e.title.toLowe
         <FilmPoster :film="f" class="aspect-[2/3] w-11 rounded-thumb" />
         <span class="flex min-w-0 flex-col">
           <span class="truncate text-body font-semibold">{{ f.title }}</span>
-          <span class="truncate text-meta text-muted">{{ f.director }} · {{ f.country }}</span>
+          <span class="truncate text-meta text-muted">{{ [f.director, f.country].filter(Boolean).join(' · ') }}</span>
         </span>
       </NuxtLink>
     </div>

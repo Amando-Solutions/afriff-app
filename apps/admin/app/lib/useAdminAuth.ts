@@ -1,4 +1,4 @@
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
@@ -42,6 +42,19 @@ export function useAdminAuth() {
     });
   }
   return state;
+}
+
+/** The shared state, once Firebase has said who's signed in (and their profile has loaded). */
+export function whenAuthReady(): Promise<typeof state> {
+  const s = useAdminAuth();
+  if (!s.loading) return Promise.resolve(s);
+  return new Promise((resolve) => {
+    const stop = watch(() => s.loading, (loading) => {
+      if (loading) return;
+      stop();
+      resolve(s);
+    });
+  });
 }
 
 // For an account that exists without a team profile: create one with no access.

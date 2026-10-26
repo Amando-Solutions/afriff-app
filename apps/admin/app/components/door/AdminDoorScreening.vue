@@ -3,11 +3,11 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { increment, serverTimestamp, setDoc, type FieldValue, type Timestamp } from 'firebase/firestore'
 import { CheckIcon, ChevronLeftIcon, MinusIcon, PlusIcon, Undo2Icon } from 'lucide-vue-next'
 import { queueLabel, timeLabel } from '@afriff/core/utils/format'
-import { boardRef, useBoard } from './board'
-import type { BoardEntry, DoorScreening, Profile } from './types'
+import { boardRef, useBoard } from '~/lib/board'
+import type { BoardEntry, DoorScreening, Profile } from '~/lib/types'
 import type { Tone } from '@afriff/core/types/festival'
 import type { BadgeTone } from '@afriff/theme/components/ui/UiBadge.vue'
-import { errMsg } from './util'
+import { errMsg } from '~/lib/util'
 
 // THE COUNTER for one screening, in the door view (/door).
 // Two big buttons:

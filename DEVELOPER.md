@@ -17,7 +17,7 @@ Your job is to make sure it's technically solid for the festival
 |---|---|
 | Code (GitHub, private repo) | Collaborator invite from the product owner |
 | Firebase project `afriff-app` (Firestore + Auth) | Added as **Editor** under Project settings → Users and permissions |
-| Admin console role | Sign up on the staff console at `/admin`; an admin sets your role to *admin* on the Team page |
+| Admin console role | Create an account on the staff console at `/login`; an admin sets your role to *admin* on the Team page |
 | Vercel projects `afriff-app` (attendee) and the staff console project | Hobby plan = owner only for now; deploys go through the owner (see §5) |
 
 There are **no secrets**. The Firebase web config lives in
@@ -35,7 +35,7 @@ run everything **from the repo root**.
 ```
 npm install            # installs every app and package (one lockfile, at the root)
 npm run dev:pwa        # attendee app  → http://localhost:3000 (phones on the same Wi-Fi: http://<laptop-ip>:3000)
-npm run dev:admin      # staff console → http://localhost:3001 (/admin, /door)
+npm run dev:admin      # staff console → http://localhost:3001 (/login, /admin, /door)
 npm run build          # build both (or build:pwa / build:admin); output in apps/<app>/.output/
 npm run preview:pwa    # run a production build with the service worker (offline, install, updates)
 npm run preview:admin
@@ -139,9 +139,16 @@ apps/pwa/app/
   spa-loading-template.html    splash shown before the app's code has started
 apps/pwa/public/masterclasses/ AFRIFF's official masterclass graphics
 apps/admin/app/
-  pages/        index (sends volunteers to /door, everyone else to /admin), admin/[...path], door
-  admin/        console: schema.ts drives every form/list, data.ts (save/approve/import/backup),
-                publish.ts, reports.ts, board.ts (door counts), firebase.ts (Auth) + the Admin*.vue screens
+  pages/        one page per address: index ("/" sends people on), login, pending, door,
+                admin/ (index = tiles, team, approvals, publish, reports, mine, door → /door,
+                data/, data/[col]/, data/[col]/[id])
+  layouts/console.vue          top bar for every /admin page
+  components/   auth/ (AdminLogin), console/ (Admin*.vue screens), door/ (door counter)
+  lib/          access.ts (who may open which page, where people are sent),
+                useAdminAuth.ts, schema.ts drives every form/list, data.ts (save/approve/import/backup),
+                publish.ts, reports.ts, board.ts (door counts), firebase.ts (Auth), types.ts, util.ts
+  middleware/auth.global.ts    runs lib/access.ts on every page change
+  plugins/auth-guard.client.ts moves people on when they log in/out or their role changes
   plugins/published.client.ts  the published-data feed (venue names etc. stay current)
 ```
 
@@ -194,7 +201,7 @@ apps/admin/app/
 
 Rules of the road:
 - **Never overwrite database items with the built-in copy.** The console's
-  "Add missing festival data" (`importAll` in `apps/admin/app/admin/data.ts`) only:
+  "Add missing festival data" (`importAll` in `apps/admin/app/lib/data.ts`) only:
   adds items whose ID is missing; fills fields an item doesn't have at all;
   and swaps values listed in `REPLACED_LINKS` / `REPLACED_VALUES`
   (`packages/core/src/data/events.ts`) **only while the database still holds exactly that
@@ -203,7 +210,7 @@ Rules of the road:
   touching something the team typed. Add to those lists when you correct
   built-in data that's already been imported.
 - To add a field: add it to the type in `packages/core/src/types/festival.ts`,
-  then one line in `apps/admin/app/admin/schema.ts` (the form, list and
+  then one line in `apps/admin/app/lib/schema.ts` (the form, list and
   import pick it up). Then read the field in the attendee screen.
 - **`firestore.rules` is not deployed automatically.** From the main folder
   (Firebase CLI, signed in with `firebase login`; all go to afriff-app):
@@ -281,7 +288,7 @@ npx.cmd vercel link            # switch to the other project, then deploy again
 ```
 There are no server functions; the host only serves files. After a deploy,
 check `/`, `/film/lady` and `/admin` (should forward to the console) on the
-attendee app, `/admin` and `/door` on the console, and that `/sw.js` comes
+attendee app, `/` (should go to `/login`), `/admin` and `/door` on the console, and that `/sw.js` comes
 back with `Cache-Control: no-cache` on both. Add the console's domain to
 Firebase → Authentication → Settings → Authorized domains.
 `.vercelignore` keeps `reference/` (design screenshots, not in the repo)
@@ -310,7 +317,7 @@ address (e.g. app.afriff.com) at it before the QR codes are printed.
 saved to one record per venue per day (`queueDays/{date}/venues/{venue}`);
 phones listen to that day's records directly (live, ~3 small docs) during
 screening hours on festival days. Volunteers count in the **door view** at
-`/door` on the staff console (`apps/admin/app/admin/AdminDoorCounter.vue` +
+`/door` on the staff console (`apps/admin/app/components/door/AdminDoorCounter.vue` +
 `AdminDoorScreening.vue`): "Joined the
 queue" / "Let in" (seats count down automatically), undo, fix, wake lock,
 admin "Clear counts". Details in CLAUDE.md "Step 8" and "Door view". Still

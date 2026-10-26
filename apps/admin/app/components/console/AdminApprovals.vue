@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
 import { CheckIcon, XIcon } from 'lucide-vue-next'
-import { COLLECTIONS, getField, isCollection } from './schema'
-import type { ChangeDoc, Profile } from './types'
-import { errMsg, whenLagos } from './util'
+import { COLLECTIONS, getField, isCollection } from '~/lib/schema'
+import type { ChangeDoc, Profile } from '~/lib/types'
+import { errMsg, whenLagos } from '~/lib/util'
 
-import { approveChange, rejectChange, useChanges } from './data'
+import { approveChange, rejectChange, useChanges } from '~/lib/data'
 
 // Admins: editors' changes waiting for approval, with only the fields that differ.
 const props = defineProps<{ profile: Profile }>()
