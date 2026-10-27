@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { CopyIcon, MailCheckIcon, PlayIcon, RefreshCwIcon, SendIcon } from 'lucide-vue-next'
@@ -96,7 +97,13 @@ async function sendToAll() {
   if (!checks.checkAll()) return
   const d = cleanDraft(draft.value)
   const n = audience.value
-  if (!window.confirm(`Send "${d.subject}" to ${n == null ? 'everyone who said yes to festival emails' : plural(n, 'person', 'people')} now?\n\nOnce it's sent it can't be called back. Sent yourself a test first?`)) return
+  const ok = await confirmAction({
+    title: `Send to ${n == null ? 'everyone who said yes' : plural(n, 'person', 'people')}?`,
+    message: `“${d.subject}” goes out now to ${n == null ? 'everyone who said yes to festival emails' : `the ${plural(n, 'person', 'people')} who said yes to festival emails`}.\n\nOnce it's sent it can't be called back. Sent yourself a test first?`,
+    confirmLabel: 'Send now',
+    cancelLabel: 'Not yet',
+  })
+  if (!ok) return
   state.busy = 'send'
   progress.value = null
   try {

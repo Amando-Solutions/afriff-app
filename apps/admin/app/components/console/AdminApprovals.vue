@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askNote } from '~/lib/confirm'
 import { computed, reactive, ref } from 'vue'
 import { CheckIcon, XIcon } from 'lucide-vue-next'
 import { COLLECTIONS, getField, isCollection } from '~/lib/schema'
@@ -48,8 +49,15 @@ async function act(change: ChangeDoc, fn: () => Promise<unknown>) {
     busy[change.id] = false
   }
 }
-function reject(change: ChangeDoc) {
-  const note = window.prompt('Reason for rejecting (optional, the editor will see it):', '')
+async function reject(change: ChangeDoc) {
+  const note = await askNote({
+    title: 'Reject this change?',
+    message: `“${change.summary}” goes back to ${change.submittedByName || 'the editor'}. Nothing in the festival data changes.`,
+    noteLabel: 'Reason (optional, the editor sees it)',
+    placeholder: 'e.g. The venue is wrong: it should be Twinwaters.',
+    confirmLabel: 'Reject',
+    tone: 'danger',
+  })
   if (note !== null) act(change, () => rejectChange(change, props.profile, note))
 }
 </script>

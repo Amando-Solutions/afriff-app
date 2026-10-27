@@ -1799,6 +1799,29 @@ heavy libraries) apply everywhere.
   screening's time, save, open Publish to app, check the alert is ticked,
   publish. The phone should buzz within seconds, and the alert is in News.
 
+### Confirmations in the app's own look (27 Oct 2026, user request: "use a proper confirmation UI instead of the default javascript one, make sure nothing is like that")
+- STATUS: built and tested, NOT committed, NOT deployed.
+- WHAT CHANGED: all 16 browser pop-ups in the staff app (14 "OK / Cancel"
+  boxes and 2 "type a note" boxes) are now the app's own bottom sheet: the
+  question as the heading, what happens in plain words, a button named for
+  the action ("Publish and send 1 notification", "Delete group", "Call it
+  off") and Cancel. Things that can't be undone get a red button. The two
+  note boxes (rejecting a change in Approvals; sending an invite back to the
+  editor) are a text box inside the sheet. Closing the sheet (✕, Esc, tapping
+  outside) = Cancel. The Publish sheet lists the alerts it will post. The
+  attendee app had none.
+- RULE FROM NOW ON: no browser pop-ups anywhere (DEVELOPER.md, design rules).
+- ALSO FIXED: every bottom sheet in both apps (My plan, How to attend, jury
+  bio, the console's sheets) had no space under its last button on most
+  phones and laptops (two spacing rules cancelled out); now 24px, or the
+  iPhone home bar's room if that's more.
+- TESTED (27 Oct, by Claude): staff typecheck, 100 automatic tests, and in a
+  real browser on the staff dev server at phone and desktop sizes: confirm →
+  yes, Cancel → no, Esc → no, the note box focused and its text kept, a
+  required note refused when empty; screenshots of Publish, Delete and
+  Reject. NOT TESTED: each screen's own sheet with a real admin login (they
+  all call the same sheet).
+
 ### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
 - WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
   afriff.com every 15 minutes and brings the FILMS in the database up to

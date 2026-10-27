@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, reactive, ref, watch } from 'vue'
 import { Trash2Icon } from 'lucide-vue-next'
 import { cleanName } from '@afriff/core/accounts/rules'
@@ -63,19 +64,25 @@ function save() {
   })
 }
 
-function remove() {
-  const text = handAdded.value
-    ? `Remove ${name.value} from contacts? They come off every group and guest list still to be sent.`
-    : `Take ${name.value} out of every group and clear AFRIFF's notes about them? Their app account stays (it's theirs).`
-  if (!window.confirm(text)) return
+async function remove() {
+  const ok = await confirmAction(handAdded.value
+    ? { title: `Remove ${name.value} from contacts?`, message: 'They come off every group and every guest list still to be sent.', confirmLabel: 'Remove', tone: 'danger' }
+    : { title: `Take ${name.value} out of every group?`, message: 'AFRIFF\'s notes about them are cleared too. Their app account stays (it\'s theirs).', confirmLabel: 'Take out', tone: 'danger' })
+  if (!ok) return
   void run(async () => {
     await removeContact(p.value)
     return handAdded.value ? `Removed ${name.value}.` : `Took ${name.value} out of every group.`
   })
 }
 
-function deleteAccount() {
-  if (!window.confirm(`Delete ${name.value}'s app account (${p.value.email})? Their festival plan and watched list go too, and they get no more emails. This can't be undone.`)) return
+async function deleteAccount() {
+  const ok = await confirmAction({
+    title: `Delete ${name.value}'s app account?`,
+    message: `${p.value.email}: their festival plan and watched list go too, and they get no more emails. This can't be undone.`,
+    confirmLabel: 'Delete account',
+    tone: 'danger',
+  })
+  if (!ok) return
   void run(async () => {
     const r = await deleteAttendee(p.value.uid)
     if (p.value.contact) await removeContact(p.value)

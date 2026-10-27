@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { collection, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore'
 import { isSuperadminEmail, roleLock } from '#shared/team'
@@ -73,13 +74,19 @@ function lockNote(p: Profile) {
 }
 
 // Making an admin can't be undone by an admin, and removing one is rare: ask first.
-function pickRole(person: Profile, select: HTMLSelectElement) {
+async function pickRole(person: Profile, select: HTMLSelectElement) {
   const role = select.value as Role
   const name = person.name || person.email
   const question = role === 'admin'
-    ? `Make ${name} an admin? Admins can do everything in the console${auth$.superadmin ? '' : ", and you won't be able to take it back"}.`
-    : person.role === 'admin' ? `Take away ${name}'s admin access? They'll be: ${ROLES[role]}.` : ''
-  if (question && !window.confirm(question)) {
+    ? {
+        title: `Make ${name} an admin?`,
+        message: `Admins can do everything in the console${auth$.superadmin ? '' : ", and you won't be able to take it back"}.`,
+        confirmLabel: 'Make admin',
+      }
+    : person.role === 'admin'
+      ? { title: `Take away ${name}'s admin access?`, message: `They'll be: ${ROLES[role]}.`, confirmLabel: 'Take away admin', tone: 'danger' as const }
+      : null
+  if (question && !(await confirmAction(question))) {
     select.value = person.role
     return
   }

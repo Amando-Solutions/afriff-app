@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askNote, confirmAction } from '~/lib/confirm'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { CalendarClockIcon, MailCheckIcon, SendIcon, Trash2Icon, XIcon } from 'lucide-vue-next'
 import { useFormChecks } from '@afriff/core/utils/formChecks'
@@ -158,8 +159,14 @@ function askApproval() {
   })
 }
 const takeBack = () => run('review', () => setReview(props.invite.id, 'draft'))
-function sendBack() {
-  const note = window.prompt('What should the editor change? They see this note on the invite.')
+async function sendBack() {
+  const note = await askNote({
+    title: 'Send it back to the editor?',
+    message: 'It goes back to being a draft they can change, with your note on it.',
+    noteLabel: 'What should the editor change?',
+    placeholder: 'e.g. Add the dress code, and check the start time.',
+    confirmLabel: 'Send back',
+  })
   if (note === null) return
   void run('review', async () => {
     await setReview(props.invite.id, 'draft', note)
@@ -180,8 +187,9 @@ function sendNow(at = 0) {
   })
 }
 
-function remove() {
-  if (!window.confirm('Delete this draft? This can\'t be undone.')) return
+async function remove() {
+  const ok = await confirmAction({ title: 'Delete this draft?', message: 'This can\'t be undone.', confirmLabel: 'Delete draft', tone: 'danger' })
+  if (!ok) return
   void run('delete', async () => {
     await deleteInvite(props.invite.id)
     await router.replace('/admin/invites')

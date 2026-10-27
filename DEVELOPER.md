@@ -178,6 +178,15 @@ apps/admin/app/
     fade to 60%.
   - Choice groups: `UiSegmented` (one of a few, e.g. All / Films / Events),
     `UiChip` (filters), `UiToggle` (view switch).
+  - **No browser pop-ups** (`window.confirm` / `alert` / `prompt`), ever
+    (user rule, 27 Oct). Staff app: `confirmAction({ title, message, items?,
+    confirmLabel, tone: 'danger' })` → `Promise<boolean>` and `askNote({ …,
+    noteLabel, required? })` → `Promise<string | null>` from
+    `apps/admin/app/lib/confirm.ts`; one sheet (`components/AdminConfirm.vue`)
+    is mounted in `app.vue`. Title = the question, button = the action
+    ("Delete group", not "OK"), `tone: 'danger'` for what can't be undone.
+    Bigger confirmations with their own content (e.g. `AdminInviteConfirm`)
+    use a `UiSheet` directly.
 
 ## 4. How data flows (the important bit)
 1. **Firestore is the master copy.** The team edits films, screenings,

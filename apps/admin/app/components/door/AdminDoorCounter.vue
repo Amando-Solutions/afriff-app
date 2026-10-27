@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { signOut } from 'firebase/auth'
 import { deleteDoc } from 'firebase/firestore'
@@ -67,7 +68,13 @@ const focus = computed(() => (venue.value ? rows.value.find((r) => r.state === '
 const TAG: Record<RowState, string> = { done: 'Done', counting: 'Counting', now: 'Count now', later: 'Next' }
 
 async function clearAll() {
-  if (!window.confirm(`Delete every queue count at ${venueName(venue.value)} on ${dayLabel(shownDay.value)}? Use this to remove test counts.`)) return
+  const ok = await confirmAction({
+    title: 'Clear these counts?',
+    message: `Every queue count at ${venueName(venue.value)} on ${dayLabel(shownDay.value)} is deleted. Use this to remove test counts.`,
+    confirmLabel: 'Clear counts',
+    tone: 'danger',
+  })
+  if (!ok) return
   clearing.value = 'Clearing…'
   try {
     await deleteDoc(boardRef(shownDay.value, venue.value))

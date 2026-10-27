@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, ref } from 'vue'
 import { Trash2Icon } from 'lucide-vue-next'
 import type { Person } from '#shared/contacts'
@@ -38,10 +39,16 @@ function rename() {
   })
 }
 
-function remove() {
+async function remove() {
   const n = props.members.length
   const l = groupLinks.value.length
-  if (!window.confirm(`Delete the group "${props.group.name}"? ${n} ${n === 1 ? 'person is' : 'people are'} taken out of it (they stay contacts)${l ? `, and its ${l} VIP ${l === 1 ? 'link stops' : 'links stop'} working` : ''}. Invites already sent aren't changed.`)) return
+  const ok = await confirmAction({
+    title: `Delete the group “${props.group.name}”?`,
+    message: `${n} ${n === 1 ? 'person is' : 'people are'} taken out of it (they stay contacts)${l ? `, and its ${l} VIP ${l === 1 ? 'link stops' : 'links stop'} working` : ''}. Invites already sent aren't changed.`,
+    confirmLabel: 'Delete group',
+    tone: 'danger',
+  })
+  if (!ok) return
   void run(async () => {
     await deleteGroup(props.group.id, props.members, props.links)
     return `Deleted the group "${props.group.name}".`

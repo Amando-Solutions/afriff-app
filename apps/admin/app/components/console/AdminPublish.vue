@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { collection, doc, getDoc, getDocs, onSnapshot, writeBatch, type Timestamp } from 'firebase/firestore'
 import type { Profile } from '~/lib/types'
@@ -69,9 +70,16 @@ async function run() {
   upcoming.value = due
   const alerts = tickedAlerts()
   const pushes = Math.min(MAX_PUSHES_PER_PUBLISH, (due?.send.length ?? 0) + alerts.length)
-  const alertNote = alerts.length ? `\n\nIt posts ${plural(alerts.length, 'alert')} (News, Home banner): ${alerts.map((a) => `“${a.title}”`).join(', ')}.` : ''
-  const pushNote = pushes ? `\n\nIt sends ${plural(pushes, 'push notification')} to every phone with alerts on.` : ''
-  if (!window.confirm(`Publish the current festival data to the attendee app? Open phones pick it up within seconds.${alertNote}${pushNote}`)) return
+  const ok = await confirmAction({
+    title: 'Publish to the app?',
+    message: [
+      'Attendees get the current festival data. Open phones pick it up within seconds.',
+      alerts.length ? `It also posts ${plural(alerts.length, 'alert')} about changed screenings and events (in News and as a Home banner):` : '',
+    ].filter(Boolean).join('\n\n'),
+    items: alerts.map((a) => `“${a.title}”`),
+    confirmLabel: pushes ? `Publish and send ${plural(pushes, 'notification')}` : 'Publish',
+  })
+  if (!ok) return
   Object.assign(state, { busy: true, done: null, error: '' })
   Object.assign(push, { busy: false, results: [], error: '' })
   try {

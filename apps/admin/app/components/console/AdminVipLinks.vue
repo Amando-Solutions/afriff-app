@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, reactive, ref } from 'vue'
 import { CheckIcon, CopyIcon, LinkIcon, Trash2Icon } from 'lucide-vue-next'
 import type { Person } from '#shared/contacts'
@@ -57,8 +58,14 @@ async function run(code: string, task: () => Promise<void>) {
   }
 }
 
-function remove(l: VipLink) {
-  if (!window.confirm(`Delete the link "${l.label}"? It stops working for good; the ${joined(l.code)} people who joined through it stay in ${groupName(l.group)}.`)) return
+async function remove(l: VipLink) {
+  const ok = await confirmAction({
+    title: `Delete the link “${l.label}”?`,
+    message: `It stops working for good. The ${joined(l.code)} people who joined through it stay in ${groupName(l.group)}.`,
+    confirmLabel: 'Delete link',
+    tone: 'danger',
+  })
+  if (!ok) return
   void run(l.code, () => deleteVipLink(l.code))
 }
 </script>
