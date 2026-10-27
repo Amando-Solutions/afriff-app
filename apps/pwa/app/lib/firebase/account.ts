@@ -5,8 +5,6 @@
 //                         Created by the phone at sign-up; only the person and
 //                         admins can read it (firestore.rules check every field).
 //   attendeePlans/{uid}   their My Festival (lib/planSync.ts).
-//   brevoRemovals/{uid}   left behind when someone deletes their account, so
-//                         the console's "Send to Brevo" also takes them off Brevo.
 //   settings/attendeeAccounts  the console's "Require an account" switch.
 // Firebase keeps the phone signed in (IndexedDB), with no signal too.
 //
@@ -66,7 +64,7 @@ async function createRecord(user: User, d: Details): Promise<Profile> {
   const firstName = cleanName(d.firstName)
   const lastName = cleanName(d.lastName)
   const email = user.email ?? ''
-  await setDoc(attendeeDoc(user.uid), {
+  const write = () => setDoc(attendeeDoc(user.uid), {
     firstName,
     lastName,
     email,
@@ -78,24 +76,35 @@ async function createRecord(user: User, d: Details): Promise<Profile> {
     createdAt: serverTimestamp(),
     createdDay: lagosDay(Date.now()),
     lastLoginAt: serverTimestamp(),
-    // the console's "Send to Brevo" adds ticked people to the "App subscribers" list
-    brevo: d.marketing ? 'pending' : 'off',
-    brevoError: '',
   })
+  try {
+    await write()
+  } catch (e) {
+    // just signed up: the database can still be holding the old (signed-out)
+    // sign-in for a moment. Once more, with a fresh one.
+    if ((e as { code?: string }).code !== 'permission-denied') throw e
+    await user.getIdToken(true)
+    await write()
+  }
   return { uid: user.uid, firstName, lastName, email, marketing: d.marketing }
 }
 
-export async function signUp(email: string, password: string, d: Details): Promise<Profile> {
+/**
+ * Makes the Firebase login. Their name goes on the login too (displayName),
+ * so if their details don't reach the database now, any phone they log in
+ * on can finish setting up without asking again (lib/account.ts).
+ */
+export async function createLogin(email: string, password: string, d: Details): Promise<{ uid: string }> {
   db() // the database first, so it picks up the sign-in straight away
   const { user } = await createUserWithEmailAndPassword(attendeeAuth(), email.trim(), password)
-  void updateProfile(user, { displayName: `${cleanName(d.firstName)} ${cleanName(d.lastName)}` }).catch(() => {})
-  return createRecord(user, d)
+  await updateProfile(user, { displayName: `${cleanName(d.firstName)} ${cleanName(d.lastName)}` }).catch(() => {})
+  return { uid: user.uid }
 }
 
 /**
  * Logs in. Returns their profile, or null when the sign-in has no attendee
- * record yet (a staff login, or a sign-up whose details didn't save): the
- * sign-up page then asks for their name with finishDetails().
+ * record yet (a sign-up whose details didn't save, or a staff login):
+ * lib/account.ts then finishes it with finishDetails().
  */
 export async function logIn(email: string, password: string): Promise<Profile | null> {
   db()
@@ -107,6 +116,7 @@ export async function logIn(email: string, password: string): Promise<Profile | 
   return { uid: user.uid, firstName: String(a.firstName ?? ''), lastName: String(a.lastName ?? ''), email: String(a.email ?? user.email ?? ''), marketing: a.marketing === true }
 }
 
+/** Saves the attendee record for whoever is signed in. */
 export async function finishDetails(d: Details): Promise<Profile> {
   const user = await signedInUser()
   if (!user) throw Object.assign(new Error('signed-out'), { code: 'auth/user-token-expired' })
@@ -128,14 +138,12 @@ export async function sendReset(email: string) {
   }
 }
 
-/** The "Festival emails from AFRIFF" switch. */
+/** The "Festival emails from AFRIFF" switch: on = gets the emails admins send from the console. */
 export async function setMarketing(uid: string, on: boolean) {
   await updateDoc(attendeeDoc(uid), {
     marketing: on,
     consentText: on ? MARKETING_CONSENT : '',
     marketingChangedAt: serverTimestamp(),
-    brevo: 'pending', // the console's "Send to Brevo" adds or removes them
-    brevoError: '',
   })
 }
 
@@ -149,10 +157,6 @@ export async function deleteAccount(password: string) {
   const user = await signedInUser()
   if (!user?.email) throw Object.assign(new Error('signed-out'), { code: 'auth/user-token-expired' })
   await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password))
-  const record = await getDoc(attendeeDoc(user.uid))
-  if (record.exists() && record.get('brevo') !== 'off') {
-    await setDoc(doc(db(), 'brevoRemovals', user.uid), { email: user.email, at: serverTimestamp() })
-  }
   await deleteDoc(doc(db(), 'attendeePlans', user.uid))
   await deleteDoc(attendeeDoc(user.uid))
   const staff = await getDoc(doc(db(), 'users', user.uid)).then((s) => s.exists(), () => false)

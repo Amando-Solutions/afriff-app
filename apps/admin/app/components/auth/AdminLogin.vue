@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { PASSWORD_HINT, cleanName, emailProblem, nameProblem, passwordProblem } from '@afriff/core/accounts/rules'
+import { useFormChecks } from '@afriff/core/utils/formChecks'
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { createProfile } from '~/lib/useAdminAuth'
 import { auth } from '~/lib/firebase'
@@ -12,7 +14,7 @@ const MESSAGES: Record<string, string> = {
   'auth/invalid-credential': 'That email and password don\'t match. Check them and try again.',
   'auth/invalid-email': 'That doesn\'t look like an email address.',
   'auth/email-already-in-use': 'There\'s already an account with this email. Log in instead.',
-  'auth/weak-password': 'Use a password of at least 6 characters.',
+  'auth/weak-password': 'Use a password of at least 8 characters.',
   'auth/too-many-requests': 'Too many tries. Wait a few minutes, then try again.',
   'auth/network-request-failed': 'No connection. Check your internet and try again.',
   'auth/missing-email': 'Type your email first.',
@@ -30,7 +32,35 @@ const busy = ref(false)
 const error = ref('')
 const note = ref('')
 
+// Each field checked on this phone first (the same rules as attendee accounts):
+// a problem shows when they leave the field, every field when they press the button.
+const checks = useFormChecks(() => ({
+  ...(mode.value === 'signup' ? { name: () => nameProblem(name.value, 'name') } : {}),
+  email: () => emailProblem(email.value),
+  // a NEW password follows the rules; logging in, any existing password is fine
+  password: () => (mode.value === 'signup' ? passwordProblem(password.value) : password.value ? null : 'Type your password.'),
+}), (key) => values[key as Field].value)
+watch([name, email, password], checks.recheck)
+watch(mode, () => {
+  checks.clear()
+  error.value = ''
+  note.value = ''
+})
+type Field = 'name' | 'email' | 'password'
+const values = { name, email, password }
+function left(key: Field) {
+  if (key === 'name') name.value = cleanName(name.value)
+  if (key === 'email') email.value = email.value.trim()
+  checks.left(key)
+}
+const aria = (key: Field) => ({ 'aria-invalid': checks.errors[key] ? true : undefined, 'aria-describedby': checks.errors[key] ? `login-${key}-error` : undefined })
+
 async function submit() {
+  error.value = ''
+  note.value = ''
+  name.value = cleanName(name.value)
+  email.value = email.value.trim()
+  if (!checks.checkAll()) return
   busy.value = true
   error.value = ''
   note.value = ''
@@ -52,6 +82,12 @@ async function submit() {
 async function reset() {
   error.value = ''
   note.value = ''
+  email.value = email.value.trim()
+  const problem = emailProblem(email.value)
+  if (problem) {
+    checks.flag('email', problem)
+    return
+  }
   try {
     await sendPasswordResetEmail(auth, email.value.trim())
     note.value = 'If that email has an account, a reset link is on its way. Check your inbox and spam.'
@@ -83,15 +119,19 @@ async function reset() {
         >{{ m[1] }}</button>
       </div>
 
-      <form class="flex flex-col gap-3.5" @submit.prevent="submit">
+      <form class="flex flex-col gap-3.5" novalidate @submit.prevent="submit">
         <label v-if="mode === 'signup'" class="flex flex-col gap-1.5 text-meta font-medium text-muted">Your name
-          <input v-model="name" class="field-input" required autocomplete="name" />
+          <input v-model="name" class="field-input" autocomplete="name" autocapitalize="words" autocorrect="off" spellcheck="false" maxlength="60" v-bind="aria('name')" @blur="left('name')" />
+          <span v-if="checks.errors.name" id="login-name-error" class="font-normal text-danger" role="alert">{{ checks.errors.name }}</span>
         </label>
         <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Email
-          <input v-model="email" class="field-input" type="email" required autocomplete="email" />
+          <input v-model.trim="email" class="field-input" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" v-bind="aria('email')" @blur="left('email')" />
+          <span v-if="checks.errors.email" id="login-email-error" class="font-normal text-danger" role="alert">{{ checks.errors.email }}</span>
         </label>
         <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Password
-          <input v-model="password" class="field-input" type="password" required minlength="6" :autocomplete="mode === 'login' ? 'current-password' : 'new-password'" />
+          <input v-model="password" class="field-input" type="password" maxlength="128" :autocomplete="mode === 'login' ? 'current-password' : 'new-password'" v-bind="aria('password')" @blur="left('password')" />
+          <span v-if="checks.errors.password" id="login-password-error" class="font-normal text-danger" role="alert">{{ checks.errors.password }}</span>
+          <span v-if="mode === 'signup' && !checks.errors.password" class="text-label font-normal text-subtle">{{ PASSWORD_HINT }}</span>
         </label>
         <p v-if="error" class="text-meta text-danger" role="alert">{{ error }}</p>
         <p v-if="note" class="text-meta text-success">{{ note }}</p>

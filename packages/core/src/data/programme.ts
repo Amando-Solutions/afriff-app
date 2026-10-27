@@ -4,6 +4,7 @@
 // SCREENING TIMES ARE SAMPLES: AFRIFF hasn't published the timetable yet.
 
 import { finished } from '../utils/unfinished';
+import { imageLink, videoLink, webLink } from '../utils/links';
 import type { Film, HowToSection, NewsItem, PosterStyle, PublishedSnapshot, Screening, Sponsor, Tag, Venue } from '../types/festival';
 
 export const FESTIVAL = {
@@ -291,7 +292,7 @@ export function replaceProgramme(d: PublishedSnapshot) {
     FILMS = d.films.filter((f) => f.id && f.title).map((f): Film => ({
       ...f,
       id: f.id!, title: f.title!, country: f.country || '', language: f.language || '', genre: f.genre || '',
-      year: f.year ?? null, runtime: Number(f.runtime) || 0, image: f.image || '', trailer: f.trailer || '',
+      year: f.year ?? null, runtime: Number(f.runtime) || 0, image: imageLink(f.image), trailer: videoLink(f.trailer),
       synopsis: finished(f.synopsis), cast: finished(f.cast), director: f.director || '', section: f.section || '',
       // films added in the console get placeholder poster colours like the rest
       poster: f.poster?.style ? f.poster : posterArt(f.id!),
@@ -308,7 +309,12 @@ export function replaceProgramme(d: PublishedSnapshot) {
         capacity: Number(s.capacity) || 0, tag: s.tag || 'Public', screen: s.screen || '',
       }));
   }
-  if (d.news) NEWS = [...d.news].sort((a, b) => (b.time || '').localeCompare(a.time || ''));
-  if (d.sponsors) SPONSORS = [...d.sponsors].sort(byOrder);
-  if (d.howToAttend) HOW_TO_ATTEND = [...d.howToAttend].sort(byOrder);
+  // links only if they're real web addresses (utils/links.ts)
+  if (d.news) NEWS = d.news.map((n) => ({ ...n, url: webLink(n.url) })).sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+  if (d.sponsors) SPONSORS = d.sponsors.map((s) => ({ ...s, logo: imageLink(s.logo), website: webLink(s.website) })).sort(byOrder);
+  if (d.howToAttend) {
+    HOW_TO_ATTEND = d.howToAttend
+      .map(({ link, ...h }) => (webLink(link?.url) ? { ...h, link: { label: link!.label, url: webLink(link!.url) } } : h))
+      .sort(byOrder);
+  }
 }

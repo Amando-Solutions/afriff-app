@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // A labelled field on the sign-up page, with its problem (if any) under it.
-// The input goes in the slot; give it id = fieldId and :aria-invalid.
+// The input goes in the slot; give it id = fieldId, :aria-invalid and
+// aria-describedby = `${fieldId}-error` while there's a problem.
+// Slot "extra": anything under the message (e.g. "Did you mean …?").
 defineProps<{ fieldId: string; label: string; error?: string; hint?: string }>()
 </script>
 
@@ -10,5 +12,6 @@ defineProps<{ fieldId: string; label: string; error?: string; hint?: string }>()
     <slot />
     <p v-if="error" :id="`${fieldId}-error`" class="text-meta text-danger" role="alert">{{ error }}</p>
     <p v-else-if="hint" :id="`${fieldId}-hint`" class="text-label text-subtle">{{ hint }}</p>
+    <slot name="extra" />
   </div>
 </template>

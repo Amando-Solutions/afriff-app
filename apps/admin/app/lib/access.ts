@@ -7,6 +7,7 @@
 //   /admin                         console home: one tile per section this role can open
 //   /admin/team, /admin/approvals, /admin/publish, /admin/reports, /admin/mine
 //   /admin/attendees               people signed up in the festival app (admins only)
+//   /admin/emails                  festival emails to people who said yes (admins only)
 //   /admin/data, /admin/data/<collection>, /admin/data/<collection>/<id or new>
 //
 // Each page names its section in definePageMeta({ section }); the global
@@ -24,6 +25,8 @@ export const ACCESS = {
   reports: ['admin'],
   // attendees' names and emails: admins only (firestore.rules agree)
   attendees: ['admin'],
+  // writing to everyone who said yes to festival emails: admins only
+  emails: ['admin'],
   approvals: ['admin'],
   mine: ['editor'],
   door: ['admin', 'volunteer'],

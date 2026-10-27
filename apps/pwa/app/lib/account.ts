@@ -19,12 +19,15 @@
 // instead (plugins/account.client.ts) and nothing is saved. It doesn't ask
 // at all when an admin switches "Require an account" off (console → Attendees).
 import { reactive } from 'vue'
+import { nameProblem } from '@afriff/core/accounts/rules'
 import { applySave, currentPlan, replacePlan, type SaveIntent } from './store'
 import { planIsSaved, startPlanSync, stopPlanSync } from './planSync'
 
 const PROFILE_KEY = 'afriff-account-v1'
 /** sessionStorage: what they tapped before being sent to sign up */
 const PENDING_KEY = 'afriff-save-after-signup'
+/** localStorage: the sign-up form's details, until they've reached the database */
+const DETAILS_KEY = 'afriff-signup-details'
 
 export interface AccountProfile {
   uid: string
@@ -39,7 +42,7 @@ export class AccountProblem extends Error {
   constructor(
     message: string,
     readonly field?: string,
-    /** 'exists' | 'wrong' | 'paused' | 'unreachable' | 'signed-out' | 'details' */
+    /** 'exists' | 'wrong' | 'paused' | 'unreachable' | 'signed-out' | 'details' (no name known: ask) | 'unfinished' (details known, not saved yet: Try again) */
     readonly reason?: string,
   ) {
     super(message)
@@ -181,24 +184,75 @@ function watchSignOut(fb: typeof import('./firebase/account')) {
   })
 }
 
-export async function signUp(form: { firstName: string; lastName: string; email: string; password: string; marketing: boolean }) {
-  const fb = await import('./firebase/account')
-  try {
-    signedIn(fb, await fb.signUp(form.email, form.password, form))
-  } catch (e) {
-    // the sign-in was made but the details didn't save (signal dropped):
-    // the sign-up page asks to save them again (finishDetails)
-    if (await fb.signedInUser().catch(() => null)) {
-      throw new AccountProblem('Your account is made. Save your details to finish.', undefined, 'details')
-    }
-    throw problemFrom(e)
-  }
+type Details = { firstName: string; lastName: string; marketing: boolean }
+
+/** The sign-up form's details, kept on this phone until they reach the database */
+function keepDetails(uid: string, d: Details | null) {
+  storage.set(local(), DETAILS_KEY, d ? JSON.stringify({ uid, firstName: d.firstName, lastName: d.lastName, marketing: d.marketing }) : null)
 }
 
 /**
- * Logs in. Throws reason 'details' when the sign-in is fine but there's no
- * attendee record yet (a staff login, or details that didn't save): the
- * sign-up page then asks for their name (finishDetails).
+ * What we already know about someone whose details haven't reached the
+ * database: what they typed at sign-up on this phone, or else the name on
+ * their Firebase login (any phone; emails choice then off, they can switch
+ * it on in My Festival). Null = no name known: ask ("One more step").
+ */
+function knownDetails(user: { uid: string; displayName: string | null }): Details | null {
+  try {
+    const kept = JSON.parse(storage.get(local(), DETAILS_KEY) || 'null')
+    if (kept?.uid === user.uid && typeof kept.firstName === 'string' && typeof kept.lastName === 'string') {
+      return { firstName: kept.firstName, lastName: kept.lastName, marketing: kept.marketing === true }
+    }
+  } catch { /* damaged: try the login's name */ }
+  const name = (user.displayName ?? '').replace(/\s+/g, ' ').trim()
+  const cut = name.lastIndexOf(' ')
+  const firstName = name.slice(0, cut)
+  const lastName = name.slice(cut + 1)
+  if (cut < 1 || nameProblem(firstName, 'first name') || nameProblem(lastName, 'last name')) return null
+  return { firstName, lastName, marketing: false }
+}
+
+/**
+ * Saves the attendee record from details we already have. If it can't be
+ * saved now, the sign-up page offers "Try again" (finishSetup), never the
+ * name form again: the details stay on this phone and on the login.
+ */
+async function finishWith(fb: typeof import('./firebase/account'), uid: string, d: Details) {
+  keepDetails(uid, d)
+  try {
+    signedIn(fb, await fb.finishDetails(d))
+  } catch (e) {
+    const p = problemFrom(e)
+    // the sign-in itself has ended: log in again (the details stay on this phone).
+    // The database saying no (permission-denied) isn't that: they're signed in.
+    if (p.reason === 'signed-out' && (e as { code?: string } | null)?.code !== 'permission-denied') throw p
+    throw new AccountProblem(
+      p.reason === 'unreachable'
+        ? 'Your account is made, but your details couldn’t be saved with no connection. Try again when you’re back online.'
+        : 'Your account is made, but we couldn’t finish setting it up just now. Try again in a moment.',
+      undefined,
+      'unfinished',
+    )
+  }
+  keepDetails(uid, null)
+}
+
+export async function signUp(form: { firstName: string; lastName: string; email: string; password: string; marketing: boolean }) {
+  const fb = await import('./firebase/account')
+  const details: Details = { firstName: form.firstName, lastName: form.lastName, marketing: form.marketing }
+  let uid: string
+  try {
+    ({ uid } = await fb.createLogin(form.email, form.password, details))
+  } catch (e) {
+    throw problemFrom(e)
+  }
+  await finishWith(fb, uid, details)
+}
+
+/**
+ * Logs in. A sign-in with no attendee record yet (details that didn't save
+ * at sign-up) is finished from what we already know; only when no name is
+ * known (e.g. an AFRIFF team login) does it throw 'details' to ask for it.
  */
 export async function logIn(email: string, password: string) {
   const fb = await import('./firebase/account')
@@ -208,20 +262,29 @@ export async function logIn(email: string, password: string) {
   } catch (e) {
     throw problemFrom(e)
   }
-  if (!profile) throw new AccountProblem('One more step: tell us your name.', undefined, 'details')
-  signedIn(fb, profile)
+  if (profile) return signedIn(fb, profile)
+  await finishSetup()
 }
 
-export async function finishDetails(form: { firstName: string; lastName: string; marketing: boolean }) {
+/** "Try again" after an account was made but its details didn't save: no questions asked. */
+export async function finishSetup() {
   const fb = await import('./firebase/account')
-  try {
-    signedIn(fb, await fb.finishDetails(form))
-  } catch (e) {
-    throw problemFrom(e)
-  }
+  const user = await fb.signedInUser().catch(() => null)
+  if (!user) throw new AccountProblem('Log in again, then try again.', undefined, 'signed-out')
+  const known = knownDetails(user)
+  if (!known) throw new AccountProblem('One more step: tell us your name.', undefined, 'details')
+  await finishWith(fb, user.uid, known)
 }
 
-/** Closed the "tell us your name" step: don't stay half signed in. */
+/** The "One more step" form: the name of someone signed in whose name we don't know. */
+export async function finishDetails(form: Details) {
+  const fb = await import('./firebase/account')
+  const user = await fb.signedInUser().catch(() => null)
+  if (!user) throw new AccountProblem('Log in again, then try again.', undefined, 'signed-out')
+  await finishWith(fb, user.uid, form)
+}
+
+/** Closed the "tell us your name" or "Try again" step: don't stay half signed in. */
 export async function cancelDetails() {
   const fb = await import('./firebase/account')
   await fb.signOutHere().catch(() => {})
@@ -260,7 +323,7 @@ export async function resumeAccount(): Promise<boolean> {
 
 // ---------- In My Festival ----------
 
-/** "Festival emails from AFRIFF" switch: on = "App subscribers" (sent to Brevo from the console). */
+/** "Festival emails from AFRIFF" switch: on = gets the emails admins send from the console (Festival emails). */
 export async function setMarketing(on: boolean) {
   const p = account.profile
   if (!p) throw new AccountProblem('Log in again, then try again.', undefined, 'signed-out')

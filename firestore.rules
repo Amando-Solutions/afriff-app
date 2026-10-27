@@ -101,12 +101,12 @@ service cloud.firestore {
     // (apps/pwa/app/lib/firebase/account.ts), every field checked here. Only
     // ADMINS can read the list (console → Attendees); each person can read
     // their own. Editors and door volunteers can't. The person can change only
-    // their emails choice; the console's "Send to Brevo" (staff app's server,
-    // Admin SDK) records what Brevo did.
+    // their emails choice (so can an email's unsubscribe link, through the staff
+    // app's server).
     function newAttendeeOk() {
       let d = request.resource.data;
       let fields = ['firstName', 'lastName', 'email', 'emailLower', 'marketing', 'optInAtSignUp', 'consentText',
-                    'marketingChangedAt', 'createdAt', 'createdDay', 'lastLoginAt', 'brevo', 'brevoError'];
+                    'marketingChangedAt', 'createdAt', 'createdDay', 'lastLoginAt'];
       return d.keys().hasAll(fields) && d.keys().hasOnly(fields)
         && d.firstName is string && d.firstName.size() > 0 && d.firstName.size() <= 60
         && d.lastName is string && d.lastName.size() > 0 && d.lastName.size() <= 60
@@ -116,20 +116,17 @@ service cloud.firestore {
         && d.optInAtSignUp == (d.marketing ? 1 : 0)
         && d.consentText is string && d.consentText.size() <= 200
         && d.marketingChangedAt == request.time && d.createdAt == request.time && d.lastLoginAt == request.time
-        && d.createdDay is string && d.createdDay.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
-        && d.brevo == (d.marketing ? 'pending' : 'off') && d.brevoError == '';
+        && d.createdDay is string && d.createdDay.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}');
     }
     function attendeeChangeOk() {
       let d = request.resource.data;
       let changed = d.diff(resource.data).affectedKeys();
-      return changed.hasOnly(['marketing', 'consentText', 'marketingChangedAt', 'brevo', 'brevoError', 'lastLoginAt'])
+      return changed.hasOnly(['marketing', 'consentText', 'marketingChangedAt', 'lastLoginAt'])
         && d.marketing is bool
         && d.consentText is string && d.consentText.size() <= 200
-        && (!changed.hasAny(['marketing']) || (d.marketingChangedAt == request.time && d.brevo == 'pending'))
+        && (!changed.hasAny(['marketing']) || d.marketingChangedAt == request.time)
         && (!changed.hasAny(['marketingChangedAt']) || d.marketingChangedAt == request.time)
-        && (!changed.hasAny(['lastLoginAt']) || d.lastLoginAt == request.time)
-        && (!changed.hasAny(['brevo']) || d.brevo == 'pending')
-        && (!changed.hasAny(['brevoError']) || d.brevoError == '');
+        && (!changed.hasAny(['lastLoginAt']) || d.lastLoginAt == request.time);
     }
     match /attendees/{uid} {
       allow read: if isAdmin() || isSelf(uid);
@@ -150,15 +147,11 @@ service cloud.firestore {
         && request.resource.data.watched is map && request.resource.data.watched.size() <= 400
         && request.resource.data.queuesChecked is list && request.resource.data.queuesChecked.size() <= 2000;
     }
-    // brevoRemovals/{uid}: left by "Delete my account" for someone who had been
-    // sent to Brevo, so the console's "Send to Brevo" deletes the Brevo contact
-    // too. Only their own email; only admins read them.
-    match /brevoRemovals/{uid} {
-      allow create, update: if isSelf(uid)
-        && request.resource.data.keys().hasOnly(['email', 'at'])
-        && request.resource.data.email is string && request.resource.data.email.lower() == myEmail()
-        && request.resource.data.at == request.time;
-      allow read, delete: if isAdmin();
+    // emails/{id}: festival emails sent from the console (Festival emails page):
+    // what was sent, by whom, and how far sending got. Written only by the staff
+    // app's server (Admin SDK), which also does the sending; admins read them.
+    match /emails/{id} {
+      allow read: if isAdmin();
     }
     // settings/attendeeAccounts: the console's "Require an account to save to
     // My Festival" switch. Every phone reads it as the app starts; admins change it.

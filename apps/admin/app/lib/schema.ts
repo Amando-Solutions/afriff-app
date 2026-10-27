@@ -26,9 +26,18 @@ export interface FieldDef {
   ref?: CollectionName;
   /** starting value on a NEW item's form (existing items keep what they have) */
   default?: string | boolean;
+  // ---- limits, checked in lib/checks.ts ----
+  /** text: most characters (default 200, long text 5000); number: highest value */
+  max?: number;
+  /** number: lowest value */
+  min?: number;
+  /** number: no decimals */
+  whole?: boolean;
+  /** url: what the link must be. web (default) = any http(s) page; image = https picture or a file in the app; video = YouTube or Vimeo */
+  link?: 'web' | 'image' | 'video';
 }
-/** form values: strings, or true/false for checkboxes */
-export type FormValues = Record<string, string | boolean>;
+/** form values: strings, true/false for checkboxes, numbers from number boxes once edited */
+export type FormValues = Record<string, string | number | boolean>;
 type Doc = Partial<DataDoc> & Record<string, unknown>;
 export interface CollectionDef {
   title: string;
@@ -74,18 +83,18 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     sub: (f) => [t(f.director), t(f.section)].filter(Boolean).join(' · '),
     sort: (a, b) => t(a.title).localeCompare(t(b.title)),
     fields: [
-      { key: 'title', label: 'Title', type: 'text', required: true },
-      { key: 'director', label: 'Director(s)', type: 'text', required: true, hint: 'Separate two names with " & "' },
+      { key: 'title', label: 'Title', type: 'text', required: true, max: 150 },
+      { key: 'director', label: 'Director(s)', type: 'text', required: true, hint: 'Separate two names with " & "', max: 200 },
       { key: 'section', label: 'Programme section', type: 'select', required: true, options: SECTIONS.map((s) => ({ value: s, label: s })) },
-      { key: 'genre', label: 'Genre', type: 'text' },
-      { key: 'country', label: 'Country', type: 'text' },
-      { key: 'language', label: 'Language', type: 'text' },
-      { key: 'runtime', label: 'Running time (minutes)', type: 'number', required: true },
-      { key: 'year', label: 'Year', type: 'number' },
-      { key: 'image', label: 'Poster image link', type: 'url', hint: 'Paste a link to the poster image (uploads need a paid Firebase plan)' },
-      { key: 'trailer', label: 'Trailer link (YouTube or Vimeo)', type: 'url' },
-      { key: 'synopsis', label: 'Synopsis', type: 'textarea' },
-      { key: 'cast', label: 'Cast (optional)', type: 'text', hint: 'Main actors, separated by commas' },
+      { key: 'genre', label: 'Genre', type: 'text', max: 80 },
+      { key: 'country', label: 'Country', type: 'text', max: 100 },
+      { key: 'language', label: 'Language', type: 'text', max: 100 },
+      { key: 'runtime', label: 'Running time (minutes)', type: 'number', required: true, whole: true, min: 1, max: 600 },
+      { key: 'year', label: 'Year', type: 'number', whole: true, min: 1895, max: Number(FESTIVAL.days[0]!.slice(0, 4)) + 1 },
+      { key: 'image', label: 'Poster image link', type: 'url', link: 'image', hint: 'Paste a link to the poster image (uploads need a paid Firebase plan)' },
+      { key: 'trailer', label: 'Trailer link (YouTube or Vimeo)', type: 'url', link: 'video' },
+      { key: 'synopsis', label: 'Synopsis', type: 'textarea', max: 3000 },
+      { key: 'cast', label: 'Cast (optional)', type: 'text', hint: 'Main actors, separated by commas', max: 500 },
       { key: 'premiere', label: 'Premiere badge (optional)', type: 'select', options: PREMIERE_OPTIONS, hint: 'Shown as a gold badge on the film page' },
       { key: 'competition', label: 'In competition for a Globe Award', type: 'checkbox' },
       { key: 'featured', label: 'Feature on Home (daily highlight)', type: 'checkbox', hint: 'On the days this film screens, it goes first in the Home banner collage. Leave unticked and the app picks films by itself.' },
@@ -100,11 +109,11 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     fields: [
       { key: 'film', label: 'Film', type: 'ref', ref: 'films', required: true },
       { key: 'venue', label: 'Venue', type: 'ref', ref: 'venues', required: true },
-      { key: 'screen', label: 'Screen', type: 'text', required: true, hint: 'e.g. Screen 1' },
+      { key: 'screen', label: 'Screen', type: 'text', required: true, hint: 'e.g. Screen 1', max: 40 },
       { key: 'date', label: 'Day', type: 'day', required: true, options: dayOptions },
       { key: 'time', label: 'Start time', type: 'time', required: true },
       { key: 'tag', label: 'Public or Industry', type: 'select', required: true, options: tagOptions },
-      { key: 'capacity', label: 'Seats', type: 'number', required: true },
+      { key: 'capacity', label: 'Seats', type: 'number', required: true, whole: true, min: 1, max: 5000 },
       { key: 'qa', label: 'Q&A with the filmmakers after this screening', type: 'checkbox' },
       statusField,
     ],
@@ -117,21 +126,21 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     sort: (a, b) => `${t(a.date)}${t(a.time)}`.localeCompare(`${t(b.date)}${t(b.time)}`),
     fields: [
       { key: 'type', label: 'Type', type: 'select', required: true, options: Object.entries(EVENT_TYPES).map(([value, t]) => ({ value, label: t.label })) },
-      { key: 'title', label: 'Title', type: 'text', required: true },
+      { key: 'title', label: 'Title', type: 'text', required: true, max: 150 },
       { key: 'date', label: 'Day', type: 'day', required: true, options: dayOptions },
       { key: 'endDate', label: 'Last day (only for events running several days)', type: 'day', options: dayOptions },
       { key: 'time', label: 'Start time', type: 'time', required: true },
       { key: 'end', label: 'End time', type: 'time', required: true },
       { key: 'venue', label: 'Venue', type: 'ref', ref: 'venues', hint: 'Leave empty if it\'s not at one of the festival cinemas' },
-      { key: 'place', label: 'Room or place', type: 'text', hint: 'e.g. Masterclass room, or the address if not at a cinema' },
-      { key: 'speaker', label: 'Speaker', type: 'text' },
-      { key: 'speakerRole', label: 'Speaker\'s role', type: 'text' },
-      { key: 'bio', label: 'Speaker bio', type: 'textarea' },
+      { key: 'place', label: 'Room or place', type: 'text', hint: 'e.g. Masterclass room, or the address if not at a cinema', max: 200 },
+      { key: 'speaker', label: 'Speaker', type: 'text', max: 150 },
+      { key: 'speakerRole', label: 'Speaker\'s role', type: 'text', max: 150 },
+      { key: 'bio', label: 'Speaker bio', type: 'textarea', max: 3000 },
       { key: 'about', label: 'About this event', type: 'textarea', required: true },
-      { key: 'image', label: 'Graphic / poster image link (optional)', type: 'url', hint: 'Tall images work best (e.g. 4:5). Shown whole on the event page.' },
-      { key: 'access', label: 'Who can attend', type: 'text', hint: 'e.g. Free · registration required' },
+      { key: 'image', label: 'Graphic / poster image link (optional)', type: 'url', link: 'image', hint: 'Tall images work best (e.g. 4:5). Shown whole on the event page.' },
+      { key: 'access', label: 'Who can attend', type: 'text', hint: 'e.g. Free · registration required', max: 150 },
       { key: 'tag', label: 'Public or Industry', type: 'select', options: tagOptions },
-      { key: 'link.label', label: 'Button text', type: 'text', hint: 'e.g. Register on afriff.com' },
+      { key: 'link.label', label: 'Button text', type: 'text', hint: 'e.g. Register on afriff.com', max: 60 },
       { key: 'link.url', label: 'Button link', type: 'url' },
       statusField,
     ],
@@ -143,9 +152,9 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     sub: (v) => t(v.area),
     sort: (a, b) => t(a.name).localeCompare(t(b.name)),
     fields: [
-      { key: 'name', label: 'Name', type: 'text', required: true },
-      { key: 'area', label: 'Area', type: 'text', hint: 'e.g. Victoria Island' },
-      { key: 'address', label: 'Full address (used for Directions)', type: 'text', required: true },
+      { key: 'name', label: 'Name', type: 'text', required: true, max: 100 },
+      { key: 'area', label: 'Area', type: 'text', hint: 'e.g. Victoria Island', max: 80 },
+      { key: 'address', label: 'Full address (used for Directions)', type: 'text', required: true, max: 300 },
       { key: 'color', label: 'Dot colour', type: 'color', required: true },
     ],
   },
@@ -156,8 +165,8 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     sub: (d) => (d.time ? new Date(t(d.time)).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : ''),
     sort: (a, b) => t(b.time).localeCompare(t(a.time)),
     fields: [
-      { key: 'title', label: 'Headline', type: 'text', required: true },
-      { key: 'body', label: 'Message', type: 'textarea', required: true },
+      { key: 'title', label: 'Headline', type: 'text', required: true, max: 120 },
+      { key: 'body', label: 'Message', type: 'textarea', required: true, max: 2000 },
       { key: 'type', label: 'Type', type: 'select', options: NEWS_TYPES, hint: 'Shown as a coloured tag. Leave empty for general news.' },
       { key: 'urgent', label: 'Urgent (shows as a banner at the top of Home)', type: 'checkbox' },
       { key: 'until', label: 'Show the banner until (optional)', type: 'datetime', hint: 'After this time the banner disappears, but the item stays in News.' },
@@ -178,8 +187,8 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     sub: (s) => (typeof s.order === 'number' ? `Position ${s.order + 1}` : ''),
     sort: (a, b) => n(a.order) - n(b.order),
     fields: [
-      { key: 'name', label: 'Name', type: 'text', required: true },
-      { key: 'logo', label: 'Logo image link', type: 'url' },
+      { key: 'name', label: 'Name', type: 'text', required: true, max: 100 },
+      { key: 'logo', label: 'Logo image link', type: 'url', link: 'image' },
       {
         key: 'logoStyle', label: 'Logo style on the dark app', type: 'select',
         options: [
@@ -190,7 +199,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
         hint: 'Leave empty to show in white',
       },
       { key: 'website', label: 'Website (optional, opens when the logo is tapped)', type: 'url' },
-      { key: 'order', label: 'Position in the strip (0 = first)', type: 'number' },
+      { key: 'order', label: 'Position in the strip (0 = first)', type: 'number', whole: true, min: 0, max: 999 },
     ],
   },
 
@@ -200,13 +209,13 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     sub: (j) => [t(j.jury), t(j.country)].filter(Boolean).join(' · '),
     sort: (a, b) => t(a.jury).localeCompare(t(b.jury)) || n(a.order) - n(b.order),
     fields: [
-      { key: 'name', label: 'Name', type: 'text', required: true },
-      { key: 'roles', label: 'Roles', type: 'text', hint: 'e.g. Producer · Media executive' },
-      { key: 'country', label: 'Country', type: 'text' },
-      { key: 'jury', label: 'Which jury', type: 'text', required: true, hint: 'e.g. International Jury. Members with the same jury name are shown together under that heading.' },
-      { key: 'bio', label: 'Short bio', type: 'textarea' },
-      { key: 'photo', label: 'Photo link', type: 'url', hint: 'If empty, their initials are shown instead' },
-      { key: 'order', label: 'Position (0 = first)', type: 'number' },
+      { key: 'name', label: 'Name', type: 'text', required: true, max: 100 },
+      { key: 'roles', label: 'Roles', type: 'text', hint: 'e.g. Producer · Media executive', max: 200 },
+      { key: 'country', label: 'Country', type: 'text', max: 100 },
+      { key: 'jury', label: 'Which jury', type: 'text', required: true, hint: 'e.g. International Jury. Members with the same jury name are shown together under that heading.', max: 80 },
+      { key: 'bio', label: 'Short bio', type: 'textarea', max: 3000 },
+      { key: 'photo', label: 'Photo link', type: 'url', link: 'image', hint: 'If empty, their initials are shown instead' },
+      { key: 'order', label: 'Position (0 = first)', type: 'number', whole: true, min: 0, max: 999 },
     ],
   },
 
@@ -216,11 +225,11 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     sub: (h) => (typeof h.order === 'number' ? `Position ${h.order + 1}` : ''),
     sort: (a, b) => n(a.order) - n(b.order),
     fields: [
-      { key: 'title', label: 'Heading', type: 'text', required: true },
+      { key: 'title', label: 'Heading', type: 'text', required: true, max: 120 },
       { key: 'body', label: 'Text', type: 'textarea', required: true },
-      { key: 'link.label', label: 'Link text (optional)', type: 'text' },
+      { key: 'link.label', label: 'Link text (optional)', type: 'text', max: 60 },
       { key: 'link.url', label: 'Link (optional)', type: 'url' },
-      { key: 'order', label: 'Position (0 = first)', type: 'number' },
+      { key: 'order', label: 'Position (0 = first)', type: 'number', whole: true, min: 0, max: 999 },
     ],
   },
 };
@@ -243,7 +252,9 @@ export function fromForm(colName: CollectionName, values: FormValues): Record<st
     if (f.type === 'number') v = raw === '' || raw == null ? null : Number(raw);
     else if (f.type === 'checkbox') v = Boolean(raw);
     else if (f.type === 'datetime') v = raw ? new Date(`${raw}:00+01:00`).toISOString() : '';
-    else v = (raw ?? '').toString().trim();
+    // hidden control characters (often pasted from Word or PDFs) are dropped; line breaks stay
+    // eslint-disable-next-line no-control-regex
+    else v = (raw ?? '').toString().replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
     const parts = f.key.split('.');
     const [outer, inner] = parts;
     if (outer && inner) {

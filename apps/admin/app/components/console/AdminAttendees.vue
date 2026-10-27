@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { DownloadIcon, RefreshCwIcon, SearchIcon, SendIcon, Trash2Icon } from 'lucide-vue-next'
+import { DownloadIcon, RefreshCwIcon, SearchIcon, Trash2Icon } from 'lucide-vue-next'
 import {
-  BREVO_LABELS, attendeeSetup, deleteAttendee, loadAttendees, readRequireSignUp, saveRequireSignUp, sendToBrevo,
+  attendeeSetup, deleteAttendee, loadAttendees, readRequireSignUp, saveRequireSignUp,
   type AttendeeRow, type AttendeeSetup,
 } from '~/lib/attendees'
 import { csvDownload } from '~/lib/reports'
 import { errMsg } from '~/lib/util'
 
 // Admins only (lib/access.ts; firestore.rules agree): people who signed up in
-// the festival app ("App users"), the "Require sign-up" switch, and Brevo.
+// the festival app ("App users") and the "Require sign-up" switch. Emailing the
+// ones who said yes: Festival emails (AdminEmails.vue).
 const setup = ref<AttendeeSetup | null | undefined>(undefined)
 const requireSignUp = ref<boolean | null>(null)
 const switchBusy = ref(false)
@@ -57,7 +58,6 @@ const shown = computed(() => {
   return q ? people.value.filter((p) => `${p.firstName} ${p.lastName} ${p.email}`.toLowerCase().includes(q)) : people.value
 })
 const subscribers = computed(() => people.value.filter((p) => p.marketing))
-const waiting = computed(() => people.value.filter((p) => p.brevo === 'pending' || p.brevo === 'failed').length)
 
 const when = (d: Date | null) => (d ? d.toLocaleString('en-GB', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : '')
 const stamp = () => new Date().toISOString().slice(0, 10)
@@ -65,28 +65,13 @@ const stamp = () => new Date().toISOString().slice(0, 10)
 function download(which: 'users' | 'subscribers') {
   const rows = which === 'users' ? people.value : subscribers.value
   csvDownload(which === 'users' ? `afriff-app-users-${stamp()}.csv` : `afriff-app-subscribers-${stamp()}.csv`, [
-    ['First name', 'Last name', 'Email', 'Signed up (Lagos)', 'Festival emails', 'Agreed to', 'Emails choice changed (Lagos)', 'Brevo'],
-    ...rows.map((p) => [p.firstName, p.lastName, p.email, when(p.createdAt), p.marketing ? 'Yes' : 'No', p.consentText, when(p.marketingChangedAt), BREVO_LABELS[p.brevo]]),
+    ['First name', 'Last name', 'Email', 'Signed up (Lagos)', 'Festival emails', 'Agreed to', 'Emails choice changed (Lagos)'],
+    ...rows.map((p) => [p.firstName, p.lastName, p.email, when(p.createdAt), p.marketing ? 'Yes' : 'No', p.consentText, when(p.marketingChangedAt)]),
   ])
 }
 
-async function runBrevo() {
-  Object.assign(state, { busy: true, error: '', note: '' })
-  try {
-    const r = await sendToBrevo()
-    state.note = r.done || r.failed
-      ? `Brevo updated for ${r.done} ${r.done === 1 ? 'person' : 'people'}${r.failed ? `; ${r.failed} still failing (see each person's Brevo problem)` : ''}.`
-      : 'Nothing waiting: Brevo is up to date.'
-    state.people = await loadAttendees()
-  } catch (e) {
-    state.error = errMsg(e)
-  } finally {
-    state.busy = false
-  }
-}
-
 async function remove(p: AttendeeRow) {
-  if (!window.confirm(`Delete ${p.firstName} ${p.lastName}'s account (${p.email})? Their festival plan and watched list go too, and they're removed from Brevo. This can't be undone.`)) return
+  if (!window.confirm(`Delete ${p.firstName} ${p.lastName}'s account (${p.email})? Their festival plan and watched list go too, and they get no more festival emails. This can't be undone.`)) return
   Object.assign(state, { busy: true, error: '', note: '' })
   try {
     const r = await deleteAttendee(p.uid)
@@ -94,7 +79,6 @@ async function remove(p: AttendeeRow) {
     state.note = [
       `Deleted ${p.email}.`,
       r.login === 'kept-staff' ? 'They\'re on the AFRIFF team, so their login stays (for the console).' : '',
-      r.brevo === 'failed' ? 'Brevo couldn\'t be reached: delete the contact in Brevo by hand.' : '',
     ].filter(Boolean).join(' ')
   } catch (e) {
     state.error = errMsg(e)
@@ -143,8 +127,8 @@ async function remove(p: AttendeeRow) {
             <span><strong class="font-semibold">Deleting accounts here.</strong> {{ setup.serviceAccount ? 'The delete button removes the account and its login.' : 'Missing NUXT_FIREBASE_SERVICE_ACCOUNT on the staff app (the same key push notifications use).' }}</span>
           </p>
           <p class="flex items-start gap-2">
-            <UiBadge :tone="setup.list ? 'success' : 'danger'">{{ setup.list ? 'Ready' : 'Off' }}</UiBadge>
-            <span><strong class="font-semibold">"App subscribers" list in Brevo.</strong> {{ setup.list ? `Press "Send to Brevo" below to add people who ticked the box and take off those who unticked it${setup.doubleOptIn ? ' (Brevo asks them to confirm by email first)' : ''}.` : 'Missing NUXT_BREVO_API_KEY or NUXT_BREVO_LIST_ID. Until then, download "App subscribers" and import it in Brevo by hand.' }}</span>
+            <UiBadge :tone="setup.emails ? 'success' : 'danger'">{{ setup.emails ? 'Ready' : 'Off' }}</UiBadge>
+            <span><strong class="font-semibold">Festival emails.</strong> People who said yes get the emails admins write on the <NuxtLink to="/admin/emails" class="font-medium text-accent-ink underline">Festival emails</NuxtLink> page{{ setup.emails ? '' : ' (not set up on the server yet: see that page)' }}. Unsubscribing, or switching emails off in the app, takes them off at once.</span>
           </p>
         </template>
       </div>
@@ -159,15 +143,14 @@ async function remove(p: AttendeeRow) {
         <template v-if="state.people">
           <UiButton size="sm" variant="secondary" :disabled="!people.length" @click="download('users')"><DownloadIcon /> All app users</UiButton>
           <UiButton size="sm" variant="secondary" :disabled="!subscribers.length" @click="download('subscribers')"><DownloadIcon /> App subscribers</UiButton>
-          <UiButton v-if="setup?.list" size="sm" variant="secondary" :disabled="state.busy" @click="runBrevo"><SendIcon /> Send to Brevo{{ waiting ? ` (${waiting} waiting)` : '' }}</UiButton>
         </template>
       </div>
       <p v-if="state.error" class="mt-3 text-meta text-danger" role="alert">{{ state.error }}</p>
       <p v-if="state.note" class="mt-3 rounded-tile bg-accent-soft px-3 py-2 text-meta" role="status">{{ state.note }}</p>
 
       <template v-if="state.people">
-        <div class="mt-4 grid grid-cols-3 gap-2">
-          <div v-for="tile in [[people.length, 'signed up'], [subscribers.length, 'said yes to emails'], [waiting, 'waiting for Brevo']]" :key="tile[1]" class="card flex flex-col p-3">
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <div v-for="tile in [[people.length, 'signed up'], [subscribers.length, 'said yes to emails']]" :key="tile[1]" class="card flex flex-col p-3">
             <span class="font-display text-h1 font-semibold tabular-nums">{{ tile[0] }}</span>
             <span class="text-label text-muted">{{ tile[1] }}</span>
           </div>
@@ -175,7 +158,7 @@ async function remove(p: AttendeeRow) {
 
         <label class="relative mt-4 block">
           <SearchIcon class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-          <input v-model="search" type="search" class="field-input pl-9" placeholder="Search by name or email" aria-label="Search by name or email">
+          <input v-model="search" type="search" maxlength="100" class="field-input pl-9" placeholder="Search by name or email" aria-label="Search by name or email">
         </label>
 
         <p v-if="!shown.length" class="mt-4 text-muted">{{ people.length ? 'Nobody matches.' : 'Nobody has signed up yet.' }}</p>
@@ -187,9 +170,7 @@ async function remove(p: AttendeeRow) {
               <span class="flex flex-wrap items-center gap-1.5 text-label text-muted">
                 Signed up {{ when(p.createdAt) }}
                 <UiBadge :tone="p.marketing ? 'success' : 'neutral'">{{ p.marketing ? 'Emails: yes' : 'Emails: no' }}</UiBadge>
-                <UiBadge v-if="p.brevo !== 'off'" :tone="p.brevo === 'failed' ? 'danger' : 'neutral'" :title="p.brevoError || undefined">Brevo: {{ BREVO_LABELS[p.brevo] }}</UiBadge>
               </span>
-              <span v-if="p.brevo === 'failed' && p.brevoError" class="text-label text-danger">{{ p.brevoError }}</span>
             </span>
             <button type="button" class="pressable grid size-9 shrink-0 place-items-center rounded-full text-muted hover:bg-danger-soft hover:text-danger" :aria-label="`Delete ${p.firstName} ${p.lastName}'s account`" :disabled="state.busy" @click="remove(p)">
               <Trash2Icon class="size-4" />

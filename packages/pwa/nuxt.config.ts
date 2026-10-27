@@ -61,8 +61,10 @@ export default defineNuxtConfig({
     injectRegister: false,
     client: { registerPlugin: false },
     workbox: {
-      // Single-page app: every address opens the cached app shell.
+      // Single-page app: every address opens the cached app shell, except the
+      // server's own pages (e.g. the staff app's /api/emails/unsubscribe).
       navigateFallback: '/',
+      navigateFallbackDenylist: [/^\/api\//],
       // The new worker takes over open pages straight away instead of waiting
       // for every tab to close (which on a phone may be never).
       skipWaiting: true,

@@ -2,7 +2,7 @@
 // QR code. Nuxt PWA in SPA mode (ssr: false): everything runs in the browser,
 // so the app opens instantly from the phone's saved copy and keeps working
 // offline. No server routes: phones read and write Firestore directly, and
-// sign-up / log-in go to the staff app's server (adminUrl, lib/account.ts).
+// sign-up / log-in use Firebase's own email + password sign-in (lib/account.ts).
 //
 // Shared with the staff console (apps/admin), from packages/:
 //   @afriff/theme  design system: tokens, fonts, UI + brand components, icons
@@ -53,8 +53,19 @@ export default defineNuxtConfig({
     server: {
       allowedHosts: true, // lets a phone on the same Wi-Fi open the dev server
     },
-    // the Firestore SDK chunk (~170 KB gzipped) is loaded after first paint on purpose
-    build: { chunkSizeWarningLimit: 700 },
+    build: {
+      // the Firestore SDK chunk (~170 KB gzipped) is loaded after first paint on purpose
+      chunkSizeWarningLimit: 700,
+      // The avatar drawings (app/lib/avatarDrawing.ts, ~107 KB gzipped) get a
+      // name the service worker can recognise, so they stay out of the offline
+      // copy every phone saves (pwa.workbox below). Everything else keeps
+      // Nuxt's usual hash-only name.
+      rolldownOptions: {
+        output: {
+          chunkFileNames: (chunk) => (chunk.name === 'avatarDrawing' ? '_nuxt/avatar-[hash].js' : '_nuxt/[hash].js'),
+        },
+      },
+    },
     // pre-bundle these for `npm run dev`, so the first page load doesn't reload itself
     optimizeDeps: { include: ['lucide-vue-next', 'firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/messaging'] },
   },
@@ -71,8 +82,18 @@ export default defineNuxtConfig({
 
   // The shared service-worker setup is in @afriff/pwa; this is the attendee app's identity.
   pwa: {
-    // Shows push notifications (announcements) and opens the app when one is tapped.
-    workbox: { importScripts: ['/push-sw.js'] },
+    workbox: {
+      // Shows push notifications (announcements) and opens the app when one is tapped.
+      importScripts: ['/push-sw.js'],
+      // Avatar drawings (see vite.build above): not saved up front on every
+      // phone, only fetched by signed-in people, then kept for next time.
+      globIgnores: ['**/avatar-*.js'],
+      runtimeCaching: [{
+        urlPattern: ({ sameOrigin, url }) => sameOrigin && /\/_nuxt\/avatar-[\w-]+\.js$/.test(url.pathname),
+        handler: 'CacheFirst',
+        options: { cacheName: 'afriff-avatar', expiration: { maxEntries: 2 }, cacheableResponse: { statuses: [200] } },
+      }],
+    },
     manifest: {
       id: '/',
       name: 'AFRIFF 2026 · Africa International Film Festival',

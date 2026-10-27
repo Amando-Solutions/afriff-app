@@ -29,7 +29,7 @@ const shown = computed(() => {
     </div>
     <div class="relative mt-4">
       <SearchIcon class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
-      <input v-model="q" type="search" class="field-input rounded-full! pl-10!" :placeholder="`Search ${c.title.toLowerCase()}`" :aria-label="`Search ${c.title.toLowerCase()}`" />
+      <input v-model="q" type="search" maxlength="100" class="field-input rounded-full! pl-10!" :placeholder="`Search ${c.title.toLowerCase()}`" :aria-label="`Search ${c.title.toLowerCase()}`" />
     </div>
     <p v-if="state.error" class="mt-3 text-meta text-danger">{{ state.error }}</p>
     <p v-if="state.items == null" class="mt-3 text-muted">Loading…</p>

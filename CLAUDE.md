@@ -57,6 +57,8 @@ tell me which).
 ## Every screen
 - Header (from prototype): AFRIFF logo + name left, bell with gold
   count badge right (opens news and alerts).
+  ADDED 27 Oct (user request): a round avatar right of the bell, opening
+  the Profile page (see "Profile page + avatar").
 - Bottom nav (from prototype, 4 tabs): Home, Programme, Queues,
   My Festival. No Tickets tab: there's no ticketing in this version.
 
@@ -155,6 +157,9 @@ user decision). Home's top banner depends on the Lagos date:
 - Small note at the bottom: "Kept on this phone. No account needed."
   (CHANGED 26 Oct with attendee accounts: "Kept on this phone and in your
   account.", plus an account card: emails switch, Log out, Delete my account.)
+  (CHANGED 27 Oct: the account card and the alerts / anonymous counts
+  switches moved to the Profile page; My Festival keeps only the "Keep your
+  plan on any phone · Sign up" card for people not signed in.)
 
 ## Queues
 Today's screenings with an open queue, sorted by start time: film,
@@ -240,7 +245,10 @@ Read this first; the dated sections below are the detailed history.
   film sync"), attendee accounts (26–27 Oct; email + password by
   Firebase, asked for only when saving; branch `feature/attendee-accounts`,
   27 Oct changes NOT committed or deployed; pending AFRIFF's written
-  approval; see "Attendee accounts").
+  approval; see "Attendee accounts"), Profile page + header avatar
+  (27 Oct; NOT committed; see "Profile page + avatar"), festival emails
+  written and sent from the console, Brevo only delivers (27 Oct; NOT
+  committed; see "Festival emails from the console").
 - Branch `claude/daily-highlights-filmstrip` (filmstrip + "Daily
   highlights" headline) MERGED INTO main 23 Oct (pull request #3). The
   monorepo split (branch dev) is rebased on top of it; dev → main still
@@ -1179,14 +1187,26 @@ heavy libraries) apply everywhere.
   sign-up page offline says "Connect to the internet to sign up or log in"
   and its button waits. Firebase unreachable while online: "We can't reach
   AFRIFF right now. Check your connection and try again.
-- SIGN-UP FORM: first name, last name, email, password, an UNTICKED "Yes,
+- SIGN-UP FORM: first name, last name, email, password, "Confirm password"
+  (added 27 Oct, user request: "Type your password again." / "The passwords
+  don't match."; each box has its own Show), an UNTICKED "Yes,
   AFRIFF can email me festival news and updates." box (optional), a short
-  privacy note and a link to `/privacy` (readable without an account). A
-  login with no attendee details yet (e.g. an AFRIFF team login) gets a
-  "One more step" form for the name.
+  privacy note and a link to `/privacy` (readable without an account).
+- DETAILS ARE NEVER ASKED TWICE (27 Oct, user request): if the login is made
+  but the details don't reach the database (no signal, or the database
+  refuses them, as the live one does until `npm run deploy:rules`), the page
+  says "Almost done · Your account is made, but we couldn't finish setting it
+  up just now" with ONE "Try again" button: no form. The details are kept on
+  the phone and the name is also stored on the Firebase login, so logging in
+  later (any phone) finishes it silently (emails choice off if from another
+  phone). "One more step" (name form) is only for a login whose name we
+  don't know at all, e.g. an AFRIFF team login. Seen by the user on 27 Oct
+  because the live database still has the OLD rules (checked: the public
+  `settings/attendeeAccounts` read answers 403).
 - LOG IN ON ANOTHER PHONE: email + password; My Festival (plans, Seen it,
   stars, queues checked) comes along and stays in step between phones.
-- MY FESTIVAL: account card (name, email, "Saved to your account"),
+- PROFILE (was MY FESTIVAL until 27 Oct; see "Profile page + avatar"):
+  account card (avatar, name, email, "Saved to your account"),
   "Festival emails from AFRIFF" switch, Log out (clears the plan from that
   phone; it stays in the account), Delete my account (asks for the password
   again; team members keep their staff login).
@@ -1201,17 +1221,16 @@ heavy libraries) apply everywhere.
 - CONSOLE (admins only): Attendees page = "Require an account to save to My
   Festival" switch (ON by default; OFF = saving works without an account),
   what's set up, the "App users" list, spreadsheets of all users or only
-  "App subscribers", delete an account on request, "Send to Brevo".
+  "App subscribers", delete an account on request.
   Reports → "Sign-ups": per day and how many said yes to emails. Editors and
   door volunteers can't see attendee details (database rules).
-- BREVO: only people who ticked the box are ever sent, and only when an
-  admin presses "Send to Brevo" (or downloads "App subscribers" and imports
-  it in Brevo). The same button takes off people who unticked, and deletes
-  the Brevo contact of anyone who deleted their account in the app.
+- FESTIVAL EMAILS (CHANGED 27 Oct, user decision): no Brevo list any more
+  ("Send to Brevo" is gone). Admins write and send the emails in the console;
+  see "Festival emails from the console" below.
 - WHY THE STAFF APP'S SERVER IS STILL INVOLVED (admins only): deleting
-  someone's login from the console and "Send to Brevo" need secret keys
-  (Firebase service account, Brevo key) that can't live in a browser.
-  Attendees never touch it.
+  someone's login from the console and sending festival emails need secret
+  keys (Firebase service account, Brevo key) that can't live in a browser.
+  Attendees never touch it (except an email's unsubscribe link).
 - TESTED (27 Oct, by Claude, the running dev app + a pretend Firebase): 26
   browser checks (browse without an account; + → sign-up → saved and back;
   short password refused; Show password; account record fields; plan
@@ -1236,21 +1255,155 @@ heavy libraries) apply everywhere.
   2. Firebase console → Authentication → Settings → Authorized domains: add
      the attendee app's address (for the reset email's way back). Optional:
      Templates → Password reset, to word it for AFRIFF.
-  3. For "Send to Brevo" (staff project): `NUXT_BREVO_API_KEY` (Sensitive),
-     `NUXT_BREVO_LIST_ID`; Brevo account OWNED BY AFRIFF with an "App
-     subscribers" list. For deleting accounts from the console:
-     `NUXT_FIREBASE_SERVICE_ACCOUNT` (same key push uses).
+  3. For festival emails: see "Festival emails from the console" below. For
+     deleting accounts from the console: `NUXT_FIREBASE_SERVICE_ACCOUNT`
+     (same key push uses).
   4. Attendee project: `NUXT_PUBLIC_PRIVACY_EMAIL` (AFRIFF's privacy contact).
   5. Remove the yopmail admin logins first (OPEN RISKS 5).
 - NEEDED FROM AFRIFF: written approval; their lawyer to approve the privacy
   text (`apps/pwa/app/pages/privacy.vue`; Nigeria Data Protection Act 2023;
   data stored in London) incl. how long accounts are kept; the privacy
-  contact email; who owns the Brevo account.
+  contact email; who owns the Brevo account (it sends the festival emails).
 - COST: no new costs for accounts (Firebase's email/password login is free).
   A few database reads/writes per person per day (another reason for
-  Blaze). Brevo's free plan covers storing contacts; big campaigns need a
-  paid Brevo plan (AFRIFF's cost). Marketing contacts = commercial use:
-  another reason for Vercel Pro.
+  Blaze). Festival emails: Brevo's free plan sends about 300 a day; more
+  needs a paid Brevo plan (AFRIFF's cost, from about $9/month; check
+  brevo.com/pricing). Marketing emails = commercial use: another reason for
+  Vercel Pro.
+
+### Festival emails from the console (27 Oct 2026, user decision)
+- CHANGED DECISION: emails no longer go through a Brevo contact list. Admins
+  write them in the console and press Send. Brevo stays, ONLY as the postman
+  that delivers them (user chose "Brevo, sending only" over Resend).
+- STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
+- WHO GETS THEM: everyone who ticked "Yes, AFRIFF can email me festival news
+  and updates" (and hasn't switched it off in Profile). Nobody else, ever.
+- CONSOLE → FESTIVAL EMAILS (`/admin/emails`, admins only, new tile on the
+  console home): Ready / Off (what the server still needs), "N people said
+  yes", the form (Subject; Message: plain text, blank line = new paragraph,
+  https links clickable; optional Button text + Button link), a live preview
+  of the email, "Send me a test" (only to you, "[Test]" in the subject),
+  "Send to N people" (asks first; can't be called back). Below: Sent emails,
+  each Sent / Sending / Paused, "Sent to N of about N", addresses Brevo
+  turned down, "Continue sending", "Copy into the form". The half-written
+  email is kept in that browser until it's sent.
+- EACH EMAIL: AFRIFF header, "Hi <first name>,", the message, the gold
+  button, and a footer "You're getting this because you said yes…" with
+  Unsubscribe + Open the AFRIFF app.
+- UNSUBSCRIBE: each person's own link. It opens a page "Stop festival emails
+  from AFRIFF?" with one button (not instant: some email services open every
+  link to scan it). The button switches their emails off, same as the
+  Profile switch (which turns them back on). Links can't be made for anyone
+  else.
+- FREE-PLAN LIMIT: Brevo's free plan sends about 300 a day. Past that the
+  email shows "Paused" with Brevo's reason; press "Continue sending" the next
+  day. It carries on where it stopped: nobody gets it twice.
+- ALSO REMOVED: the `brevo` / `brevoError` fields on attendee records and the
+  `brevoRemovals` collection (deleting an account now simply means no more
+  emails). firestore.rules updated to match the phone (checked: they
+  compile); new `emails` rule (admins read).
+- SETUP BEFORE IT WORKS (staff Vercel project, then redeploy it):
+  1. `NUXT_BREVO_API_KEY` (Sensitive; Brevo → SMTP & API → API keys).
+  2. `NUXT_EMAIL_FROM_ADDRESS`, e.g. news@afriff.com. It must be added in
+     Brevo → Senders, Domains & Dedicated IPs; AUTHENTICATE THE afriff.com
+     DOMAIN there (DNS records, done by whoever runs afriff.com) or emails
+     land in spam. Optional: `NUXT_EMAIL_FROM_NAME` (default AFRIFF),
+     `NUXT_EMAIL_REPLY_TO`.
+  3. `NUXT_FIREBASE_SERVICE_ACCOUNT` (already needed for push).
+  4. `npm run deploy:rules`.
+  Then send yourself a test from the console.
+- TESTED (27 Oct, by Claude): 20 automatic tests with a pretend database and
+  pretend Brevo (only people who said yes; own name and link each; batches
+  of 50; daily limit → paused → continue, nobody twice; refused address
+  skipped and listed; wrong key → paused with what to do; unsubscribing
+  mid-way; one sender at a time; finished email sends nothing; test email
+  only to the admin; forged links refused; nothing typed becomes HTML);
+  47 staff tests pass; typecheck both apps; staff app production build; the
+  built server with a throwaway key (test link page, confirm page, broken
+  links, database not answering → "try again" after 10 s, admin routes
+  refuse without a login); screenshots of the email and the unsubscribe page
+  at phone width. NOT TESTED: a real email through Brevo (needs the sender
+  set up; Claude didn't use the Brevo key in apps/admin/.env), the console
+  page with a real admin login, how Gmail / Outlook show the email.
+
+### Profile page + avatar (27 Oct 2026, user request)
+- STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
+- HEADER: right of the bell, a round avatar (signed in) or a plain person
+  icon (not signed in). Both open the Profile page (`/profile`); the circle
+  gets a gold ring while you're on it.
+- PROFILE PAGE (`apps/pwa/app/pages/profile.vue`), moved from the bottom of
+  My Festival: the account card (avatar, name, email, "Saved to your
+  account", "Festival emails from AFRIFF", Log out, Delete my account), the
+  "Alerts on this phone" switch (also still on News), "Share anonymous
+  counts with AFRIFF", and a link to the privacy page. Not signed in: the
+  "Keep your plan on any phone · Sign up" card (comes back to Profile after
+  signing up) and the same switches. The privacy page and the sign-up
+  page's note now say "Profile" instead of "My Festival".
+- AVATARS (user asked for DiceBear with a seed): CLAUDE'S CHOICES, easy to
+  change: style "Open Peeps" (CC0 licence: free for commercial use, no
+  credit needed), with brown skin tones and warm festival colours behind,
+  no face masks. The seed is the account's ID, so everyone gets their own
+  random picture and it's the same on every phone they log in on. Drawn ON
+  THE PHONE with DiceBear's free code library (no request to DiceBear's
+  website, works offline, nothing about the person leaves the phone).
+  Initials show for a moment until it's drawn.
+- SIZE: the drawings are ~107 KB (compressed). So they're NOT in the offline
+  copy every phone saves: only people who sign in download them, once; the
+  phone keeps them after that (checked with a production build and the
+  offline service worker on). Smaller CC0 option if wanted: Lorelei
+  (~51 KB).
+- No cost (DiceBear's code library is free and open source).
+- TESTED (27 Oct, by Claude): 28 checks in a phone-sized test browser with a
+  pretend login (avatar next to the bell, same picture on Profile and after
+  reload, all account details and switches on Profile, counts switch saves,
+  My Festival no longer repeats them, log out → person icon + sign-up card,
+  sign-up returns to Profile / My Festival, privacy wording); 9 checks on a
+  production build (signed out: code never downloaded and not in the
+  offline copy; signed in: downloaded once, kept, drawn with no signal);
+  typecheck. NOT TESTED: real phones, a real login.
+
+### Input checks on every form (27 Oct 2026, user request: "proper input validations for all the input fields")
+- STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
+- EVERY FORM, BOTH APPS: sign-up, log in, forgot password, "One more step",
+  delete-account password, staff login / create account / forgot password,
+  every console data form (films, screenings, events, venues, news, sponsors,
+  jury, How to attend) and the "Tell attendees?" alert, the door view's seat
+  count. Searches are capped at 100 characters.
+- HOW IT FEELS: no red while someone is still typing a box for the first
+  time; leaving a box shows its problem in plain words under it; once shown,
+  it disappears the moment it's fixed; pressing the button marks every
+  problem and puts the cursor on the first. Nothing is sent until it's right.
+- ATTENDEE ACCOUNTS: names in any language (Ìfẹ́, Adé-Bàbá, O'Neil), no
+  numbers or symbols; extra spaces tidied. Emails get specific messages
+  ("needs an @", "Check the dots"…) and "Did you mean ada@gmail.com?" for
+  typos like gmial.com / yahoo.con (a suggestion; tap to use it). New
+  passwords (USER DECISION 27 Oct: basic rules only; an earlier stricter
+  version refusing common passwords or your own name/email was dropped as
+  too strict): at least 8 characters with an uppercase letter, a lowercase
+  letter and a special character (like ! or #), written under the box before
+  typing; the message says what's missing ("Add an uppercase letter and a
+  special character"). Confirm password must match. Same rules for staff
+  accounts. Logging in accepts any existing password.
+- CONSOLE: required fields, length limits, whole numbers in range (running
+  time 1–600, year 1895–2027, seats 1–5000, positions 0–999), proper links
+  (posters https, trailers YouTube/Vimeo only), times, colours, event last
+  day after the first, end time ≠ start, button text and link together, news
+  banner end after its time. Save says "Fix the N fields marked in red".
+- SAFETY: phones also drop any link that isn't a real web address when
+  published data arrives, so a bad link (e.g. "javascript:…") can never
+  become a button attendees tap.
+- BUGS FIXED ON THE WAY: console number boxes (Running time, Year, Seats,
+  Position) emptied themselves on every key press, so only the last digit
+  typed was saved ("90" → 0); the door view started counting at 0 seats
+  (= Full) if the seats box was left empty.
+- TESTED (27 Oct, by Claude, again after the password change): 35 automatic
+  tests (`npm run test:accounts`); phone-sized test browser: 28 sign-up /
+  log-in / forgot checks + 17 confirm
+  password / delete password checks (pretend Firebase), 25 console + staff
+  login checks and 7 door seat checks (staff app with pretend login and data,
+  all Firebase traffic blocked); typecheck both apps; staff app build. NOT
+  TESTED: real phones; the attendee app's production build (the running dev
+  server shares its build folder).
 
 ### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
 - WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
@@ -1395,3 +1548,6 @@ heavy libraries) apply everywhere.
 8. Attendee accounts: get AFRIFF's written approval, then do "SETUP BEFORE
    IT WORKS" in "Attendee accounts", test sign-up / Forgot password / two
    phones on real phones, and delete the test accounts (console → Attendees).
+9. Festival emails: set the sender up in Brevo (authenticate afriff.com), add
+   the settings in "Festival emails from the console", send yourself a test,
+   check it in Gmail and on a phone, then try its Unsubscribe link.

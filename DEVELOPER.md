@@ -40,7 +40,7 @@ npm run build          # build both (or build:pwa / build:admin); output in apps
 npm run preview:pwa    # run a production build with the service worker (offline, install, updates)
 npm run preview:admin
 npm run typecheck      # TypeScript check of both apps and the shared packages (run before every commit)
-npm run test:accounts  # attendee accounts: shared checks, deleting, Send to Brevo (pretend database, ~1 s)
+npm run test:accounts  # attendee accounts + every form's input checks + link safety (pretend database, ~1 s)
 ```
 Add a dependency to the app or package that uses it, e.g.
 `npm install some-lib -w afriff-pwa` or `-w @afriff/core`.
@@ -131,7 +131,7 @@ only its manifest.
 ```
 apps/pwa/app/
   pages/        index (Home), programme/[[tab]], film/[id], event/[id], my (My Festival),
-                queues, venues, news, jury; admin/[...path] + door only forward to the console
+                profile (account + switches), queues, venues, news, jury; admin/[...path] + door only forward to the console
   components/   app/ (header, bottom bar, install toast, welcome cards, sponsor marquee,
                 StaffRedirect), festival/ (posters, rows, jury, daily highlight),
                 programme/ (day picker, venue chips, timeline, My plan sheet, search)
@@ -225,7 +225,7 @@ Rules of the road:
 Other data on phones: plans, Seen it and star ratings are in localStorage
 `afriff-my-v1` (no accounts, by design). Anonymous usage counts go to
 `usage/{randomDeviceId}` with the SDK (queued on the phone when offline), at
-most every 30 min, with an opt-out switch in My Festival. The admin Reports
+most every 30 min, with an opt-out switch on Profile. The admin Reports
 page reads them.
 
 ### How the PWA works (same approach as the DP Fitness PWA)
@@ -263,7 +263,7 @@ ticked "Feature on Home" in the console first, then the opening film, then
 films with real posters, then by start time.
 
 ### Push notifications for announcements (26 Oct 2026)
-Attendees opt in with **"Alerts on this phone"** (News page and My Festival,
+Attendees opt in with **"Alerts on this phone"** (News page and Profile,
 `apps/pwa/app/components/app/AlertsSwitch.vue`). Admins don't press anything
 extra: a news item ticked **"Send as a push notification"** (ticked by default
 on new items and on the "Tell attendees?" alerts) is sent once, the first time
@@ -320,8 +320,14 @@ it's published.
 - **One login pool with the team**: attendees and staff are both Firebase
   email/password users. Rights come only from `users/{uid}.role`; attendee
   records only from `attendees/{uid}`. A team member can also have an attendee
-  record. A login with no attendee record (a staff login, or a sign-up whose
-  record didn't save) gets a "One more step: your name" form (`finishDetails`).
+  record. Sign-up = `createLogin` (Firebase user + displayName "First Last")
+  then the record (`finishDetails`; on permission-denied it refreshes the ID
+  token and tries once more). If the record doesn't save, the details are
+  kept in localStorage `afriff-signup-details` and the page shows "Almost
+  done" + Try again (`finishSetup`), never the name form. A login with no
+  record is finished from those kept details, else from displayName (split
+  at the last space, emails off); only with neither (e.g. a staff login)
+  does it show "One more step: your name".
   Deleting from the app keeps the Firebase user if `users/{uid}` exists.
   An attendee can log into the staff app too, but only reaches "No access yet".
 - **Browsing never needs an account.** Saving does: `useFestival().toggleScheduled`
@@ -345,12 +351,12 @@ it's published.
   still does). On `/auth` offline, the submit buttons wait for a connection.
 - **Records** (all written by the phone, all checked in `firestore.rules`):
   `attendees/{uid}` (the "App users" list: names, email, `marketing`,
-  `optInAtSignUp` 0/1, `consentText`, times, `createdDay` (Lagos), `brevo`
-  status; the person may only change their emails choice, which sets
-  `brevo: 'pending'`); `attendeePlans/{uid}` (My Festival; owner only, while
-  the record exists); `brevoRemovals/{uid}` (left by "Delete my account" for
-  anyone who may be on Brevo); `settings/attendeeAccounts` (readable by all).
-  Admins read `attendees`; editors and volunteers can't.
+  `optInAtSignUp` 0/1, `consentText`, times, `createdDay` (Lagos); the person
+  may only change their emails choice); `attendeePlans/{uid}` (My Festival;
+  owner only, while the record exists); `settings/attendeeAccounts` (readable
+  by all). Admins read `attendees`; editors and volunteers can't. (Until 27 Oct
+  records also had `brevo` / `brevoError` and there was a `brevoRemovals`
+  collection, for the old Brevo list; all gone.)
 - **My Festival sync** (`lib/planSync.ts`): the phone's copy (`lib/store.ts`)
   stays what screens use; changes are written to `attendeePlans/{uid}` 1.5 s
   after the last tap (queued offline by the SDK); a live listener brings other
@@ -359,19 +365,49 @@ it's published.
   clears the plan from that phone (warns first if changes haven't reached the
   account). "Delete my account" asks for the password again (Firebase requires
   a recent sign-in) and deletes the records, then the login.
-- **Staff app's server: admins only**, two jobs that need keys a browser can't
+- **Staff app's server: admins only**, a job that needs a key a browser can't
   hold (`apps/admin/server/accounts/`, routes `server/api/attendees/*`):
-  `delete` (records + Brevo contact + Firebase login, kept for team members;
-  needs `NUXT_FIREBASE_SERVICE_ACCOUNT`) and `brevo` ("Send to Brevo": adds
-  `marketing` people to the "App subscribers" list, takes off those who
-  unticked, deletes contacts listed in `brevoRemovals`; needs
-  `NUXT_BREVO_API_KEY` + `NUXT_BREVO_LIST_ID`, optional double opt-in). `setup`
-  tells the console what's set up. Brevo is never automatic: an admin presses
-  the button (or downloads the "App subscribers" spreadsheet). Tests:
-  `npm run test:accounts`.
+  `delete` (records + Firebase login, kept for team members; needs
+  `NUXT_FIREBASE_SERVICE_ACCOUNT`). `setup` tells the console what's set up.
+  Admin routes use `adminRoute()` (`server/utils/accounts.ts`), which checks
+  the admin and passes their uid. Tests: `npm run test:accounts`.
+- **Festival emails (27 Oct, user decision; replaces "Send to Brevo")**: admins
+  write an email in the console (`/admin/emails`, `AdminEmails.vue`: subject,
+  plain-text message, optional button text + https link, live preview, "Send me
+  a test", "Send to N people") and the staff app's server sends it to every
+  `attendees/{uid}` with `marketing == true`. Brevo only delivers (its batch
+  `POST /v3/smtp/email` with `messageVersions`); no contact list is kept at
+  Brevo, so nothing to keep in step. Code: `apps/admin/shared/festivalEmail.ts`
+  (checks + the HTML, shared by the preview and the server, everything typed is
+  escaped incl. `{ }` so Brevo's template language never sees it),
+  `server/emails/` (`logic.ts` with a pretend database and Brevo in
+  `test/emails.test.ts`; `brevo.ts`; `firestoreStore.ts`; `links.ts`), routes
+  `server/api/emails/{setup,test,send,continue,unsubscribe}`. Sending: batches
+  of 50 in uid order (`where marketing == true orderBy __name__`, no composite
+  index), `emails/{id}.cursor` after each batch so nobody gets it twice; each
+  call sends ~8 s then the console calls `/continue` while `more`; a 90 s
+  `lockUntil` (transaction) means one sender at a time; Brevo refusing (free
+  plan ≈300/day, bad key, down) sets `paused` + `error`, "Continue sending"
+  resumes; an address Brevo rejects (400) is retried alone, skipped and listed
+  in `failures` (3 in a row = pause instead). `emails/*` is admin-read, written
+  only by the server (Admin SDK). Every email: "Hi <first name>," + footer with
+  the person's unsubscribe link `<staff app>/api/emails/unsubscribe?u=<uid>&t=
+  <HMAC>`; the secret is derived from the service-account private key
+  (`serverSecret()`), so no extra setting (a new key = old links stop working
+  and explain the app's switch instead). GET shows a confirm page (link scanners
+  open links), POST sets `marketing: false`, `consentText: ''`,
+  `marketingChangedAt` (10 s limit, then "try again"). `/api/*` is in the
+  shared service worker's `navigateFallbackDenylist`, so the page is never
+  replaced by the app shell. No `List-Unsubscribe` header yet (Brevo's batch
+  docs list no per-person headers, only to/subject/html/params); Gmail/Yahoo only require one-click
+  for senders of 5,000+/day, so revisit if AFRIFF gets that big. Settings
+  (staff project): `NUXT_BREVO_API_KEY` (secret), `NUXT_EMAIL_FROM_ADDRESS`
+  (must be a sender / authenticated domain in Brevo), optional
+  `NUXT_EMAIL_FROM_NAME` (default AFRIFF), `NUXT_EMAIL_REPLY_TO`.
 - **Console**: `/admin/attendees` (admins only): the "Require an account to
   save to My Festival" switch, what's set up, the list with search, CSV of all
-  users / subscribers (formula-safe), delete account, Send to Brevo. Reports →
+  users / subscribers (formula-safe), delete account. `/admin/emails`: Festival
+  emails (above). Reports →
   **Sign-ups**: per Lagos day and opted-in, counted with Firestore aggregation
   queries (≈1 read per day shown).
 - **iPhone install-first** (27 Oct, as in DP Fitness's `access-code.vue`):
@@ -382,6 +418,59 @@ it's published.
 - **Known**: the layout re-keys `<main>` when newer published data arrives
   (`dataVersion`), which closes an open bottom sheet (e.g. the delete
   confirmation) if a publish lands while it's open. Pre-existing; rare.
+
+### Profile page + header avatar (27 Oct 2026)
+- `/profile` (`apps/pwa/app/pages/profile.vue`): `AccountCard` (now takes a
+  `back` prop for the sign-up redirect, default `/profile`), `AlertsSwitch`
+  and the anonymous-counts switch, all moved from the bottom of My Festival.
+  My Festival keeps `<AccountCard v-if="!account.profile" back="/my" />`.
+- Header (`AppHeader.vue`): bell, then `.header-avatar` → `/profile`;
+  `UserAvatar` when signed in, lucide `CircleUserRound` when not.
+- Avatars: `components/account/UserAvatar.vue` (initials until drawn) →
+  `lib/avatar.ts` (seed = Firebase uid, colours, per-visit cache) →
+  `lib/avatarDrawing.ts` (`@dicebear/core` + `@dicebear/open-peeps`, both 9.x:
+  the style packages need core ^9). Generated locally, no DiceBear HTTP API.
+- The drawing chunk is ~107 KB gz, so `apps/pwa/nuxt.config.ts` names it
+  `_nuxt/avatar-[hash].js` (`vite.build.rolldownOptions.output.chunkFileNames`;
+  every other chunk keeps Nuxt's `_nuxt/[hash].js`), leaves it out of the
+  precache (`pwa.workbox.globIgnores`) and caches it on first use
+  (`runtimeCaching`, CacheFirst, `afriff-avatar`, 2 entries). Layer arrays
+  merge, so the shared `@afriff/pwa` ignores still apply (checked in a build).
+  If you rename `avatarDrawing.ts`, update the chunk name check.
+
+### Input checks on every form (27 Oct 2026)
+- **The rules** (plain functions: problem in plain words, or null):
+  `packages/core/src/accounts/rules.ts` for people (names in any language with
+  spaces/hyphens/apostrophes, no digits; email with specific messages +
+  `emailSuggestion()` "Did you mean ada@gmail.com?" for typos of well-known
+  providers; new passwords (user decision 27 Oct: basic rules only): 8–128
+  characters with an uppercase letter, a lowercase letter and a special
+  character (not a letter, digit or space), rules shown up front as
+  `PASSWORD_HINT`, message names what's missing; `confirmProblem()`), and
+  `apps/admin/app/lib/checks.ts`
+  for console fields, driven by `schema.ts` (new `max`, `min`, `whole`, `link:
+  'web' | 'image' | 'video'` on each field) plus cross-field rules (event last
+  day after first, end ≠ start, button text and link together, news banner end
+  after its time). Log-in forms only check a password was typed.
+- **When they show** (`packages/core/src/utils/formChecks.ts`, used by the
+  sign-up page, staff login and console forms): not while typing a field for
+  the first time; on leaving a non-empty field (after `LEAVE_DELAY` = 150 ms,
+  so a tap on a button below still lands before the message moves it); live
+  once shown, so it clears the moment it's fixed; all fields on submit, cursor
+  on the first `aria-invalid`. Firebase's own field problems (`flag`) stay
+  until that field changes. Messages are linked with `aria-describedby`. Forms
+  are `novalidate` (no browser bubbles).
+- **Links are safe twice**: the console refuses anything but http(s) (images:
+  https or an app path like `/masterclasses/…`; trailers: YouTube/Vimeo), and
+  phones drop bad links when published data arrives (`utils/links.ts`, used in
+  `replaceProgramme` / `replaceEvents` / `replaceJury`), so a `javascript:`
+  link can never become a tappable button.
+- **Fixed on the way**: console number boxes kept only the last digit typed
+  (AdminField turned Vue's number back into ''); the door view started counting
+  at 0 seats (= Full) when the seats box was empty; hidden control characters
+  pasted from Word/PDFs are dropped on save.
+- Tests: `apps/admin/test/checks.test.ts` (in `npm run test:accounts`).
+- The database rules still check sizes and shapes only, not these rules.
 
 ### afriff.com film sync (Cloud Function, 26 Oct 2026)
 `functions/` holds one scheduled function, `syncFromAfriff` (every 15 min,
@@ -433,7 +522,7 @@ Two Vercel projects from this one repo, one per app:
 | Vercel project | Root Directory | Settings |
 |---|---|---|
 | `afriff-app` (existing, attendee) | `apps/pwa` | env `NUXT_PUBLIC_ADMIN_URL` = the console's address; `NUXT_PUBLIC_FIREBASE_VAPID_KEY` (push, public); `NUXT_PUBLIC_PRIVACY_EMAIL` (accounts, public) |
-| staff console (new, e.g. `afriff-staff`) | `apps/admin` | env `NUXT_PUBLIC_ATTENDEE_URL` (optional); `NUXT_FIREBASE_SERVICE_ACCOUNT` (push + deleting attendee accounts, **secret**: mark Sensitive); `NUXT_BREVO_API_KEY` (**secret**), `NUXT_BREVO_LIST_ID`, optional `NUXT_BREVO_DOI_TEMPLATE_ID` / `NUXT_BREVO_DOI_REDIRECT_URL` (Send to Brevo) |
+| staff console (new, e.g. `afriff-staff`) | `apps/admin` | env `NUXT_PUBLIC_ATTENDEE_URL` (optional); `NUXT_FIREBASE_SERVICE_ACCOUNT` (push, deleting attendee accounts, festival emails; **secret**: mark Sensitive); `NUXT_BREVO_API_KEY` (**secret**) + `NUXT_EMAIL_FROM_ADDRESS`, optional `NUXT_EMAIL_FROM_NAME` / `NUXT_EMAIL_REPLY_TO` (festival emails) |
 
 The six `NUXT_PUBLIC_FIREBASE_*` variables are the same for both apps: add
 them once as Vercel **Shared Environment Variables** (Team Settings →
@@ -515,7 +604,7 @@ to test with real logins at a door; `?queues=sample` shows pretend queues for de
 `usage` writes), behaviour on slow 3G and cheap Android (masterclass
 graphics are ~250–350 KB each; consider smaller copies), quotas on the free
 Firebase plan at festival scale (now that phones read Firestore directly, see §5).
-Automated tests: `npm run test:accounts` (attendee accounts) and
+Automated tests: `npm run test:accounts` (attendee accounts and every form's input checks) and
 `npm run functions:test` (afriff.com sync).
 
 **Out of scope (agreed):** ticketing, other festivals, rankings and voting,

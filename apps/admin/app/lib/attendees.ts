@@ -1,15 +1,14 @@
 // Admins: attendee accounts ("App users") in the console (Attendees page and
 // the sign-ups part of Reports). Reading attendees/* is admins-only in
-// firestore.rules; deleting and sending to Brevo go through the staff app's
-// server (server/api/attendees/*), which also tidies up the sign-in, the saved
-// plan and the Brevo contact.
+// firestore.rules; deleting goes through the staff app's server
+// (server/api/attendees/*), which also removes the sign-in and the saved plan.
+// Festival emails: lib/emails.ts.
 import {
   collection, count, doc, getAggregateFromServer, getDoc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, sum, where,
   type Timestamp,
 } from 'firebase/firestore'
 import { auth, db } from './firebase'
-
-export type BrevoStatus = 'off' | 'pending' | 'sent' | 'confirm-sent' | 'removed' | 'failed'
+import { adminCall } from './serverCall'
 
 export interface AttendeeRow {
   uid: string
@@ -23,17 +22,6 @@ export interface AttendeeRow {
   createdDay: string
   lastLoginAt: Date | null
   marketingChangedAt: Date | null
-  brevo: BrevoStatus
-  brevoError: string
-}
-
-export const BREVO_LABELS: Record<BrevoStatus, string> = {
-  off: 'Not on the list',
-  pending: 'Waiting to be sent',
-  sent: 'On the list',
-  'confirm-sent': 'Asked to confirm by email',
-  removed: 'Taken off the list',
-  failed: 'Brevo problem',
 }
 
 const asDate = (v: unknown) => ((v as Timestamp | null)?.toDate?.() ?? null)
@@ -56,8 +44,6 @@ export async function loadAttendees(): Promise<AttendeeRow[]> {
         createdDay: String(a.createdDay ?? ''),
         lastLoginAt: asDate(a.lastLoginAt),
         marketingChangedAt: asDate(a.marketingChangedAt),
-        brevo: (a.brevo ?? 'off') as BrevoStatus,
-        brevoError: String(a.brevoError ?? ''),
       } satisfies AttendeeRow
     })
     .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
@@ -78,49 +64,21 @@ export async function saveRequireSignUp(on: boolean) {
 
 // ---------- Server actions (admins) ----------
 // Attendees sign up and log in with Firebase directly. The staff app's server
-// is only needed for these two admin jobs (they use keys that can't live in a
-// browser): deleting an account (its sign-in too) and "Send to Brevo".
-
-async function adminCall<T>(path: string, body?: unknown): Promise<T> {
-  const user = auth.currentUser
-  if (!user) throw new Error('Sign in again first.')
-  const res = await fetch(path, {
-    method: body === undefined ? 'GET' : 'POST',
-    headers: { 'content-type': 'application/json', Authorization: `Bearer ${await user.getIdToken()}` },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  const json = (await res.json().catch(() => null)) as { error?: { message?: string }; statusMessage?: string } | null
-  if (!res.ok) throw new Error(json?.error?.message || json?.statusMessage || `The server answered ${res.status}.`)
-  return json as T
-}
+// is only needed for deleting an account (its sign-in too), which uses a key
+// that can't live in a browser.
 
 export interface AttendeeSetup {
-  /** the service-account key is there (needed to delete accounts) */
+  /** the service-account key is there (needed to delete accounts and send festival emails) */
   serviceAccount: boolean
-  /** Brevo key + list number: "Send to Brevo" works */
-  list: boolean
-  doubleOptIn: boolean
+  /** Brevo key + sender address: festival emails can be sent */
+  emails: boolean
 }
 
 /** What's set up on the staff app's server; null = couldn't reach it. */
 export const attendeeSetup = () => adminCall<AttendeeSetup>('/api/attendees/setup').catch(() => null)
 
-/** Deletes the account, its plan, its Brevo contact and its sign-in (kept for team members). */
-export const deleteAttendee = (uid: string) =>
-  adminCall<{ brevo: 'deleted' | 'not-needed' | 'failed'; login: 'deleted' | 'kept-staff' }>('/api/attendees/delete', { uid })
-
-/** "Send to Brevo", 50 at a time; repeats while it's getting somewhere. */
-export async function sendToBrevo(): Promise<{ done: number; failed: number }> {
-  let done = 0
-  let failed = 0
-  for (let round = 0; round < 40; round++) {
-    const r = await adminCall<{ done: number; failed: number; more: boolean }>('/api/attendees/brevo', {})
-    done += r.done
-    failed += r.failed
-    if (!r.more || r.done === 0) break
-  }
-  return { done, failed }
-}
+/** Deletes the account, its plan and its sign-in (kept for team members). */
+export const deleteAttendee = (uid: string) => adminCall<{ login: 'deleted' | 'kept-staff' }>('/api/attendees/delete', { uid })
 
 // ---------- Reports: sign-ups per day ----------
 

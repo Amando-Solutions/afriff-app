@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { CircleUserRoundIcon, LogOutIcon, Trash2Icon } from 'lucide-vue-next'
 import { account, AccountProblem, deleteAccount, logOut, planSaved, setMarketing } from '~/lib/account'
 import { syncState } from '~/lib/planSync'
 
-// My Festival → "Your account": who's signed in, whether the plan has reached
-// the account, the festival emails switch, log out, delete the account.
-// Not signed in: an invitation to sign up (then back to My Festival).
+// Profile → "Your account": avatar, who's signed in, whether the plan has
+// reached the account, the festival emails switch, log out, delete the account.
+// Not signed in: an invitation to sign up (then back to the page it's on;
+// also shown on My Festival).
+const props = withDefaults(defineProps<{ back?: string }>(), { back: '/profile' })
 const p = computed(() => account.profile)
 const router = useRouter()
 
@@ -43,6 +45,7 @@ const busy = ref(false)
 const error = ref('')
 // Firebase asks for the password again before deleting an account
 const password = ref('')
+watch(password, () => { error.value = '' }) // the problem goes once they retype it
 
 function askLogOut() {
   error.value = ''
@@ -78,7 +81,7 @@ async function doDelete() {
 <template>
   <section v-if="p" class="account-card" aria-labelledby="account-title">
     <div class="account-who">
-      <span class="account-initials" aria-hidden="true">{{ (p.firstName[0] || '') + (p.lastName[0] || '') }}</span>
+      <UserAvatar :seed="p.uid" :size="56" :initials="(p.firstName[0] || '') + (p.lastName[0] || '')" />
       <span class="share-text">
         <span id="account-title" class="share-title">{{ p.firstName }} {{ p.lastName }}</span>
         <span class="muted small">{{ p.email }}</span>
@@ -112,7 +115,7 @@ async function doDelete() {
           This deletes your account, your festival plan and your watched list for good, on every phone, and takes you off AFRIFF's email list. It can't be undone.
         </p>
         <div style="margin-top: 16px">
-          <AuthField field-id="delete-password" label="Type your password to confirm">
+          <AuthField field-id="delete-password" label="Type your password to confirm" :error="error">
             <PasswordInput id="delete-password" v-model="password" autocomplete="current-password" :invalid="!!error" />
           </AuthField>
         </div>
@@ -120,7 +123,7 @@ async function doDelete() {
       <p v-else class="hta-body">
         Some changes to your plan haven't reached your account yet (no signal?). If you log out now, they'll be lost. Log out when you're back online to keep them.
       </p>
-      <p v-if="error" class="small tone-alert" role="alert" style="margin-top: 12px">{{ error }}</p>
+      <p v-if="error && sheet !== 'delete'" class="small tone-alert" role="alert" style="margin-top: 12px">{{ error }}</p>
       <div class="stack" style="margin-top: 20px">
         <button v-if="sheet === 'delete'" type="button" class="btn btn-danger" :disabled="busy" @click="doDelete"><Trash2Icon :size="18" /> {{ busy ? 'Deleting…' : 'Delete my account' }}</button>
         <button v-else type="button" class="btn btn-danger" :disabled="busy" @click="doLogOut"><LogOutIcon :size="18" /> {{ busy ? 'Logging out…' : 'Log out anyway' }}</button>
@@ -135,6 +138,6 @@ async function doDelete() {
       <span class="share-title">Keep your plan on any phone</span>
       <span class="muted small">Sign up or log in, and your plan and watched list come with you.</span>
     </span>
-    <NuxtLink to="/auth?redirect=/my" class="btn btn-gold btn-small" style="align-self: center">Sign up</NuxtLink>
+    <NuxtLink :to="`/auth?redirect=${props.back}`" class="btn btn-gold btn-small" style="align-self: center">Sign up</NuxtLink>
   </section>
 </template>

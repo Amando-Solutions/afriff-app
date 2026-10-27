@@ -62,7 +62,7 @@ function back() {
 
         <section>
           <h2>Anonymous counts</h2>
-          <p>Separately, unless you switch it off in My Festival, the app shares counts with no name or email attached: which screenings are planned, how films are rated and which days the app was used. They help AFRIFF plan the festival.</p>
+          <p>Separately, unless you switch it off in Profile, the app shares counts with no name or email attached: which screenings are planned, how films are rated and which days the app was used. They help AFRIFF plan the festival.</p>
         </section>
 
         <section>
@@ -79,8 +79,8 @@ function back() {
         <section>
           <h2>Your choices</h2>
           <ul>
-            <li>Change your mind about festival emails at any time: use the switch in My Festival, or the unsubscribe link in any festival email.</li>
-            <li>Delete your account and everything in it: My Festival → Delete my account.</li>
+            <li>Change your mind about festival emails at any time: use the switch in Profile (your picture at the top of the screen), or the unsubscribe link in any festival email.</li>
+            <li>Delete your account and everything in it: Profile → Delete my account.</li>
             <li>Logging out removes your plan from that phone. It stays in your account for next time.</li>
             <li>
               To ask for a copy of your information, a correction, or deletion,

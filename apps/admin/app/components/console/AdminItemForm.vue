@@ -2,7 +2,9 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { BellIcon, ChevronLeftIcon } from 'lucide-vue-next'
 import { dayLabel, timeLabel } from '@afriff/core/utils/format'
+import { useFormChecks } from '@afriff/core/utils/formChecks'
 import { COLLECTIONS, fromForm, newItemDefaults, slugify, toForm, type CollectionName, type FormValues } from '~/lib/schema'
+import { fieldProblem } from '~/lib/checks'
 import type { Profile } from '~/lib/types'
 import { errMsg } from '~/lib/util'
 
@@ -29,6 +31,15 @@ watch(existing, (e) => {
   if (values.value == null && (isNew || e)) values.value = toForm(props.col, isNew ? newItemDefaults(props.col) : e)
 }, { immediate: true })
 const missing = computed(() => !isNew && state.items && !existing.value)
+
+// ---------- Checks (lib/checks.ts): a field's problem shows when they leave it, all of them on Save ----------
+const checks = useFormChecks(() => {
+  const v = values.value
+  return v ? Object.fromEntries(c.fields.map((f) => [f.key, () => fieldProblem(props.col, f, v, refs.value)])) : {}
+}, (key) => values.value?.[key])
+watch(values, checks.recheck, { deep: true })
+const problemCount = computed(() => Object.keys(checks.errors).length)
+watch(problemCount, (n) => { if (!n && status.error.startsWith('Fix the')) status.error = '' })
 
 const strip = (doc: Doc | null | undefined): Doc | null => {
   if (!doc) return null
@@ -57,7 +68,20 @@ function suggestAlert(before: Doc | null, after: Doc, id: string): AlertDraft | 
   return { ...draft, [col === 'screenings' ? 'screening' : 'event']: id }
 }
 const alertState = reactive({ busy: false, msg: '', error: '' })
+/** The alert's headline and message: both needed, short enough for a phone banner */
+function alertProblem(d: AlertDraft): string {
+  if (!d.title.trim()) return 'Add a headline.'
+  if (d.title.trim().length > 120) return `The headline is too long (${d.title.trim().length} characters, 120 at most).`
+  if (!d.body.trim()) return 'Add a message.'
+  if (d.body.trim().length > 2000) return 'The message is too long (2000 characters at most).'
+  return ''
+}
 async function postAlert() {
+  const problem = alertDraft.value ? alertProblem(alertDraft.value) : ''
+  if (problem) {
+    Object.assign(alertState, { msg: '', error: problem })
+    return
+  }
   Object.assign(alertState, { busy: true, msg: '', error: '' })
   try {
     if (!alertDraft.value) return
@@ -72,6 +96,10 @@ async function postAlert() {
 }
 
 async function save() {
+  if (!checks.checkAll()) {
+    Object.assign(status, { msg: '', error: problemCount.value === 1 ? 'Fix the field marked in red, then save again.' : `Fix the ${problemCount.value} fields marked in red, then save again.` })
+    return
+  }
   Object.assign(status, { busy: true, msg: '', error: '' })
   try {
     if (!values.value) return
@@ -112,8 +140,16 @@ async function remove() {
     <template v-else>
       <h1 class="font-display text-h1 font-semibold">{{ isNew ? `New ${c.single}` : c.label(existing ?? {}, refs) }}</h1>
       <p v-if="profile.role !== 'admin'" class="mt-3 rounded-tile bg-raised px-3.5 py-2.5 text-meta text-muted">You're an editor: saving sends this to an admin for approval.</p>
-      <form class="mt-5 flex flex-col gap-4" @submit.prevent="save">
-        <AdminField v-for="f in c.fields" :key="f.key" v-model="values[f.key]" :f="f" :refs="refs" />
+      <form class="mt-5 flex flex-col gap-4" novalidate @submit.prevent="save">
+        <AdminField
+          v-for="f in c.fields"
+          :key="f.key"
+          v-model="values[f.key]"
+          :f="f"
+          :refs="refs"
+          :error="checks.errors[f.key]"
+          @blur="checks.left(f.key)"
+        />
         <p v-if="status.error" class="text-meta text-danger" role="alert">{{ status.error }}</p>
         <p v-if="status.msg" class="text-meta text-success" role="status">{{ status.msg }}</p>
         <div class="flex flex-wrap gap-2.5">
@@ -125,9 +161,9 @@ async function remove() {
       <div v-if="alertDraft" class="card mt-6 flex flex-col gap-3 border-accent/50 p-4">
         <h2 class="flex items-center gap-2 text-h3 font-semibold"><BellIcon class="size-[1.125rem] text-accent-ink" /> Tell attendees?</h2>
         <p class="text-meta text-muted">You changed when or where this happens. Post an urgent alert? It shows as a banner on Home and in News, linked to this item, and as a push notification on phones with alerts on.</p>
-        <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Headline<input v-model="alertDraft.title" class="field-input" /></label>
-        <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Message<textarea v-model="alertDraft.body" rows="3" class="field-input" /></label>
-        <p v-if="alertState.error" class="text-meta text-danger">{{ alertState.error }}</p>
+        <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Headline<input v-model="alertDraft.title" class="field-input" maxlength="120" /></label>
+        <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Message<textarea v-model="alertDraft.body" rows="3" class="field-input" maxlength="2000" /></label>
+        <p v-if="alertState.error" class="text-meta text-danger" role="alert">{{ alertState.error }}</p>
         <p v-if="alertState.msg" class="text-meta text-success">{{ alertState.msg }}</p>
         <div class="flex gap-2">
           <UiButton size="sm" :disabled="alertState.busy || !!alertState.msg" @click="postAlert">{{ alertState.busy ? 'Posting…' : 'Post alert' }}</UiButton>
