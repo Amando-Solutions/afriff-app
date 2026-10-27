@@ -30,6 +30,8 @@ const finishSetup = () => { if (auth$.user) createProfile(auth$.user as User).ca
         <p>Your account <strong>{{ auth$.profile.email }}</strong> is set up, but an AFRIFF admin needs to give you a role before you can do anything.</p>
         <p class="text-meta text-muted">Ask your team lead to open Team in the admin console. This page updates by itself once they do.</p>
       </template>
+      <!-- the two superadmin emails only: confirming it lets them straight in -->
+      <AdminOwnerCheck v-if="auth$.profile" />
       <UiButton variant="secondary" size="sm" class="self-start" @click="signOut(auth)"><LogOutIcon /> Log out</UiButton>
     </div>
   </div>

@@ -1,8 +1,9 @@
 // Firebase with full rights, for the staff app's server only (never shipped to
 // a browser). Used to send push notifications (Google only accepts a send
 // signed with the project's private service-account key, which is why sending
-// lives on a server at all) and for deleting attendee accounts from the
-// console (removing someone's Firebase sign-in needs this key too).
+// lives on a server at all), for deleting attendee accounts from the console
+// (removing someone's Firebase sign-in needs this key too), and for festival
+// emails (reading who said yes; signing each email's unsubscribe link).
 //
 // THE KEY. Firebase console → Project settings → Service accounts → Generate
 // new private key downloads a .json file. Paste its whole contents into the
@@ -11,11 +12,14 @@
 // changing it, only a redeploy. SECRET: never commit it or put it in a
 // NUXT_PUBLIC_ variable. Locally, apps/admin/.env, or
 // GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json.
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { applicationDefault, cert, getApps, initializeApp, type App } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
 import type { H3Event } from 'h3'
+import { isSuperadminLogin } from '#shared/team'
 
 let app: App | null = null
 
@@ -49,22 +53,47 @@ export const adminDb = () => getFirestore(adminApp())
 export const adminMessaging = () => getMessaging(adminApp())
 export const adminAuth = () => getAuth(adminApp())
 
+/**
+ * A secret only this server knows, made from the service-account key's private
+ * key: signs festival emails' unsubscribe links (server/emails/links.ts). A new
+ * key means new links (old emails' links then explain how to switch emails off
+ * in the app instead).
+ */
+export function serverSecret(): string {
+  let key = serviceAccount(useRuntimeConfig().firebaseServiceAccount) as { private_key?: string; privateKey?: string } | null
+  const file = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  if (!key && file) key = JSON.parse(readFileSync(file, 'utf8'))
+  const privateKey = key?.private_key ?? key?.privateKey
+  if (!privateKey) throw createError({ statusCode: 503, statusMessage: 'The staff app\'s server has no NUXT_FIREBASE_SERVICE_ACCOUNT key (needed for festival emails).' })
+  return createHash('sha256').update(`afriff-email-links\n${privateKey}`).digest('hex')
+}
+
 /** Whether the service-account key is there (without failing when it isn't). */
 export const hasServiceAccount = () => Boolean(useRuntimeConfig().firebaseServiceAccount || process.env.GOOGLE_APPLICATION_CREDENTIALS)
 
 /** The signed-in staff member making this request, who must be an admin. Returns their uid. */
 export async function requireAdmin(event: H3Event, toDo = 'send push notifications'): Promise<string> {
+  return (await requireRole(event, ['admin'], toDo)).uid
+}
+
+/** The signed-in staff member making this request, who must have one of `roles` (users/{uid}.role). */
+export async function requireRole(event: H3Event, roles: string[], toDo: string): Promise<{ uid: string; role: string; name: string }> {
   const header = getHeader(event, 'authorization') || ''
   const idToken = header.startsWith('Bearer ') ? header.slice(7) : ''
   if (!idToken) throw createError({ statusCode: 401, statusMessage: 'Sign in to the console first.' })
   const auth = getAuth(adminApp()) // outside the try: "not set up" mustn't read as "sign-in expired"
   let uid: string
+  let superadmin: boolean
   try {
-    uid = (await auth.verifyIdToken(idToken)).uid
+    const token = await auth.verifyIdToken(idToken)
+    uid = token.uid
+    superadmin = isSuperadminLogin({ email: token.email, emailVerified: token.email_verified })
   } catch {
     throw createError({ statusCode: 401, statusMessage: 'Your sign-in has expired. Reload the console and try again.' })
   }
   const profile = await adminDb().doc(`users/${uid}`).get()
-  if (profile.get('role') !== 'admin') throw createError({ statusCode: 403, statusMessage: `Only admins can ${toDo}.` })
-  return uid
+  // superadmins (shared/team.ts) are admins even before their profile catches up
+  const role = superadmin ? 'admin' : String(profile.get('role') ?? '')
+  if (!roles.includes(role)) throw createError({ statusCode: 403, statusMessage: `Only ${roles.length > 1 ? 'admins and editors' : 'admins'} can ${toDo}.` })
+  return { uid, role, name: String(profile.get('name') ?? '') }
 }

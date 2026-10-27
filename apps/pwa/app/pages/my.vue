@@ -10,10 +10,12 @@ import { account } from '~/lib/account'
 
 // MY FESTIVAL ("My Schedule"): your plan by day, Share my day, your watched
 // list with stars and the Letterboxd export. Kept on this phone, and in the
-// person's account when they're signed in (lib/planSync.ts), with the account
-// card (emails switch, log out, delete) at the bottom.
+// person's account when they're signed in (lib/planSync.ts). Not signed in:
+// a "Keep your plan on any phone · Sign up" card at the bottom. The account
+// itself (emails switch, log out, delete) and the alerts / anonymous counts
+// switches are on Profile (pages/profile.vue, the avatar in the header).
 useHead({ title: 'My Festival' })
-const { state, toggleScheduled, rateWatched, setSharing } = useFestival()
+const { state, toggleScheduled, rateWatched } = useFestival()
 const diary = useTemplateRef<HTMLElement>('diary')
 const LETTERBOXD_IMPORT = 'https://letterboxd.com/import/'
 
@@ -168,14 +170,6 @@ const rate = (filmId: string, current: number, n: number) => rateWatched(filmId,
     </section>
 
     <p class="footnote">{{ account.profile ? 'Kept on this phone and in your account.' : 'Kept on this phone. No account needed.' }}</p>
-    <AccountCard />
-    <AlertsSwitch />
-    <label class="share-row">
-      <span class="share-text">
-        <span class="share-title">Share anonymous counts with AFRIFF</span>
-        <span class="muted small">No names or contact details: just which screenings are planned and how films are rated, to help plan the festival.</span>
-      </span>
-      <input type="checkbox" role="switch" class="switch" :checked="state.sharing" @change="setSharing(($event.target as HTMLInputElement).checked)" />
-    </label>
+    <AccountCard v-if="!account.profile" back="/my" />
   </div>
 </template>

@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { BellIcon } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { BellIcon, CircleUserRoundIcon } from 'lucide-vue-next'
 import { useUnreadCount } from '~/lib/alerts'
+import { account } from '~/lib/account'
 
-// Header on every screen: logo + name left, bell with the unread count right (opens News).
+// Header on every screen: logo + name left; right, the bell with the unread
+// count (opens News) and the person's avatar (opens Profile). Not signed in:
+// a plain person icon, which opens Profile too (sign up, and the switches).
 const unread = useUnreadCount()
+const route = useRoute()
+const p = computed(() => account.profile)
 </script>
 
 <template>
@@ -12,9 +18,21 @@ const unread = useUnreadCount()
       <BrandEmblem :size="40" />
       <span>AFRIFF</span>
     </NuxtLink>
-    <NuxtLink to="/news" class="bell" :aria-label="`News and alerts, ${unread} new`">
-      <BellIcon :size="26" :stroke-width="1.8" />
-      <span v-if="unread > 0" class="badge">{{ unread }}</span>
-    </NuxtLink>
+    <div class="header-actions">
+      <NuxtLink to="/news" class="bell" :aria-label="`News and alerts, ${unread} new`">
+        <BellIcon :size="26" :stroke-width="1.8" />
+        <span v-if="unread > 0" class="badge">{{ unread }}</span>
+      </NuxtLink>
+      <NuxtLink
+        to="/profile"
+        class="header-avatar"
+        :class="{ on: route.path === '/profile' }"
+        :aria-label="p ? `Your profile, ${p.firstName} ${p.lastName}` : 'Profile: sign up or log in'"
+        :aria-current="route.path === '/profile' ? 'page' : undefined"
+      >
+        <UserAvatar v-if="p" :seed="p.uid" :size="34" :initials="(p.firstName[0] || '') + (p.lastName[0] || '')" />
+        <CircleUserRoundIcon v-else :size="28" :stroke-width="1.6" />
+      </NuxtLink>
+    </div>
   </header>
 </template>

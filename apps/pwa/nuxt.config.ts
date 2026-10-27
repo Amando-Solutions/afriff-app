@@ -2,7 +2,7 @@
 // QR code. Nuxt PWA in SPA mode (ssr: false): everything runs in the browser,
 // so the app opens instantly from the phone's saved copy and keeps working
 // offline. No server routes: phones read and write Firestore directly, and
-// sign-up / log-in go to the staff app's server (adminUrl, lib/account.ts).
+// sign-up / log-in use Firebase's own email + password sign-in (lib/account.ts).
 //
 // Shared with the staff console (apps/admin), from packages/:
 //   @afriff/theme  design system: tokens, fonts, UI + brand components, icons
@@ -11,6 +11,9 @@
 // This file only holds what is particular to the attendee app.
 
 const DESCRIPTION = 'AFRIFF festival companion: programme, queues and your festival plan.'
+
+// Where Firebase's own sign-in helper pages live (for "Continue with Google").
+const FIREBASE_HELPER = `https://${process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || 'afriff-app'}.firebaseapp.com`
 
 export default defineNuxtConfig({
   extends: ['@afriff/theme', '@afriff/pwa', '@afriff/core'],
@@ -45,6 +48,22 @@ export default defineNuxtConfig({
       // confirm the address. Empty: those pages point to afriff.com instead.
       privacyEmail: process.env.NUXT_PUBLIC_PRIVACY_EMAIL || '',
     },
+  },
+
+  routeRules: {
+    // "Continue with Google" (app/lib/firebase/google.ts), as in DP Fitness.
+    // Keeps the Google window's link back to the page that opened it, so it
+    // can close itself once signed in: without this header Chrome cuts that
+    // link ("Cross-Origin-Opener-Policy policy would block the window.close
+    // call") and people are left looking at a stuck Google window. It's
+    // stricter than the default everywhere else.
+    '/**': { headers: { 'Cross-Origin-Opener-Policy': 'same-origin-allow-popups' } },
+    // Firebase's sign-in helper, served from this app's own address. The
+    // iPhone Home Screen app can't use a Google window and goes to Google with
+    // the whole page instead, which Safari only lets finish when the helper is
+    // on the same address as the app. Used once NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    // on the attendee project is this app's own address (DEVELOPER.md).
+    '/__/auth/**': { proxy: `${FIREBASE_HELPER}/__/auth/**` },
   },
 
   devServer: { port: 3000 },

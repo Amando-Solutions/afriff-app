@@ -24,7 +24,7 @@ const events = computed(() => (query.value ? EVENTS.filter((e) => e.title.toLowe
     <div class="search-bar">
       <div class="search-box">
         <SearchIcon :size="20" />
-        <input ref="input" v-model="q" placeholder="Search films, directors, events" aria-label="Search" autocomplete="off" enterkeyhint="search" @keydown.esc="open = false" />
+        <input ref="input" v-model="q" maxlength="100" placeholder="Search films, directors, events" aria-label="Search" autocomplete="off" enterkeyhint="search" @keydown.esc="open = false" />
       </div>
       <button type="button" class="icon-btn" aria-label="Close search" @click="open = false"><XIcon :size="22" /></button>
     </div>

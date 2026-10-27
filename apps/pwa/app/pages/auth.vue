@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useOnline } from '@vueuse/core'
 import { ArrowLeftIcon, MailCheckIcon, WifiOffIcon, XIcon } from 'lucide-vue-next'
 import { FESTIVAL, FILMS } from '@afriff/core/data/programme'
-import { MARKETING_CONSENT, emailProblem, nameProblem, passwordProblem } from '@afriff/core/accounts/rules'
+import {
+  MARKETING_CONSENT, PASSWORD_HINT, cleanName, confirmProblem, emailProblem, emailSuggestion, nameProblem, passwordProblem,
+} from '@afriff/core/accounts/rules'
+import { LEAVE_DELAY, useFormChecks } from '@afriff/core/utils/formChecks'
 import { now as clockNow } from '@afriff/core/utils/now'
 import {
-  AccountProblem, cancelDetails, dropPendingSave, finishDetails, logIn, pendingSave, safeRedirect, sendResetLink, signUp,
+  AccountProblem, backFromGoogle, cancelDetails, continueWithGoogle, dropPendingSave, finishDetails, finishSetup, googleSignInHere, logIn,
+  pendingSave, resumeGoogle, safeRedirect, sendResetLink, signUp,
 } from '~/lib/account'
 
 // SIGN UP OR LOG IN, with Firebase's own email + password sign-in
@@ -14,9 +18,13 @@ import {
 // My Festival (+ or "Seen it": plugins/account.client.ts), or from My
 // Festival's "Sign up" button. What they tapped is saved once they're in, and
 // they go back to the page they were on. "Not now" goes back without saving.
-// "Forgot password?" = Firebase's reset email with a link. One screen, big
-// fields, the festival behind it. Most mistakes show at once, without waiting
-// on slow data (@afriff/core/accounts/rules).
+// "Forgot password?" = Firebase's reset email with a link. "Continue with
+// Google" (top of both tabs, lib/firebase/google.ts) logs in in one tap; the
+// first time it shows "Finish signing up" (name from Google, the emails box,
+// privacy note) before the account is made. One screen, big
+// fields, the festival behind it. Every field is checked on the phone first
+// (@afriff/core/accounts/rules): a field's problem shows when they leave it,
+// and goes away as soon as it's fixed (@afriff/core/utils/formChecks).
 definePageMeta({ layout: false })
 useHead({ title: 'Sign up · AFRIFF 2026' })
 
@@ -24,18 +32,64 @@ const route = useRoute()
 const router = useRouter()
 const privacyEmail = String(useRuntimeConfig().public.privacyEmail || '')
 
-/** details = signed in, but no name saved yet (a staff login, or a sign-up whose details didn't save) */
-type Mode = 'signup' | 'login' | 'forgot' | 'sent' | 'details'
+/**
+ * finishing = account made, details known but not saved yet (no connection, or
+ *   the database said no): "Try again", never the form again;
+ * details = signed in, but we don't know their name (e.g. an AFRIFF team login)
+ */
+type Mode = 'signup' | 'login' | 'forgot' | 'sent' | 'finishing' | 'details'
 const mode = ref<Mode>(route.query.mode === 'login' ? 'login' : 'signup')
 const signedOutBySelf = route.query.again === '1'
 
-const form = reactive({ firstName: '', lastName: '', email: '', password: '', marketing: false })
-const errors = reactive<Record<string, string>>({})
+const form = reactive({ firstName: '', lastName: '', email: '', password: '', confirm: '', marketing: false })
 const problem = ref<AccountProblem | null>(null)
 const busy = ref(false)
 const note = ref(signedOutBySelf ? 'Please log in again on this phone.' : '')
-// a field's problem goes away as soon as they change it
-for (const key of ['firstName', 'lastName', 'email', 'password'] as const) watch(() => form[key], () => { delete errors[key] })
+
+// ---------- What each field must be, on the form showing now ----------
+const checks = useFormChecks(() => {
+  const names = {
+    firstName: () => nameProblem(form.firstName, 'first name'),
+    lastName: () => nameProblem(form.lastName, 'last name'),
+  }
+  const email = () => emailProblem(form.email)
+  switch (mode.value) {
+    case 'signup': return {
+      ...names,
+      email,
+      password: () => passwordProblem(form.password),
+      // the second box once the first is right, so there's one problem at a time
+      confirm: () => (passwordProblem(form.password) ? null : confirmProblem(form.password, form.confirm)),
+    }
+    // logging in: any password they already have is fine
+    case 'login': return { email, password: () => (form.password ? null : 'Type your password.') }
+    case 'forgot': return { email }
+    case 'details': return names
+    default: return {}
+  }
+}, (key) => form[key as Field])
+const errors = checks.errors
+watch(form, checks.recheck, { deep: true })
+
+type Field = 'firstName' | 'lastName' | 'email' | 'password' | 'confirm'
+/** Leaving a field: tidy its spaces, then say what's wrong with it */
+function fieldLeft(key: Field) {
+  if (key === 'firstName' || key === 'lastName') form[key] = cleanName(form[key])
+  if (key === 'email') {
+    form.email = form.email.trim()
+    setTimeout(() => { emailLeft.value = true }, LEAVE_DELAY) // after a tap below has landed (formChecks)
+  }
+  checks.left(key)
+}
+/** The input's aria links: invalid, and which message describes it */
+const aria = (key: Field, id: string) => ({ 'aria-invalid': errors[key] ? true : undefined, 'aria-describedby': errors[key] ? `${id}-error` : undefined })
+
+// "Did you mean ada@gmail.com?" once they've left the email box
+const emailLeft = ref(false)
+const suggestion = computed(() => (emailLeft.value && !errors.email ? emailSuggestion(form.email) : null))
+function takeSuggestion() {
+  if (suggestion.value) form.email = suggestion.value
+}
 
 // why they're here: saving a screening / event, or marking a film seen
 const saving = pendingSave()
@@ -47,12 +101,15 @@ const why = computed(() => {
 
 function go(next: Mode) {
   mode.value = next
+  googleEmail.value = ''
   clearProblems()
   form.password = ''
+  form.confirm = ''
 }
 function clearProblems() {
-  for (const k of Object.keys(errors)) delete errors[k]
+  checks.clear()
   problem.value = null
+  googleProblem.value = null
   note.value = ''
 }
 
@@ -70,7 +127,7 @@ function leave() {
 /** Not now: back where they were, nothing saved */
 function close() {
   dropPendingSave()
-  if (mode.value === 'details') void cancelDetails()
+  if (mode.value === 'details' || mode.value === 'finishing') void cancelDetails()
   leave()
 }
 // leaving any other way (the phone's Back) saves nothing either; after
@@ -78,48 +135,55 @@ function close() {
 onBeforeUnmount(dropPendingSave)
 
 // ---------- Sending ----------
-async function run(task: () => Promise<void>) {
-  busy.value = true
+/** where = which button it came from: a Google problem shows under the Google button */
+async function run(task: () => Promise<void>, where: 'form' | 'google' = 'form') {
+  const working = where === 'google' ? googleBusy : busy
+  working.value = true
   try {
     await task()
   } catch (e) {
-    const p = e instanceof AccountProblem ? e : new AccountProblem('Something went wrong. Try again.')
-    if (p.reason === 'details') {
-      // signed in, but no name saved yet: one more step
-      mode.value = 'details'
-      clearProblems()
-      note.value = p.message
-      return
-    }
-    // a problem with one field shows under it; the rest show above the button
-    if (p.field && p.reason !== 'exists') errors[p.field] = p.message
-    else problem.value = p
-    void focusProblem()
+    show(e, where)
   } finally {
-    busy.value = false
+    working.value = false
   }
 }
-async function focusProblem() {
-  await nextTick()
-  document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
-}
-function checked(found: Record<string, string | null>) {
-  clearProblems()
-  for (const [k, v] of Object.entries(found)) if (v) errors[k] = v
-  if (Object.keys(errors).length) {
-    void focusProblem()
-    return false
+function show(e: unknown, where: 'form' | 'google') {
+  const p = e instanceof AccountProblem ? e : new AccountProblem('Something went wrong. Try again.')
+  if (p.reason === 'cancelled') return // they closed the Google window: nothing to say
+  if (p.reason === 'details' || p.reason === 'unfinished') {
+    // signed in, details not saved yet: "Try again" (we know them), or one more step (we don't)
+    mode.value = p.reason === 'unfinished' ? 'finishing' : 'details'
+    clearProblems()
+    note.value = p.reason === 'unfinished' || p.known ? '' : p.message
+    if (p.reason === 'unfinished') problem.value = p
+    // first time with Google: "Finish signing up", started from what Google said
+    googleEmail.value = p.known?.email ?? ''
+    if (p.known) {
+      form.firstName = p.known.firstName
+      form.lastName = p.known.lastName
+      form.marketing = p.known.marketing
+      // a name that won't do (one word only, numbers…) is pointed at straight away
+      if (nameProblem(form.firstName, 'first name') || nameProblem(form.lastName, 'last name')) checks.checkAll()
+    }
+    return
   }
-  return true
+  if (where === 'google') googleProblem.value = p
+  // a problem with one field shows under it; the rest show above the button
+  else if (p.field && p.reason !== 'exists') checks.flag(p.field, p.message)
+  else problem.value = p
+}
+/** The button: tidy, then check every field on this form */
+function ready() {
+  problem.value = null
+  note.value = ''
+  form.firstName = cleanName(form.firstName)
+  form.lastName = cleanName(form.lastName)
+  form.email = form.email.trim()
+  return checks.checkAll()
 }
 
 function submitSignUp() {
-  if (!checked({
-    firstName: nameProblem(form.firstName, 'first name'),
-    lastName: nameProblem(form.lastName, 'last name'),
-    email: emailProblem(form.email),
-    password: passwordProblem(form.password),
-  })) return
+  if (!ready()) return
   void run(async () => {
     await signUp({ firstName: form.firstName, lastName: form.lastName, email: form.email.trim(), password: form.password, marketing: form.marketing })
     leave()
@@ -127,7 +191,7 @@ function submitSignUp() {
 }
 
 function submitLogIn() {
-  if (!checked({ email: emailProblem(form.email), password: form.password ? null : 'Type your password.' })) return
+  if (!ready()) return
   void run(async () => {
     await logIn(form.email.trim(), form.password)
     leave()
@@ -135,15 +199,23 @@ function submitLogIn() {
 }
 
 function submitDetails() {
-  if (!checked({ firstName: nameProblem(form.firstName, 'first name'), lastName: nameProblem(form.lastName, 'last name') })) return
+  if (!ready()) return
   void run(async () => {
     await finishDetails({ firstName: form.firstName, lastName: form.lastName, marketing: form.marketing })
     leave()
   })
 }
 
+function retrySetup() {
+  problem.value = null
+  void run(async () => {
+    await finishSetup()
+    leave()
+  })
+}
+
 function submitForgot() {
-  if (!checked({ email: emailProblem(form.email) })) return
+  if (!ready()) return
   void run(async () => {
     await sendResetLink(form.email.trim())
     go('sent')
@@ -164,6 +236,37 @@ const action = computed(() => {
     case 'paused': return { label: 'Forgot password?', to: 'forgot' as const }
     default: return null
   }
+})
+
+// ---------- Continue with Google ----------
+const google = googleSignInHere()
+const googleBusy = ref(false)
+const googleProblem = ref<AccountProblem | null>(null)
+/** "Finish signing up" after a first Google sign-in: the Google account's email ('' = not from Google) */
+const googleEmail = ref('')
+// a password account with this email: on Sign up, offer the Log in tab
+const googleAction = computed(() => (googleProblem.value?.reason === 'exists' && mode.value === 'signup' ? { label: 'Log in instead', to: 'login' as const } : null))
+
+function withGoogle() {
+  clearProblems()
+  // ticked the emails box first? Then it starts ticked on "Finish signing up" (they still confirm it there)
+  const marketing = mode.value === 'signup' && form.marketing
+  void run(async () => {
+    if (await continueWithGoogle(marketing)) leave()
+    // false: the page is going to Google and comes back here (the button keeps saying so until then)
+  }, 'google')
+}
+
+// Back from Google (iPhone Home Screen app): finish it. Otherwise this only
+// gets the Google window ready, so a tap opens it at once; a problem with
+// that is only worth showing to someone who just went to Google.
+onMounted(() => {
+  if (google !== 'ok') return
+  const back = backFromGoogle()
+  if (back) googleBusy.value = true
+  resumeGoogle()
+    .then((done) => { if (done) leave() }, (e) => { if (back) show(e, 'google') })
+    .finally(() => { googleBusy.value = false })
 })
 
 // ---------- The festival behind it ----------
@@ -215,8 +318,8 @@ const FAN = [
 
       <!-- posters + countdown: it should feel like the festival, not a form -->
       <!-- the posters fade out at the bottom into whatever is behind them -->
-      <div class="relative flex h-36 items-end justify-center [mask-image:linear-gradient(to_bottom,black_40%,transparent_96%)]" aria-hidden="true">
-        <FilmPoster v-for="(f, i) in posters" :key="f.id" :film="f" class="-mx-1.5 aspect-[2/3] rounded-thumb shadow-pop" :class="FAN[i]" />
+      <div class="relative flex h-36 items-end justify-center mask-[linear-gradient(to_bottom,black_40%,transparent_96%)]" aria-hidden="true">
+        <FilmPoster v-for="(f, i) in posters" :key="f.id" :film="f" class="-mx-1.5 aspect-2/3 rounded-thumb shadow-pop" :class="FAN[i]" />
       </div>
       <section class="relative z-5 -mt-3 text-center">
         <p class="eyebrow text-gold-300">1–7 Nov 2026 · Lagos</p>
@@ -250,25 +353,53 @@ const FAN = [
 
         <p v-if="!online" class="mt-4 flex items-start gap-2.5 rounded-tile bg-raised px-3 py-2.5 text-meta text-ink" role="status">
           <WifiOffIcon class="mt-px size-4 shrink-0 text-muted" aria-hidden="true" />
-          <span>You’re offline. Connect to the internet to {{ mode === 'forgot' || mode === 'sent' ? 'get a reset link' : mode === 'details' ? 'finish setting up' : 'sign up or log in' }}.</span>
+          <span>You’re offline. Connect to the internet to {{ mode === 'forgot' || mode === 'sent' ? 'get a reset link' : mode === 'details' || mode === 'finishing' ? 'finish setting up' : 'sign up or log in' }}.</span>
         </p>
         <p v-if="note" class="mt-4 rounded-tile bg-accent-soft px-3 py-2 text-meta text-ink" role="status">{{ note }}</p>
+
+        <!-- ---------- Continue with Google: signs up or logs in, whichever it is ---------- -->
+        <div v-if="(mode === 'signup' || mode === 'login') && google !== 'off'" class="mt-4 flex flex-col gap-3">
+          <template v-if="google === 'ok'">
+            <UiButton variant="secondary" size="lg" block :loading="googleBusy" :disabled="!online || busy" @click="withGoogle">
+              <GoogleMark v-if="!googleBusy" />
+              {{ googleBusy ? 'Opening Google…' : 'Continue with Google' }}
+            </UiButton>
+            <p v-if="mode === 'signup'" class="-mt-1 text-center text-label leading-4.5 text-muted">
+              Uses the name and email on your Google account.
+              <NuxtLink to="/privacy" class="font-medium whitespace-nowrap text-accent-ink underline underline-offset-2">Privacy notice</NuxtLink>
+            </p>
+            <AuthProblem :problem="googleProblem" :action="googleAction" @action="go" />
+          </template>
+          <!-- Google refuses to sign in inside Instagram's, Facebook's, TikTok's… own browsers -->
+          <p v-else class="rounded-tile bg-raised px-3 py-2.5 text-meta text-muted">
+            Google sign-in doesn’t work inside this app’s browser. To use it, open this page in Chrome or Safari. Or use your email below.
+          </p>
+          <div class="flex items-center gap-3" aria-hidden="true">
+            <span class="h-px flex-1 bg-line" />
+            <span class="text-label font-semibold text-muted">or use your email</span>
+            <span class="h-px flex-1 bg-line" />
+          </div>
+        </div>
 
         <!-- ---------- Sign up ---------- -->
         <form v-if="mode === 'signup'" class="mt-4 flex flex-col gap-4" novalidate @submit.prevent="submitSignUp">
           <div class="grid grid-cols-2 gap-3">
             <AuthField field-id="first-name" label="First name" :error="errors.firstName">
-              <input id="first-name" v-model="form.firstName" class="field-input h-12" autocomplete="given-name" autocapitalize="words" maxlength="60" :aria-invalid="!!errors.firstName || undefined">
+              <input id="first-name" v-model="form.firstName" class="field-input h-12" autocomplete="given-name" autocapitalize="words" autocorrect="off" spellcheck="false" maxlength="60" v-bind="aria('firstName', 'first-name')" @blur="fieldLeft('firstName')">
             </AuthField>
             <AuthField field-id="last-name" label="Last name" :error="errors.lastName">
-              <input id="last-name" v-model="form.lastName" class="field-input h-12" autocomplete="family-name" autocapitalize="words" maxlength="60" :aria-invalid="!!errors.lastName || undefined">
+              <input id="last-name" v-model="form.lastName" class="field-input h-12" autocomplete="family-name" autocapitalize="words" autocorrect="off" spellcheck="false" maxlength="60" v-bind="aria('lastName', 'last-name')" @blur="fieldLeft('lastName')">
             </AuthField>
           </div>
           <AuthField field-id="email" label="Email" :error="errors.email">
-            <input id="email" v-model="form.email" class="field-input h-12" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" :aria-invalid="!!errors.email || undefined">
+            <input id="email" v-model.trim="form.email" class="field-input h-12" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" v-bind="aria('email', 'email')" @input="emailLeft = false" @blur="fieldLeft('email')">
+            <template #extra><EmailSuggestion :suggestion="suggestion" @take="takeSuggestion" /></template>
           </AuthField>
-          <AuthField field-id="password" label="Choose a password" :error="errors.password" hint="At least 8 characters. You'll use it to log in on another phone.">
-            <PasswordInput id="password" v-model="form.password" autocomplete="new-password" :invalid="!!errors.password" />
+          <AuthField field-id="password" label="Choose a password" :error="errors.password" :hint="PASSWORD_HINT">
+            <PasswordInput id="password" v-model="form.password" autocomplete="new-password" :invalid="!!errors.password" @blur="fieldLeft('password')" />
+          </AuthField>
+          <AuthField field-id="password-confirm" label="Confirm password" :error="errors.confirm">
+            <PasswordInput id="password-confirm" v-model="form.confirm" autocomplete="new-password" :invalid="!!errors.confirm" @blur="fieldLeft('confirm')" />
           </AuthField>
 
           <!-- separate, unticked: only for festival news; sign-up works without it -->
@@ -279,53 +410,81 @@ const FAN = [
 
           <p class="text-label leading-4.5 text-muted">
             We keep your name, email and festival plan so you can use the app on any phone. Your password is stored scrambled, so no one can read it.
-            AFRIFF owns this information and only AFRIFF admins can see it. Unless you tick the box, we only email you about your account, like password resets.
-            To delete your account, use My Festival{{ privacyEmail ? ` or email ${privacyEmail}` : '' }}.
+            AFRIFF owns this information and only AFRIFF's festival team (admins and editors) can see it. Unless you tick the box, we only email you about your account, like password resets.
+            To delete your account, use Profile{{ privacyEmail ? ` or email ${privacyEmail}` : '' }}.
             <NuxtLink to="/privacy" class="font-medium text-accent-ink underline underline-offset-2">Privacy notice</NuxtLink>
           </p>
 
           <AuthProblem :problem="problem" :action="action" @action="go" />
-          <UiButton type="submit" size="lg" block :loading="busy" :disabled="!online">{{ busy ? 'Creating your account…' : 'Create my account' }}</UiButton>
+          <UiButton type="submit" size="lg" block :loading="busy" :disabled="!online || googleBusy">{{ busy ? 'Creating your account…' : 'Create my account' }}</UiButton>
         </form>
 
         <!-- ---------- Log in ---------- -->
         <form v-else-if="mode === 'login'" class="mt-4 flex flex-col gap-4" novalidate @submit.prevent="submitLogIn">
           <p class="text-meta text-muted">Already signed up? Log in to bring your festival plan and watched list to this phone.</p>
           <AuthField field-id="login-email" label="Email" :error="errors.email">
-            <input id="login-email" v-model="form.email" class="field-input h-12" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="254" :aria-invalid="!!errors.email || undefined">
+            <input id="login-email" v-model.trim="form.email" class="field-input h-12" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="254" v-bind="aria('email', 'login-email')" @input="emailLeft = false" @blur="fieldLeft('email')">
+            <template #extra><EmailSuggestion :suggestion="suggestion" @take="takeSuggestion" /></template>
           </AuthField>
           <AuthField field-id="login-password" label="Password" :error="errors.password">
-            <PasswordInput id="login-password" v-model="form.password" autocomplete="current-password" :invalid="!!errors.password" />
+            <PasswordInput id="login-password" v-model="form.password" autocomplete="current-password" :invalid="!!errors.password" @blur="fieldLeft('password')" />
           </AuthField>
           <button type="button" class="pressable -mt-2 self-start text-meta font-medium text-accent-ink" @click="go('forgot')">Forgot password?</button>
           <AuthProblem :problem="problem" :action="action" @action="go" />
-          <UiButton type="submit" size="lg" block :loading="busy" :disabled="!online">{{ busy ? 'Logging in…' : 'Log in' }}</UiButton>
+          <UiButton type="submit" size="lg" block :loading="busy" :disabled="!online || googleBusy">{{ busy ? 'Logging in…' : 'Log in' }}</UiButton>
         </form>
 
-        <!-- ---------- Signed in, name not saved yet ---------- -->
-        <form v-else-if="mode === 'details'" class="mt-4 flex flex-col gap-4" novalidate @submit.prevent="submitDetails">
+        <!-- ---------- Account made, details not saved yet: try again (no form) ---------- -->
+        <div v-else-if="mode === 'finishing'" class="mt-3 flex flex-col gap-4">
           <div>
+            <h2 class="font-display text-h2 font-semibold">Almost done</h2>
+            <p class="mt-1 text-meta text-muted">We just need to save your details to finish setting up your account.</p>
+          </div>
+          <AuthProblem :problem="problem" :action="null" @action="go" />
+          <UiButton size="lg" block :loading="busy" :disabled="!online" @click="retrySetup">{{ busy ? 'Trying again…' : 'Try again' }}</UiButton>
+        </div>
+
+        <!-- ---------- First time with Google: "Finish signing up" (name, emails box, privacy);
+             or signed in but we don't know their name (e.g. a team login) ---------- -->
+        <form v-else-if="mode === 'details'" class="mt-4 flex flex-col gap-4" novalidate @submit.prevent="submitDetails">
+          <div v-if="googleEmail">
+            <h2 class="font-display text-h2 font-semibold">Finish signing up</h2>
+            <p class="mt-1 text-meta text-muted">Check your name, and choose whether AFRIFF can email you.</p>
+            <p class="mt-3 flex items-center gap-2 rounded-tile bg-raised px-3 py-2.5 text-meta text-ink">
+              <GoogleMark class="size-4 shrink-0" />
+              <span class="min-w-0 truncate">{{ googleEmail }}</span>
+            </p>
+          </div>
+          <div v-else>
             <h2 class="font-display text-h2 font-semibold">One more step</h2>
             <p class="mt-1 text-meta text-muted">Tell us your name to finish setting up your festival account.</p>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <AuthField field-id="details-first" label="First name" :error="errors.firstName">
-              <input id="details-first" v-model="form.firstName" class="field-input h-12" autocomplete="given-name" autocapitalize="words" maxlength="60" :aria-invalid="!!errors.firstName || undefined">
+              <input id="details-first" v-model="form.firstName" class="field-input h-12" autocomplete="given-name" autocapitalize="words" autocorrect="off" spellcheck="false" maxlength="60" v-bind="aria('firstName', 'details-first')" @blur="fieldLeft('firstName')">
             </AuthField>
             <AuthField field-id="details-last" label="Last name" :error="errors.lastName">
-              <input id="details-last" v-model="form.lastName" class="field-input h-12" autocomplete="family-name" autocapitalize="words" maxlength="60" :aria-invalid="!!errors.lastName || undefined">
+              <input id="details-last" v-model="form.lastName" class="field-input h-12" autocomplete="family-name" autocapitalize="words" autocorrect="off" spellcheck="false" maxlength="60" v-bind="aria('lastName', 'details-last')" @blur="fieldLeft('lastName')">
             </AuthField>
           </div>
           <label class="flex cursor-pointer items-start gap-3 rounded-tile border border-line bg-canvas/50 p-3.5">
             <input v-model="form.marketing" type="checkbox" class="mt-0.5 size-5 shrink-0 cursor-pointer accent-accent">
             <span class="text-body text-ink">{{ MARKETING_CONSENT }} <span class="text-muted">(optional)</span></span>
           </label>
-          <p class="text-label leading-4.5 text-muted">
-            AFRIFF owns this information and only AFRIFF admins can see it.
+          <p v-if="googleEmail" class="text-label leading-4.5 text-muted">
+            We keep your name, email and festival plan so you can use the app on any phone. AFRIFF owns this information and only AFRIFF's festival team (admins and editors) can see it.
+            Unless you tick the box, we only email you about your account.
+            To delete your account, use Profile{{ privacyEmail ? ` or email ${privacyEmail}` : '' }}.
+            <NuxtLink to="/privacy" class="font-medium whitespace-nowrap text-accent-ink underline underline-offset-2">Privacy notice</NuxtLink>
+          </p>
+          <p v-else class="text-label leading-4.5 text-muted">
+            AFRIFF owns this information and only AFRIFF's festival team (admins and editors) can see it.
             <NuxtLink to="/privacy" class="font-medium text-accent-ink underline underline-offset-2">Privacy notice</NuxtLink>
           </p>
           <AuthProblem :problem="problem" :action="action" @action="go" />
-          <UiButton type="submit" size="lg" block :loading="busy" :disabled="!online">{{ busy ? 'Saving…' : 'Save and continue' }}</UiButton>
+          <UiButton type="submit" size="lg" block :loading="busy" :disabled="!online">
+            {{ googleEmail ? (busy ? 'Creating your account…' : 'Create my account') : (busy ? 'Saving…' : 'Save and continue') }}
+          </UiButton>
         </form>
 
         <!-- ---------- Forgot password: email ---------- -->
@@ -335,7 +494,8 @@ const FAN = [
             <p class="mt-1 text-meta text-muted">We'll email you a link to choose a new one.</p>
           </div>
           <AuthField field-id="forgot-email" label="Email you signed up with" :error="errors.email">
-            <input id="forgot-email" v-model="form.email" class="field-input h-12" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" :aria-invalid="!!errors.email || undefined">
+            <input id="forgot-email" v-model.trim="form.email" class="field-input h-12" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" v-bind="aria('email', 'forgot-email')" @input="emailLeft = false" @blur="fieldLeft('email')">
+            <template #extra><EmailSuggestion :suggestion="suggestion" @take="takeSuggestion" /></template>
           </AuthField>
           <AuthProblem :problem="problem" :action="action" @action="go" />
           <UiButton type="submit" size="lg" block :loading="busy" :disabled="!online">{{ busy ? 'Sending…' : 'Email me a reset link' }}</UiButton>

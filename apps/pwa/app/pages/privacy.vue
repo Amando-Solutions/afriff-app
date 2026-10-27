@@ -45,6 +45,7 @@ function back() {
           <ul>
             <li>Your first name, last name and email.</li>
             <li>Your password, stored scrambled by Google Firebase (the login service), so nobody (AFRIFF included) can read it.</li>
+            <li>If you use "Continue with Google": the name and email on your Google account, instead of a password. Google also passes on a link to your profile picture, which the app doesn't use. We never see your Google password.</li>
             <li>Your festival plan: the screenings and events you add, the films you mark "Seen it", your star ratings and the queues you've checked.</li>
             <li>When you signed up and last logged in, and whether you said yes to festival emails (with the exact wording you agreed to).</li>
           </ul>
@@ -56,19 +57,19 @@ function back() {
           <ul>
             <li>To keep your festival plan in your account, so you can log in on any phone and find it there.</li>
             <li>To email you a link to choose a new password if you forget yours.</li>
-            <li>Only if you tick "Yes, AFRIFF can email me festival news and updates": to send you festival news and updates.</li>
+            <li>Only if you tick "AFRIFF may email me invitations and festival updates": to send you invitations and festival updates. Every email has an unsubscribe link.</li>
           </ul>
         </section>
 
         <section>
           <h2>Anonymous counts</h2>
-          <p>Separately, unless you switch it off in My Festival, the app shares counts with no name or email attached: which screenings are planned, how films are rated and which days the app was used. They help AFRIFF plan the festival.</p>
+          <p>Separately, unless you switch it off in Profile, the app shares counts with no name or email attached: which screenings are planned, how films are rated and which days the app was used. They help AFRIFF plan the festival.</p>
         </section>
 
         <section>
           <h2>Who can see it</h2>
-          <p>Only AFRIFF admins can see or export attendee details. AFRIFF's editors and door volunteers can't.</p>
-          <p>These services run parts of the app for AFRIFF: Google Firebase (the database, log-in and password-reset emails; data stored in London, UK), Vercel (hosts the app) and Brevo (festival emails, only if you said yes). We don't sell your information.</p>
+          <p>AFRIFF's festival team (admins and editors) can see attendees' names and emails, to prepare invitations and guest lists. Only admins can export them, send emails or delete accounts. Door volunteers can't see them.</p>
+          <p>These services run parts of the app for AFRIFF: Google Firebase (the database, log-in and password-reset emails; data stored in London, UK), Vercel (hosts the app) and Brevo (invitations and festival emails, only if you said yes). We don't sell your information.</p>
         </section>
 
         <section>
@@ -79,8 +80,8 @@ function back() {
         <section>
           <h2>Your choices</h2>
           <ul>
-            <li>Change your mind about festival emails at any time: use the switch in My Festival, or the unsubscribe link in any festival email.</li>
-            <li>Delete your account and everything in it: My Festival → Delete my account.</li>
+            <li>Change your mind about festival emails at any time: use the switch in Profile (your picture at the top of the screen), or the unsubscribe link in any festival email.</li>
+            <li>Delete your account and everything in it: Profile → Delete my account.</li>
             <li>Logging out removes your plan from that phone. It stays in your account for next time.</li>
             <li>
               To ask for a copy of your information, a correction, or deletion,

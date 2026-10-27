@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { increment, serverTimestamp, setDoc, type FieldValue, type Timestamp } from 'firebase/firestore'
 import { CheckIcon, ChevronLeftIcon, MinusIcon, PlusIcon, Undo2Icon } from 'lucide-vue-next'
 import { queueLabel, timeLabel } from '@afriff/core/utils/format'
@@ -130,8 +130,20 @@ function undo() {
   const last = history.value.pop()
   if (last) apply({ inLine: -(last.inLine || 0), seatsLeft: -(last.seatsLeft || 0) }, false)
 }
+// a whole number of seats, 0 (all sold in advance: the queue shows Full) to 5000
+const seatsError = ref('')
+watch(seatsAtDoor, () => { seatsError.value = '' })
+function seatsProblem(raw: string | number): string {
+  const v = String(raw ?? '').trim()
+  if (!v) return 'Type how many seats are free at the door.'
+  if (!/^\d+$/.test(v)) return 'Use a whole number, like 120.'
+  if (Number(v) > 5000) return 'That\'s more than any screen holds. Check the number.'
+  return ''
+}
 function start() {
-  const seats = Math.max(0, parseInt(seatsAtDoor.value, 10) || 0)
+  seatsError.value = seatsProblem(seatsAtDoor.value)
+  if (seatsError.value) return
+  const seats = Number(String(seatsAtDoor.value).trim())
   write({ inLine: 0, seatsLeft: seats, seatsStart: seats })
   buzz()
 }
@@ -180,9 +192,14 @@ const LABEL_TONE: Record<Tone, BadgeTone> = { muted: 'neutral', good: 'success',
           type="number"
           inputmode="numeric"
           min="0"
+          max="5000"
+          step="1"
+          :aria-invalid="seatsError ? true : undefined"
+          :aria-describedby="seatsError ? 'seats-at-door-error' : undefined"
         />
         <span class="text-meta text-muted">From the console ({{ screening.capacity }} seats). Change it if some seats are reserved or sold in advance.</span>
       </div>
+      <p v-if="seatsError" id="seats-at-door-error" class="text-meta text-danger" role="alert">{{ seatsError }}</p>
       <UiButton size="lg" block class="h-16! text-h3!" @click="start">Start counting</UiButton>
       <p class="text-meta text-muted">Attendees see this queue as soon as you start.</p>
     </div>

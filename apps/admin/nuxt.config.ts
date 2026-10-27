@@ -30,12 +30,18 @@ export default defineNuxtConfig({
     // file) used to send push notifications (server/utils/firebaseAdmin.ts).
     // Set NUXT_FIREBASE_SERVICE_ACCOUNT on the staff project; read at run time.
     firebaseServiceAccount: '',
-    // SERVER ONLY, secret: the console's "Send to Brevo" for attendees who
-    // ticked the festival emails box (server/accounts/brevo.ts).
+    // SERVER ONLY: festival emails written in the console (Festival emails),
+    // delivered by Brevo to attendees who said yes (server/emails/brevo.ts).
+    // NUXT_BREVO_API_KEY is secret; the sender must be set up in Brevo.
     brevoApiKey: '',
-    brevoListId: 0,
-    brevoDoiTemplateId: 0,
-    brevoDoiRedirectUrl: '',
+    emailFromAddress: '',
+    emailFromName: 'AFRIFF',
+    emailReplyTo: '',
+    // SERVER ONLY: invitations (console → Invitations, server/invites/*), same
+    // Brevo key; their own sender, e.g. invites@afriff.app ('' = emailFromAddress).
+    inviteFromAddress: '',
+    inviteFromName: '',
+    inviteReplyTo: '',
     public: {
       // The attendee app's address, for "View the attendee app" links.
       // NUXT_PUBLIC_ATTENDEE_URL on the host if it moves (e.g. app.afriff.com).
@@ -48,8 +54,11 @@ export default defineNuxtConfig({
   // server/api/push/*: sends announcements as push notifications (admins,
   // from the console) and adds attendee phones to the "news" topic (from the
   // attendee app, a different address: see server/utils/pushTopic.ts).
-  // server/api/attendees/*: admins deleting attendee accounts and sending
-  // opted-in attendees to Brevo (attendees sign in with Firebase directly).
+  // server/api/attendees/*: admins deleting attendee accounts (attendees sign
+  // in with Firebase directly). server/api/emails/*: admins sending festival
+  // emails, and the public unsubscribe link at the bottom of each one.
+  // server/api/invites/*: invitations (editors prepare and test, admins send),
+  // and each invitation's public "Add to calendar" and unsubscribe links.
 
   vite: {
     server: { allowedHosts: true },

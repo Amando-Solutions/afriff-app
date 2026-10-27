@@ -5,6 +5,7 @@
 // written for this app. TIMES AND ROOMS ARE SAMPLES until AFRIFF publishes them.
 
 import { finished } from '../utils/unfinished';
+import { imageLink, webLink } from '../utils/links';
 import type { EventGroup, EventType, FestivalEvent, Link, Tag } from '../types/festival';
 
 export const EVENT_TYPES: Record<EventType, { label: string; group: EventGroup }> = {
@@ -239,5 +240,8 @@ export function replaceEvents(list: Partial<FestivalEvent>[], venueIds: Set<stri
       about: e.about || '',
       access: e.access || '',
       place: e.place || '',
+      // links only if they're real web addresses (utils/links.ts)
+      image: imageLink(e.image) || undefined,
+      link: webLink(e.link?.url) ? { label: e.link!.label, url: webLink(e.link!.url) } : undefined,
     }));
 }

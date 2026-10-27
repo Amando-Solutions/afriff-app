@@ -7,7 +7,7 @@
 // How often: at most once every 30 minutes, and only if something changed,
 // to stay inside Firebase's free daily limits. Written directly to Firestore
 // (no server route); offline writes are queued on the phone by the SDK.
-// On by default; the switch in My Festival turns it off (and clears what
+// On by default; the switch in Profile turns it off (and clears what
 // this phone shared before).
 //
 // The laptop test version never sends (so testing doesn't pollute reports),
@@ -102,7 +102,7 @@ export function queueUsageReport({ scheduled, watched }: { scheduled: ReadonlySe
   timer = setTimeout(flush, wait);
 }
 
-// The switch in My Festival. Turning it off clears what this phone shared.
+// The switch in Profile. Turning it off clears what this phone shared.
 export function setSharing(on: boolean) {
   store.set(SHARE_KEY, on ? '1' : '0');
   if (!on) {
