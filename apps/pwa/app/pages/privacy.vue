@@ -21,7 +21,7 @@ function back() {
 
 <template>
   <div class="with-status min-h-dvh bg-canvas">
-    <header class="pt-safe sticky top-[var(--offline-bar,0px)] z-40 border-b border-line bg-chrome backdrop-blur-xl">
+    <header class="pt-safe sticky top-(--offline-bar,0px) z-40 border-b border-line bg-chrome backdrop-blur-xl">
       <div class="mx-auto flex h-14 w-full max-w-xl items-center gap-3 px-4">
         <button type="button" class="pressable -ml-2 grid size-10 place-items-center rounded-full text-ink hover:bg-hover" aria-label="Back" @click="back">
           <ArrowLeftIcon class="size-5" />

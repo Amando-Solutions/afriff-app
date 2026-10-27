@@ -298,7 +298,7 @@ const SAVE_TEXT = { saved: 'Saved', dirty: 'Not saved yet', saving: 'Saving…',
           <legend class="text-meta font-medium text-muted">Whole groups</legend>
           <p v-if="!groups.length" class="text-meta text-muted">No groups yet. Make them on the <NuxtLink to="/admin/contacts" class="text-accent-ink underline">Contacts</NuxtLink> page.</p>
           <label v-for="g in groups" :key="g.id" class="flex items-center gap-3 py-1 text-body">
-            <input v-model="audience.groups" type="checkbox" :value="g.id" class="size-4 accent-[var(--c-accent)]">
+            <input v-model="audience.groups" type="checkbox" :value="g.id" class="size-4 accent-accent">
             {{ g.name }} <span class="text-label text-muted tabular-nums">{{ inGroup(g.id).length }} · {{ inGroup(g.id).filter((p) => p.canEmail).length }} can be emailed</span>
           </label>
         </fieldset>

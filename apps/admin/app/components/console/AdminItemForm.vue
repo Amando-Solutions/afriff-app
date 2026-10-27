@@ -157,7 +157,7 @@ async function remove() {
       </form>
 
       <div v-if="alertDraft" class="card mt-6 flex flex-col gap-3 border-accent/50 p-4">
-        <h2 class="flex items-center gap-2 text-h3 font-semibold"><BellIcon class="size-[1.125rem] text-accent-ink" /> Tell attendees?</h2>
+        <h2 class="flex items-center gap-2 text-h3 font-semibold"><BellIcon class="size-4.5 text-accent-ink" /> Tell attendees?</h2>
         <p v-if="profile.role === 'admin'" class="text-meta text-muted">You changed when or where this happens. When you press Publish to app, the Publish page offers this alert, ticked: a banner on Home and in News, linked to this item, and a push notification to every phone with alerts on. To word it yourself, edit it here and post it now.</p>
         <p v-else class="text-meta text-muted">You changed when or where this happens. Post an urgent alert? Once an admin approves and publishes it, it shows as a banner on Home and in News, linked to this item, and as a push notification to every phone with alerts on.</p>
         <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Headline<input v-model="alertDraft.title" class="field-input" maxlength="120" /></label>

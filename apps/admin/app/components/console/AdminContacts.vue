@@ -209,7 +209,7 @@ const counts = computed(() => ({ all: people.value.length, emailable: people.val
       <p v-else-if="!shown.length" class="mt-4 text-muted">{{ people.length ? 'Nobody matches.' : 'Nobody yet. People appear here when they sign up in the app.' }}</p>
       <ul class="divide-y divide-line">
         <li v-for="p in shown.slice(0, LIMIT)" :key="p.key" class="flex items-start gap-3 py-3">
-          <input type="checkbox" class="mt-1 size-4 shrink-0 accent-[var(--c-accent)]" :checked="picked.has(p.key)" :aria-label="`Tick ${p.firstName} ${p.lastName}`" @change="toggle(p.key)">
+          <input type="checkbox" class="mt-1 size-4 shrink-0 accent-accent" :checked="picked.has(p.key)" :aria-label="`Tick ${p.firstName} ${p.lastName}`" @change="toggle(p.key)">
           <button type="button" class="flex min-w-0 flex-1 flex-col gap-0.5 text-left" @click="editing = p">
             <span class="flex flex-wrap items-center gap-1.5">
               <span class="truncate font-semibold">{{ `${p.firstName} ${p.lastName}`.trim() || p.email }}</span>
