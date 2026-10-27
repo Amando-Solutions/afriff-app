@@ -1,4 +1,4 @@
-// AFRIFF staff console (apps/admin): the admin console (/admin: festival data,
+// AFRIFF staff console (apps/admin): sign-in (/login), the admin console (/admin: festival data,
 // approvals, publish to app, reports, team) and the door volunteers' view
 // (/door). Its own app and address, so attendees' phones never download staff
 // code. Nuxt PWA in SPA mode, like the attendee app: volunteers install it on
@@ -26,6 +26,21 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
+    // SERVER ONLY, secret: the Firebase service-account key (the whole .json
+    // file) used to send push notifications (server/utils/firebaseAdmin.ts).
+    // Set NUXT_FIREBASE_SERVICE_ACCOUNT on the staff project; read at run time.
+    firebaseServiceAccount: '',
+    // SERVER ONLY, secret: attendee accounts (server/utils/accounts.ts).
+    // NUXT_ATTENDEE_PIN_SECRET: the key PINs are mixed with (16+ characters,
+    // never change it once people have signed up). NUXT_BREVO_*: the PIN-code
+    // email and the "App subscribers" list (server/accounts/brevo.ts).
+    attendeePinSecret: '',
+    brevoApiKey: '',
+    brevoSenderEmail: '',
+    brevoSenderName: 'AFRIFF',
+    brevoListId: 0,
+    brevoDoiTemplateId: 0,
+    brevoDoiRedirectUrl: '',
     public: {
       // The attendee app's address, for "View the attendee app" links.
       // NUXT_PUBLIC_ATTENDEE_URL on the host if it moves (e.g. app.afriff.com).
@@ -34,6 +49,12 @@ export default defineNuxtConfig({
   },
 
   devServer: { port: 3001 },
+
+  // server/api/push/*: sends announcements as push notifications (admins,
+  // from the console) and adds attendee phones to the "news" topic (from the
+  // attendee app, a different address: see server/utils/pushTopic.ts).
+  // server/api/account/*: attendee sign-up, log-in and Forgot PIN (from the
+  // attendee app); server/api/attendees/*: admins managing those accounts.
 
   vite: {
     server: { allowedHosts: true },
@@ -54,7 +75,8 @@ export default defineNuxtConfig({
   },
 
   // The shared service-worker setup is in @afriff/pwa; this is the console's identity.
-  // Opens at "/", which sends volunteers to /door and everyone else to /admin.
+  // Opens at "/", which sends signed-out people to /login, volunteers to /door
+  // and everyone else to /admin (app/lib/access.ts).
   pwa: {
     manifest: {
       id: '/',

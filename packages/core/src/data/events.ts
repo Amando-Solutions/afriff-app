@@ -79,7 +79,7 @@ const SHIPPED_EVENTS: FestivalEvent[] = [
   },
   {
     id: 'animation-workshop', type: 'workshop', title: 'Animation Workshop: Building Worlds Frame by Frame',
-    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/6d2de55b-affb-475a-b672-71ba87c50ddd/animation-workshop.jpg',
+    image: 'https://afriff.com/__l5e/assets-v1/6d2de55b-affb-475a-b672-71ba87c50ddd/animation-workshop.jpg',
     date: '2026-11-03', time: '10:00', end: '12:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Esther Kemi Gbadamosi', speakerRole: 'Founder & Creative Director, Radioxicity',
     about: 'Characters, world-building and production pipelines for original African animation. In partnership with TheCOLOREDANIME.',
@@ -123,7 +123,7 @@ const SHIPPED_EVENTS: FestivalEvent[] = [
   },
   {
     id: 'producers-masterclass', type: 'masterclass', title: 'Producing Masterclass: From Idea to Box Office',
-    image: 'https://afriff-revival.lovable.app/__l5e/assets-v1/248736bf-a286-4e96-a3ed-315f35ff0ded/producers-masterclass.jpg',
+    image: 'https://afriff.com/__l5e/assets-v1/248736bf-a286-4e96-a3ed-315f35ff0ded/producers-masterclass.jpg',
     date: '2026-11-05', time: '10:00', end: '12:00', venue: 'twinwaters', place: 'Masterclass room',
     speaker: 'Femi Adebayo', speakerRole: 'Actor, producer and director',
     about: 'The producer\'s path from first idea to a profitable release: scripts, finance, crew, production and delivery.',

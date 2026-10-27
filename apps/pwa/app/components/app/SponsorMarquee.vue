@@ -13,23 +13,11 @@ const list = computed(() => [...SPONSORS].sort((a, b) => (a.order ?? 99) - (b.or
 // ~4–5 seconds per logo keeps it calm and readable
 const seconds = computed(() => list.value.length * (props.variant === 'ribbon' ? 4 : 5))
 const broken = reactive<Record<string, boolean>>({})
-
-const sizes = computed(() =>
-  props.variant === 'ribbon'
-    ? { item: 'h-[2.125rem] px-[1.125rem]', img: 'max-h-4 max-w-[4.75rem]', name: 'text-micro' }
-    : { item: 'h-16 px-6', img: 'max-h-[2.125rem] max-w-[7.5rem]', name: 'text-meta' },
-)
 </script>
 
 <template>
-  <div
-    v-if="list.length"
-    class="marquee"
-    :class="variant === 'ribbon' ? 'border-b border-line bg-navy-950' : '-mx-4'"
-    role="region"
-    aria-label="Festival sponsors"
-  >
-    <div class="marquee-track" :class="variant === 'ribbon' ? 'bg-navy-950' : 'bg-canvas'" :style="{ '--marquee-duration': `${seconds}s` }">
+  <div v-if="list.length" class="marquee" :class="`marquee-${variant}`" role="region" aria-label="Festival sponsors">
+    <div class="marquee-track" :style="{ '--marquee-duration': `${seconds}s` }">
       <template v-for="copy in [0, 1]" :key="copy">
         <component
           :is="s.website ? 'a' : 'span'"
@@ -40,19 +28,17 @@ const sizes = computed(() =>
           :rel="s.website ? 'noopener noreferrer' : undefined"
           :tabindex="copy && s.website ? -1 : undefined"
           :aria-hidden="copy ? 'true' : undefined"
-          class="grid flex-none place-items-center"
-          :class="sizes.item"
+          class="marquee-item"
         >
           <img
             v-if="s.logo && !broken[s.name]"
             :src="s.logo"
             :alt="copy ? '' : s.name"
-            class="block object-contain"
-            :class="[sizes.img, `logo-${s.logoStyle || 'white'}`]"
+            :class="`logo-${s.logoStyle || 'white'}`"
             decoding="async"
             @error="broken[s.name] = true"
           />
-          <span v-else class="font-semibold whitespace-nowrap text-muted" :class="sizes.name">{{ s.name }}</span>
+          <span v-else class="marquee-name">{{ s.name }}</span>
         </component>
       </template>
     </div>

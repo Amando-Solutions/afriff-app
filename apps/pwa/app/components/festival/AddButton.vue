@@ -9,16 +9,13 @@ const emit = defineEmits<{ toggle: [] }>()
 <template>
   <button
     type="button"
-    class="pressable grid shrink-0 place-items-center rounded-full border"
-    :class="[
-      big ? 'size-11' : 'size-9',
-      added ? 'border-accent bg-accent text-on-accent' : 'border-line bg-raised text-ink hover:border-line-strong',
-    ]"
+    class="round-btn"
+    :class="{ added, big }"
     :aria-pressed="added"
     :aria-label="added ? `Remove ${title} from My Festival` : `Add ${title} to My Festival`"
     @click.stop.prevent="emit('toggle')"
   >
-    <CheckIcon v-if="added" class="size-[1.125rem]" :stroke-width="2.5" />
-    <PlusIcon v-else class="size-[1.125rem]" :stroke-width="2" />
+    <CheckIcon v-if="added" :size="20" :stroke-width="2.4" />
+    <PlusIcon v-else :size="20" :stroke-width="2" />
   </button>
 </template>

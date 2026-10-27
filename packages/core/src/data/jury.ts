@@ -12,7 +12,7 @@ export const JURY_LINKS = {
   pastJuries: 'https://afriff.com/festival/past-juries',
 };
 
-const PHOTO = 'https://afriff-revival.lovable.app/__l5e/assets-v1/';
+const PHOTO = 'https://afriff.com/__l5e/assets-v1/';
 const INTL = 'International Jury';
 
 export let JURY: JuryMember[] = [

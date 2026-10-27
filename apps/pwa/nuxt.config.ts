@@ -1,7 +1,8 @@
 // AFRIFF attendee app (apps/pwa): the festival companion attendees open from a
 // QR code. Nuxt PWA in SPA mode (ssr: false): everything runs in the browser,
 // so the app opens instantly from the phone's saved copy and keeps working
-// offline. No server routes: phones read and write Firestore directly.
+// offline. No server routes: phones read and write Firestore directly, and
+// sign-up / log-in go to the staff app's server (adminUrl, lib/account.ts).
 //
 // Shared with the staff console (apps/admin), from packages/:
 //   @afriff/theme  design system: tokens, fonts, UI + brand components, icons
@@ -33,6 +34,16 @@ export default defineNuxtConfig({
       // Set NUXT_PUBLIC_ADMIN_URL on the host BEFORE building (the value is
       // written into the app shell at build time).
       adminUrl: process.env.NUXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001'),
+      // Push notifications ("Alerts on this phone", app/lib/push.ts): the
+      // project's public Web Push key, from Firebase console → Project
+      // settings → Cloud Messaging → Web Push certificates. Public, not a
+      // secret. Without it the alerts switch stays hidden. Phones join the
+      // alerts list through the staff app's server (adminUrl above).
+      firebaseVapidKey: process.env.NUXT_PUBLIC_FIREBASE_VAPID_KEY || '',
+      // Attendee accounts: where people write to have their account deleted or
+      // ask what's kept about them (sign-up page and /privacy). AFRIFF to
+      // confirm the address. Empty: those pages point to afriff.com instead.
+      privacyEmail: process.env.NUXT_PUBLIC_PRIVACY_EMAIL || '',
     },
   },
 
@@ -45,7 +56,7 @@ export default defineNuxtConfig({
     // the Firestore SDK chunk (~170 KB gzipped) is loaded after first paint on purpose
     build: { chunkSizeWarningLimit: 700 },
     // pre-bundle these for `npm run dev`, so the first page load doesn't reload itself
-    optimizeDeps: { include: ['lucide-vue-next', 'firebase/app', 'firebase/firestore'] },
+    optimizeDeps: { include: ['lucide-vue-next', 'firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/messaging'] },
   },
 
   app: {
@@ -60,6 +71,8 @@ export default defineNuxtConfig({
 
   // The shared service-worker setup is in @afriff/pwa; this is the attendee app's identity.
   pwa: {
+    // Shows push notifications (announcements) and opens the app when one is tapped.
+    workbox: { importScripts: ['/push-sw.js'] },
     manifest: {
       id: '/',
       name: 'AFRIFF 2026 · Africa International Film Festival',

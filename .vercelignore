@@ -6,3 +6,5 @@ node_modules/
 dist/
 .claude/
 .env*
+# Cloud Functions are deployed to Firebase, not Vercel
+functions/

@@ -1,7 +1,7 @@
 /*
   ALL COLOURS AND SIZES FOR BOTH APPS LIVE HERE (@afriff/theme).
-  The AFRIFF design system: deep navy + festival gold, Archivo for headings,
-  Onest for everything else. Change a token once and it changes in the
+  The AFRIFF look (same as the original React app): deep navy + festival
+  gold, Manrope for everything. Change a token once and it changes in the
   attendee app and the staff console alike.
   (Venue dot colours live with the venues in packages/core/src/data/programme.ts.)
 
@@ -15,8 +15,8 @@
 /* Brand primitives                                                    */
 /* ------------------------------------------------------------------ */
 @theme {
-  --font-sans: "Onest Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Archivo Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, sans-serif;
 
   /*
    * Type roles. A fixed rem scale sized for app UI. Use the role, not a raw size:
@@ -83,27 +83,27 @@
 /* Semantic tokens: use these in components, not the raw scales       */
 /* ------------------------------------------------------------------ */
 :root {
-  --c-canvas: #060a26;
+  --c-canvas: #060a27;
   --c-surface: #0b1135;
-  --c-raised: #141a48;
+  --c-raised: #131a48;
   --c-hover: rgb(180 186 230 / 0.06);
-  --c-line: rgb(180 186 230 / 0.12);
-  --c-line-strong: rgb(180 186 230 / 0.24);
-  --c-ink: #f5f3ee;
-  --c-muted: #a3a9ca;
-  --c-subtle: #6f769f;
+  --c-line: #20264a;
+  --c-line-strong: #2c3366;
+  --c-ink: #f3f3ff;
+  --c-muted: #a4aacc;
+  --c-subtle: #7277a1;
 
-  --c-accent: #d9a441;
+  --c-accent: #dba440;
   --c-accent-hover: #e9c262;
   --c-on-accent: #1a1305;
   --c-accent-ink: #e9c262;
-  --c-accent-soft: rgb(217 164 65 / 0.14);
+  --c-accent-soft: rgb(219 164 64 / 0.14);
 
   /* Queue labels: Good chance (success), Tight (accent), Unlikely / Full (danger) */
-  --c-success: #3cc98b;
-  --c-success-soft: rgb(60 201 139 / 0.14);
-  --c-danger: #f47a6b;
-  --c-danger-soft: rgb(244 122 107 / 0.14);
+  --c-success: #5fd39a;
+  --c-success-soft: rgb(95 211 154 / 0.12);
+  --c-danger: #f37b6b;
+  --c-danger-soft: rgb(243 123 107 / 0.14);
   --c-info: #7fb0ff;
   --c-info-soft: rgb(127 176 255 / 0.14);
 

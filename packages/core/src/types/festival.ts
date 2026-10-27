@@ -81,6 +81,8 @@ export interface NewsItem {
   screening?: string
   event?: string
   url?: string
+  /** Ticked in the console: sent once as a push notification when first published */
+  push?: boolean
 }
 
 export type LogoStyle = 'white' | 'original' | 'knockout'

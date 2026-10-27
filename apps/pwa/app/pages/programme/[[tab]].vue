@@ -3,15 +3,15 @@ import type { Component } from 'vue'
 import type { FestivalEvent } from '@afriff/core/types/festival'
 import { computed, ref } from 'vue'
 import {
-  AwardIcon, CalendarDaysIcon, ChartNoAxesGanttIcon, CheckIcon, ClapperboardIcon, EyeIcon, FilmIcon, ListChecksIcon,
+  AwardIcon, BarChart3Icon, CalendarDaysIcon, CheckIcon, ClapperboardIcon, EyeIcon, FilmIcon, ListChecksIcon,
   ListIcon, MapPinIcon, SearchIcon, SparklesIcon,
 } from 'lucide-vue-next'
-import { DAY_THEMES, FESTIVAL, FILMS, SCREENINGS, SECTIONS } from '@afriff/core/data/programme'
+import { FESTIVAL, FILMS, SCREENINGS, SECTIONS } from '@afriff/core/data/programme'
 import { EVENTS, EVENT_FILTERS, EVENT_TYPES, eventsOn, isMultiDay } from '@afriff/core/data/events'
 import { dateParts } from '@afriff/core/utils/format'
 import { dayItems, type DayItemType } from '~/lib/dayItems'
 import { planForDay } from '~/lib/plan'
-import { programmeMemory as memory } from '~/lib/programmeMemory'
+import { openProgrammeDay, programmeMemory as memory } from '~/lib/programmeMemory'
 import { useLiveClock } from '~/lib/queues'
 import { useFestival } from '~/lib/store'
 
@@ -20,6 +20,8 @@ import { useFestival } from '~/lib/store'
 const route = useRoute()
 const tab = computed(() => (route.params.tab === 'films' || route.params.tab === 'events' ? route.params.tab : 'schedule'))
 useHead({ title: 'Programme' })
+// /programme?day=2026-11-03 opens the Schedule on that day (links in "Share my day")
+if (typeof route.query.day === 'string' && FESTIVAL.days.includes(route.query.day)) openProgrammeDay(route.query.day)
 
 const searching = ref(false)
 const { state, isWatched, toggleWatched } = useFestival()
@@ -33,8 +35,7 @@ const TABS: { id: 'schedule' | 'films' | 'events'; label: string; to: string; ic
 
 // ---------- Schedule ----------
 const TAG_FILTERS = ['All', 'Public', 'Industry'] as const
-const TYPE_FILTERS: { value: DayItemType; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'films', label: 'Films' }, { value: 'events', label: 'Events' }]
-const VIEWS: { value: 'list' | 'timeline'; label: string; icon: Component }[] = [{ value: 'list', label: 'List view', icon: ListIcon }, { value: 'timeline', label: 'Timeline view', icon: ChartNoAxesGanttIcon }]
+const TYPE_FILTERS: { id: DayItemType; label: string }[] = [{ id: 'all', label: 'All' }, { id: 'films', label: 'Films' }, { id: 'events', label: 'Events' }]
 const planOpen = ref(false)
 
 // screenings and events for the day, one row per showing, in time order
@@ -48,10 +49,6 @@ const nEvents = computed(() => items.value.length - nFilms.value)
 const plannedToday = computed(() => planForDay(state.scheduled, memory.day).length)
 const eventsToday = computed(() => eventsOn(memory.day).length)
 const nextTag = () => { memory.tag = TAG_FILTERS[(TAG_FILTERS.indexOf(memory.tag) + 1) % TAG_FILTERS.length]! }
-const dayHeading = computed(() => {
-  const p = dateParts(memory.day)
-  return { title: `${p.day} ${p.date} ${p.month}`, theme: DAY_THEMES[memory.day] || '' }
-})
 const emptyWord = computed(() => (memory.tag === 'Public' ? 'public' : memory.tag === 'Industry' ? 'for industry' : 'showing'))
 const s = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 // short enough to stay on one line on small phones
@@ -79,61 +76,54 @@ const eventDays = computed(() =>
 </script>
 
 <template>
-  <div>
-    <PageTitle title="Programme" :icon="ClapperboardIcon">
-      <template #actions>
-        <button
-          type="button"
-          class="pressable grid size-10 place-items-center rounded-full border border-line bg-surface text-ink shadow-card hover:border-line-strong"
-          aria-label="Search films, directors and events"
-          @click="searching = true"
-        >
-          <SearchIcon class="size-5" />
-        </button>
-      </template>
-    </PageTitle>
-    <div class="mt-1 flex items-center justify-between text-muted">
+  <div class="page">
+    <div class="title-row">
+      <PageTitle title="Programme" :icon="ClapperboardIcon" />
+      <button type="button" class="icon-btn big" aria-label="Search films, directors and events" @click="searching = true">
+        <SearchIcon :size="24" />
+      </button>
+    </div>
+    <div class="subtitle-row">
       <span>Full festival schedule</span>
-      <NuxtLink to="/venues" class="inline-flex items-center gap-1 text-meta font-medium text-ink underline decoration-accent decoration-2 underline-offset-4">
-        <MapPinIcon class="size-4 text-accent-ink" /> Lagos
-      </NuxtLink>
+      <NuxtLink to="/venues" class="underline-link"><MapPinIcon :size="18" /> Lagos</NuxtLink>
     </div>
 
-    <nav role="tablist" aria-label="Programme view" class="mt-4 mb-4 inline-flex rounded-full bg-raised p-0.5">
-      <NuxtLink
-        v-for="t in TABS"
-        :key="t.id"
-        :to="t.to"
-        role="tab"
-        :aria-selected="tab === t.id"
-        class="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-meta font-medium transition-[background-color,color,box-shadow] duration-200 ease-out"
-        :class="tab === t.id ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(2_4_20/0.12),0_0_0_1px_var(--c-line)]' : 'text-muted hover:text-ink'"
-      >
-        <component :is="t.icon" class="size-4" :class="tab === t.id && 'text-accent-ink'" aria-hidden="true" />
-        {{ t.label }}
+    <div class="seg" role="tablist" aria-label="Programme view">
+      <NuxtLink v-for="t in TABS" :key="t.id" :to="t.to" role="tab" :aria-selected="tab === t.id" :class="{ on: tab === t.id }">
+        <component :is="t.icon" :size="18" /> {{ t.label }}
       </NuxtLink>
-    </nav>
+    </div>
 
     <!-- ===== Schedule ===== -->
     <template v-if="tab === 'schedule'">
       <DayPicker v-model="memory.day" />
-      <div class="mt-3"><VenueChips v-model="memory.venues" :day="memory.day" :type="memory.type" /></div>
-      <div class="mt-3 flex items-center justify-between gap-2">
-        <UiSegmented v-model="memory.type" :options="TYPE_FILTERS" label="Show" />
-        <UiChip small :on="memory.tag !== 'All'" @click="nextTag">{{ memory.tag === 'All' ? 'Public & Industry' : `${memory.tag} only` }}</UiChip>
+      <VenueChips v-model="memory.venues" :day="memory.day" :type="memory.type" />
+
+      <div class="type-filter" role="group" aria-label="Show">
+        <button
+          v-for="f in TYPE_FILTERS"
+          :key="f.id"
+          type="button"
+          :aria-pressed="memory.type === f.id"
+          class="chip small"
+          :class="{ on: memory.type === f.id }"
+          @click="memory.type = f.id"
+        >{{ f.label }}</button>
+        <span class="muted type-count">{{ countText }}</span>
       </div>
 
-      <!-- The list's own heading: which day, its theme, how much is on -->
-      <div class="-mx-4 mt-6 flex items-end justify-between gap-3 border-b border-line px-4 pb-3">
-        <div class="min-w-0">
-          <h2 class="font-display text-h2 font-semibold">{{ dayHeading.title }}</h2>
-          <p class="truncate text-meta text-muted tabular-nums">{{ [dayHeading.theme, countText].filter(Boolean).join(' · ') }}</p>
+      <div class="list-tools">
+        <button type="button" class="chip small" :class="{ on: memory.tag !== 'All' }" @click="nextTag">
+          {{ memory.tag === 'All' ? 'Public & Industry' : `${memory.tag} only` }}
+        </button>
+        <div class="toggle" role="group" aria-label="View">
+          <button type="button" :class="{ on: memory.view === 'list' }" :aria-pressed="memory.view === 'list'" aria-label="List view" @click="memory.view = 'list'"><ListIcon :size="20" /></button>
+          <button type="button" :class="{ on: memory.view === 'timeline' }" :aria-pressed="memory.view === 'timeline'" aria-label="Timeline view" @click="memory.view = 'timeline'"><BarChart3Icon :size="20" /></button>
         </div>
-        <UiToggle v-model="memory.view" :options="VIEWS" />
       </div>
 
-      <p v-if="items.length === 0" class="py-8 text-center text-muted">Nothing {{ emptyWord }} at these venues on this day.</p>
-      <div v-else-if="memory.view === 'list'">
+      <p v-if="items.length === 0" class="empty">Nothing {{ emptyWord }} at these venues on this day.</p>
+      <div v-else-if="memory.view === 'list'" class="rows">
         <template v-for="i in items" :key="i.id">
           <ScreeningRow v-if="i.kind === 'screening'" :screening="i.screening" :clock="clock" />
           <EventRow v-else :event="i.event" />
@@ -141,74 +131,73 @@ const eventDays = computed(() =>
       </div>
       <ProgrammeTimeline v-else :items="items" :day="memory.day" />
 
-      <NuxtLink v-if="eventsToday > 0" to="/programme/events" class="card card-interactive mt-4 flex items-center gap-2.5 p-3 text-meta">
-        <SparklesIcon class="size-[1.125rem] shrink-0 text-accent-ink" />
-        <span class="flex-1">{{ eventsToday }} masterclass{{ eventsToday === 1 ? '' : 'es' }} & event{{ eventsToday === 1 ? '' : 's' }} this day</span>
-        <span class="font-medium text-accent-ink">See events →</span>
+      <NuxtLink v-if="eventsToday > 0" to="/programme/events" class="events-pointer">
+        <SparklesIcon :size="18" /> {{ eventsToday }} masterclass{{ eventsToday === 1 ? '' : 'es' }} &amp; event{{ eventsToday === 1 ? '' : 's' }} this day <span>See events →</span>
       </NuxtLink>
       <!-- extra bottom space so the floating My plan button never covers a row -->
-      <p class="mt-5 mb-16 text-center text-label text-subtle">Times can change. Check the bell for updates.</p>
+      <p class="footnote" style="margin-bottom: 64px">Times can change. Check the bell for updates.</p>
 
-      <button
-        type="button"
-        class="pressable fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] z-30 inline-flex h-11 items-center gap-2 rounded-full border border-line bg-surface pr-4 pl-3.5 text-meta font-semibold shadow-pop min-[37rem]:right-[calc(50%-17rem)]"
-        @click="planOpen = true"
-      >
-        <ListChecksIcon class="size-[1.125rem] text-accent-ink" /> My plan
-        <span v-if="plannedToday > 0" class="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-micro font-semibold text-on-accent tabular-nums">{{ plannedToday }}</span>
+      <button type="button" class="fab" @click="planOpen = true">
+        <ListChecksIcon :size="20" /> My plan<span v-if="plannedToday > 0" class="fab-count">{{ plannedToday }}</span>
       </button>
       <MyPlanSheet v-model:open="planOpen" :day="memory.day" />
     </template>
 
     <!-- ===== All films ===== -->
-    <template v-else-if="tab === 'films'">
-      <NuxtLink to="/jury" class="card card-interactive flex items-center gap-2.5 p-3 text-meta">
-        <AwardIcon class="size-[1.125rem] shrink-0 text-accent-ink" />
-        <span class="flex-1">Competition films are judged by the International Jury</span>
-        <span class="shrink-0 font-medium text-accent-ink">Meet the jury →</span>
+    <div v-else-if="tab === 'films'" class="all-films">
+      <NuxtLink to="/jury" class="jury-pointer">
+        <AwardIcon :size="18" /> Competition films are judged by the International Jury <span>Meet the jury →</span>
       </NuxtLink>
-      <section v-for="sec in sections" :key="sec.name" class="mt-7">
-        <h2 class="mb-1 flex items-baseline gap-2 font-display text-h2 font-semibold">{{ sec.name }} <span class="text-label font-normal text-muted tabular-nums">{{ sec.films.length }}</span></h2>
-        <div v-for="f in sec.films" :key="f.id" class="flex items-center gap-3 border-b border-line py-2.5">
-          <NuxtLink :to="`/film/${f.id}`" class="flex min-w-0 flex-1 items-center gap-3">
-            <FilmPoster :film="f" class="aspect-[2/3] w-10 rounded-thumb" />
-            <span class="flex min-w-0 flex-col">
-              <span class="truncate text-body font-semibold">{{ f.title }}</span>
-              <span class="truncate text-meta text-muted">{{ f.director }} · {{ f.country }}</span>
+      <section v-for="sec in sections" :key="sec.name" class="af-section">
+        <h2 class="af-head">{{ sec.name }} <span class="af-count">{{ sec.films.length }}</span></h2>
+        <div v-for="f in sec.films" :key="f.id" class="af-row">
+          <NuxtLink :to="`/film/${f.id}`" class="af-link">
+            <FilmPoster :film="f" class="poster-mini" />
+            <span class="af-text">
+              <span class="af-title">{{ f.title }}</span>
+              <span class="muted small">{{ [f.director, f.country].filter(Boolean).join(' · ') }}</span>
             </span>
           </NuxtLink>
-          <span class="flex shrink-0 gap-1" aria-label="Venues"><VenueDot v-for="v in venuesOf(f.id)" :key="v" :venue-id="v" /></span>
+          <span class="af-dots" aria-label="Venues"><VenueDot v-for="v in venuesOf(f.id)" :key="v" :venue-id="v" /></span>
           <button
             type="button"
-            class="pressable grid size-9 shrink-0 place-items-center rounded-full border"
-            :class="isWatched(f.id) ? 'border-accent bg-accent text-on-accent' : 'border-line bg-raised text-muted'"
+            class="eye-btn"
+            :class="{ on: isWatched(f.id) }"
             :aria-pressed="isWatched(f.id)"
             :aria-label="isWatched(f.id) ? `Unmark ${f.title} as seen` : `Mark ${f.title} as seen`"
             @click="toggleWatched(f.id)"
           >
-            <CheckIcon v-if="isWatched(f.id)" class="size-[1.125rem]" :stroke-width="2.5" />
-            <EyeIcon v-else class="size-[1.125rem]" />
+            <CheckIcon v-if="isWatched(f.id)" :size="20" :stroke-width="2.4" />
+            <EyeIcon v-else :size="20" />
           </button>
         </div>
       </section>
-    </template>
+    </div>
 
     <!-- ===== Events ===== -->
-    <template v-else>
-      <p class="text-meta text-muted">Masterclasses, workshops, the AFCM market, galas and parties. Masterclasses are free; register on afriff.com.</p>
-      <div role="group" aria-label="Event type" class="scroll-row mt-3 gap-1.5">
-        <UiChip v-for="f in EVENT_FILTERS" :key="f.id" :on="memory.eventFilter === f.id" @click="memory.eventFilter = f.id">{{ f.label }}</UiChip>
+    <div v-else class="events-tab">
+      <p class="muted small events-intro">Masterclasses, workshops, the AFCM market, galas and parties. Masterclasses are free; register on afriff.com.</p>
+      <div class="chips" role="group" aria-label="Event type">
+        <button
+          v-for="f in EVENT_FILTERS"
+          :key="f.id"
+          type="button"
+          :aria-pressed="memory.eventFilter === f.id"
+          class="chip"
+          :class="{ on: memory.eventFilter === f.id }"
+          @click="memory.eventFilter = f.id"
+        >{{ f.label }}</button>
       </div>
-      <section v-if="allWeek.length" class="mt-6">
-        <h2 class="font-display text-h2 font-semibold">All week</h2>
+      <section v-if="allWeek.length" class="ev-day">
+        <h2 class="ev-day-head">All week</h2>
         <EventRow v-for="e in allWeek" :key="e.id" :event="e" />
       </section>
-      <section v-for="x in eventDays" :key="x.d" class="mt-6">
-        <h2 class="font-display text-h2 font-semibold">{{ x.p.day }} {{ x.p.date }} {{ x.p.month }}</h2>
+      <section v-for="x in eventDays" :key="x.d" class="ev-day">
+        <h2 class="ev-day-head">{{ x.p.day }} {{ x.p.date }} {{ x.p.month }}</h2>
         <EventRow v-for="e in x.list" :key="e.id" :event="e" />
       </section>
-      <p class="mt-5 mb-6 text-center text-label text-subtle">Times and rooms are samples until AFRIFF publishes the schedule.</p>
-    </template>
+      <p class="footnote" style="margin-bottom: 24px">Times and rooms are samples until AFRIFF publishes the schedule.</p>
+    </div>
 
     <ProgrammeSearch v-model:open="searching" />
   </div>

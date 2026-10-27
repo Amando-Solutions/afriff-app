@@ -15,6 +15,9 @@ AFRIFF festival companion (Africa International Film Festival, Lagos,
 that opens from a QR code on any phone. No App Store, no sign-up for
 attendees. Must work on cheap Android phones and slow data. People
 should be able to add it to their home screen.
+CHANGED 26 Oct 2026 (user request, PENDING AFRIFF'S WRITTEN APPROVAL):
+attendees now sign up (or log in) on the first screen. See "Attendee
+accounts" under Progress.
 
 ## Reference screenshots (in the `reference` folder)
 - `reference/afriff-prototype/` (home.jpg, programme.jpg): use for
@@ -146,6 +149,8 @@ user decision). Home's top banner depends on the Lagos date:
 - Second section "Watched": films marked "Seen it", with an "Export to
   Letterboxd" button (downloads a CSV Letterboxd accepts).
 - Small note at the bottom: "Kept on this phone. No account needed."
+  (CHANGED 26 Oct with attendee accounts: "Kept on this phone and in your
+  account.", plus an account card: emails switch, Log out, Delete my account.)
 
 ## Queues
 Today's screenings with an open queue, sorted by start time: film,
@@ -202,7 +207,7 @@ Start with sample African films and 4 sample venues.
 (Update this section at the end of each session: what's done, what's
 next, anything I need to do.)
 
-### STATUS AT A GLANCE (updated 23 Oct 2026; festival opens 1 Nov)
+### STATUS AT A GLANCE (updated 26 Oct 2026; festival opens 1 Nov)
 Read this first; the dated sections below are the detailed history.
 - Who: product owner (this laptop, with Claude Code) + Michael
   (developer, GitHub michaelkyng). WORKING AGREEMENT: every change goes
@@ -214,16 +219,24 @@ Read this first; the dated sections below are the detailed history.
   24 Oct into a monorepo: attendee app `apps/pwa`, staff app `apps/admin`,
   shared `packages/` (see "Monorepo" below). GitHub TheoKwechi/afriff-app,
   branch main. Live:
-  https://afriff-app-mu.vercel.app runs Michael's Nuxt version.
+  https://afriff-app-mu.vercel.app runs an OLDER Nuxt build (checked 25 Oct:
+  from before the 24 Oct monorepo split). Point demo links / QR codes at the
+  address Michael actually deploys to.
 - Build steps: 1 look ✅ · 2 admin console + logins ✅ (owner's own login
   tests of Team / Approvals / Reports outstanding) · 3 real data ✅ (but
   screening + event TIMES ARE SAMPLES) · 4 My Festival + Share my day ✅ ·
-  5 news + alerts ✅ (no push notifications, by design) · 6 sponsors +
+  5 news + alerts ✅ (+ push notifications, built 26 Oct; need 2 keys set
+  up, see "Push notifications") · 6 sponsors +
   venues ✅ · 7 watched log + Letterboxd ✅ · 8 live queues ✅ built, plus
   the volunteer door view; NOT yet tested with real logins on real phones.
 - Extras built on request: masterclasses + events, jury page, film page
   extras, simplified Home, daily highlight, admin reports, home-screen
-  install + offline (Michael).
+  install + offline (Michael), afriff.com film sync every 15 minutes
+  (26 Oct; built and tested, NOT deployed: needs Blaze; see "afriff.com
+  film sync"), attendee accounts with sign-up first (26 Oct; built and
+  tested with a pretend database on branch `feature/attendee-accounts`, NOT
+  committed or deployed; pending AFRIFF's written approval; see "Attendee
+  accounts").
 - Branch `claude/daily-highlights-filmstrip` (filmstrip + "Daily
   highlights" headline) MERGED INTO main 23 Oct (pull request #3). The
   monorepo split (branch dev) is rebased on top of it; dev → main still
@@ -233,19 +246,28 @@ Read this first; the dated sections below are the detailed history.
   updating → move to Blaze + budget alert. (2) Vercel Hobby is
   non-commercial → Vercel Pro or Firebase Hosting (Blaze). (3) Sample
   times. (4) Nothing tested end to end on real phones with real logins.
-  (5) admin@yopmail.com (password in `scripts/seed-admin.mjs`) was made an
-  admin on 25 Oct with a temporary self-admin rule, since removed from
-  `firestore.rules`. yopmail inboxes are public, so delete that account
-  before 1 Nov.
+  (5) ALL THREE demo logins are yopmail addresses (admin@, editor@,
+  volunteer@yopmail.com; checked 25 Oct). yopmail inboxes are public, so
+  anyone can use "Forgot password?" and read the reset email, and the
+  admin's password is in GitHub history (commit 7d49371). User decision
+  25 Oct: keep them for the demo, then move them to private addresses or
+  delete them before 1 Nov. With attendee accounts this becomes URGENT:
+  an admin login can see and download every attendee's name and email.
+  (6) Push notifications stay switched off until
+  their two Firebase keys are added on Vercel (see "Push notifications for
+  announcements"); not yet tried on a real phone.
 - Deploy commands (25 Oct, Firebase CLI, all to afriff-app): `npm run
-  deploy:rules`, `deploy:functions` (no Cloud
-  Functions exist yet; they'd need the paid Blaze plan). Pasting rules into
+  deploy:rules`, `deploy:functions` (the afriff.com sync in `functions/`;
+  needs the paid Blaze plan). Pasting rules into
   the Firebase console still works.
-- NEEDED FROM AFRIFF: real schedule (times, rooms), official synopses,
-  poster / logo / jury photo files to host ourselves, sponsors' OK to show
-  logos, confirm 3 "How to attend" sections, bios for Erin G. Wesley,
-  Chuka Ejorh, Tunde Babalola, graphics for Producing + Animation, fixes
-  for afriff.com data errors, and (optional) an app.afriff.com address.
+- NEEDED FROM AFRIFF: real schedule (times, rooms), premiere status per
+  film (afriff.com doesn't publish it, so no premiere badges yet), posters
+  for the 18 films that have none, details for the 36 Out of Competition
+  films (synopsis, runtime, country), poster / logo / jury photo files to
+  host ourselves, sponsors' OK to show logos, confirm 3 "How to attend"
+  sections, bios for Erin G. Wesley, Chuka Ejorh, Tunde Babalola, date +
+  details for "From Idea to the Screen" (Banwo & Ighodalo), fixes for
+  afriff.com data errors, and (optional) an app.afriff.com address.
 
 ### Decisions made (session 1, 18 Oct 2026)
 - Tech: React + Vite (plain JavaScript), icons from lucide-react.
@@ -267,9 +289,14 @@ Read this first; the dated sections below are the detailed history.
   - Synopses are short one-liners written for the app, not copied from
     afriff.com (that text belongs to AFRIFF/filmmakers). AFRIFF should
     enter the official synopses through the admin console.
+    CHANGED 25 Oct 2026 (user decision): the database now holds AFRIFF's
+    official synopses from afriff.com. See "Data sync from afriff.com".
   - Posters are linked from AFRIFF's site (afriff-revival.lovable.app);
     films without one show a colour placeholder. Before launch, get the
     poster files from AFRIFF and host them ourselves.
+    CHANGED 25 Oct 2026: linked straight from afriff.com
+    (https://afriff.com/__l5e/assets-v1/...); the lovable.app links only
+    redirected there.
   - Trailers: only public YouTube/Vimeo trailer links are used.
     afriff.com also lists Google Drive / Mega / private Vimeo links that
     look like screeners; left out on purpose.
@@ -287,6 +314,7 @@ Read this first; the dated sections below are the detailed history.
   films also have a `genre`. Sections are AFRIFF's own, in order:
   Opening Movie, Special Presentations, Features, Documentary, Jury
   Selection, Audience, Shorts (Jury Selection and Audience are empty).
+  ADDED 25 Oct 2026: Out of Competition (36 films, new on afriff.com).
 - Test clock: add `?now=2026-11-01T17:15` before the `#` in the address
   to make the app act as if it's that Lagos time (for testing the
   timeline's red line, live queues, countdown). Code: `src/lib/now.js`.
@@ -340,7 +368,7 @@ in this order, showing each group before the next:
    language; screening tag; "How to attend" text sections.
 32. Bottom sheets slide up, rounded top, close X.
 33. Every tap changes state instantly; smooth on cheap Android.
-DO NOT BUILD: sign-in/accounts, other festivals, My season, rankings
+DO NOT BUILD (sign-in/accounts: CHANGED 26 Oct, see "Attendee accounts"): sign-in/accounts, other festivals, My season, rankings
 or voting, colour themes, Wrapped video, notification settings.
 
 Status: CHANGE REQUEST 1 COMPLETE (18 Oct 2026), all items built and
@@ -608,7 +636,8 @@ heavy libraries) apply everywhere.
 - STEP 4: `src/lib/store.jsx` saves plans (screenings + events), Seen it
   (date + 1–5 stars) and queues checked on the phone (localStorage key
   `afriff-my-v1`). First visit starts EMPTY (demo sample picks removed).
-- ALERTS (step 5, no push notifications):
+- ALERTS (step 5; push notifications added 26 Oct, see "Push notifications
+  for announcements"):
   - Console: screenings/events have `status` ('' / moved / time-changed
     / cancelled). News has `type` (venue-change, time-change, cancelled,
     sold-out, news), `urgent`, `until` (banner end time), optional
@@ -963,7 +992,8 @@ heavy libraries) apply everywhere.
   download no longer contains any staff code (a little smaller and lighter).
 - WHAT CHANGED FOR STAFF: the admin console and the door view are now their
   OWN app at their OWN address (a second Vercel project), called "AFRIFF
-  Staff" when installed. Opening it sends volunteers straight to the door
+  Staff" when installed. (25 Oct: signed-out people now land on /login.)
+  Opening it sends volunteers straight to the door
   counter and everyone else to the console. Old links still work: /admin,
   /door, #/admin and #/door on the attendee app forward to the staff app.
 - WHY: same architecture as Michael's DP Fitness project. One folder
@@ -988,6 +1018,279 @@ heavy libraries) apply everywhere.
   set the attendee project's Root Directory to `apps/pwa` and its
   `NUXT_PUBLIC_ADMIN_URL` to the staff app's address, add that address to
   Firebase → Authentication → Authorized domains. Details in DEVELOPER.md §5.
+
+### Staff app routing + data sync from afriff.com (25 Oct 2026, Michael's request)
+- STAFF APP ROUTING (apps/admin): the old catch-all page (`admin/[...path]`
+  + one big AdminApp component) is replaced by one Nuxt page per address.
+  "/" no longer sends signed-out people to /admin: they land on **/login**.
+  Addresses: /login, /pending (signed in, no role yet), /door, /admin
+  (tiles), /admin/team, /admin/approvals, /admin/publish, /admin/reports,
+  /admin/mine, /admin/data, /admin/data/<collection>, /admin/data/
+  <collection>/<id or new>; /admin/door forwards to /door. Deep links
+  survive sign-in (/login?redirect=...). Who may open what is in ONE file,
+  `apps/admin/app/lib/access.ts` (used by `middleware/auth.global.ts` and
+  `plugins/auth-guard.client.ts`, which also moves people on by themselves
+  when they log out or an admin changes their role).
+- Folders: screens in `apps/admin/app/components/` (auth/, console/, door/),
+  helpers in `apps/admin/app/lib/` (same pattern as the attendee app); the
+  old `app/admin/` folder is gone. Console top bar = `layouts/console.vue`.
+- Tested: 45 role × address combinations of the access rules, signed-out
+  redirects in a browser, typecheck + both builds. NOT tested by Claude:
+  signing in with a real account (Claude may not create logins) → test
+  admin, editor and volunteer logins once.
+- ATTENDEE APP FIXES: Share my day now ends with "Full programme: <link>",
+  which opens the Schedule on that day (`/programme?day=2026-11-03`).
+  Films with no screenings hide the Queue section; no "0m" for films
+  without a running time; no stray "·" when a film has no country.
+- DATA SYNC (written straight to Firestore with the Firebase CLI's admin
+  sign-in on Michael's Mac, then published; backup taken first, kept in
+  /Users/mac/Documents/afriff-backups/ outside the project because it holds
+  team emails):
+  - Source: afriff.com's own film list (105 films). All posters, jury photos,
+    sponsor logos and masterclass graphics now link straight to
+    https://afriff.com/__l5e/assets-v1/... (6 posters come from IMDb's image
+    server, as on afriff.com). 23 posters switched to AFRIFF's newer uploads,
+    15 films got a poster for the first time. 18 films still have none.
+  - Official afriff.com synopses for 64 films (user decision). Kept ours for
+    2:Love (afriff.com shows the wrong film's synopsis) and for 4 films with
+    none on afriff.com (2.6 Seconds, Eseuseu, Maktoub, Soul Catcher).
+  - Cast filled in for 45 films (empty before); missing languages filled.
+    Titles, directors, countries kept as we had them (afriff.com differs
+    only in capitals or has known errors).
+  - 36 NEW "Out of Competition" films (user decision): title, director and
+    poster only (afriff.com has nothing else yet). afriff.com lists "Ife Ati
+    Iku" twice; it's our "Ìfẹ́ àti Ikú (Love and Death)", so not added again
+    (ours got its poster). All-caps titles title-cased (Yes, Two, Calabash,
+    The Other Gaze).
+  - Trailers: added public Vimeo trailers for For Life and Hope is a Word;
+    removed In the Shadows 75's (Vimeo: private or deleted).
+  - 2:Love corrections and the Sun 1 Nov line-up swaps from corrections.ts
+    applied (every opening-day film has a poster).
+  - NEW masterclass (user decision) "From Idea to the Screen" with Banwo &
+    Ighodalo (law firm), graphic from afriff.com, SAMPLE date Mon 2 Nov
+    16:30–18:30, Twinwaters Masterclass room (the first suggested slot,
+    Thu 10:00, clashed with the Producing Masterclass).
+  - How to attend → Tickets: "Prices and sale dates are coming soon" →
+    "will be announced on afriff.com" (prices still unannounced).
+  - Not changed: "Times are samples for now" urgent banner (still true);
+    premiere badges (afriff.com doesn't say which films are premieres;
+    only Lady is ticked "In competition", by the team).
+  - Published to the app 25 Oct 20:55 UTC ("Data sync from afriff.com
+    (Claude, for Michael)"), which also created the `published/version`
+    marker for the first time, so open phones now get publishes live.
+- Built-in copy (`packages/core/src/data/`): image addresses switched to
+  afriff.com, section "Out of Competition" added. Synopses and the 36 new
+  films live only in the database (the master copy); the built-in files
+  stay the starting point / offline fallback.
+- Removed the `demo:logins` and `seed:admin` npm scripts (their files were
+  deleted on 25 Oct).
+
+### Push notifications for announcements (26 Oct 2026, user request)
+- CHANGED DECISION: this brief said "no push notifications, by design".
+  The user asked for them on 26 Oct, so they're built.
+- WHAT ATTENDEES SEE: an "Alerts on this phone" switch at the top of News
+  and at the bottom of My Festival. Off until they turn it on (the phone
+  then asks permission). Tapping a notification opens News. iPhone: only
+  works once AFRIFF is added to the Home Screen (iOS 16.4 or later); in
+  Safari the card says so instead of showing the switch.
+- WHAT THE TEAM DOES: nothing new. News items have a new tick box, "Send as
+  a push notification to phones with alerts on", ticked by default on NEW
+  items and on "Tell attendees?" alerts (existing items stay unticked). It's
+  sent ONCE, the first time it's published with Publish to app. Editing and
+  publishing again never re-sends it. Editors' items go through approval as
+  before. The Publish page lists what will be sent before you press it, and
+  says "Push notification sent: …" after.
+- SAFETY RULES: at most 3 notifications per publish (newest first; extras
+  are never sent later); nothing sent once its banner end time ("until")
+  has passed; a phone offline for over 24 h doesn't get it late. The
+  notification is the headline plus the first 180 characters of the message.
+- COST: none expected. Google's Firebase Cloud Messaging is free on the
+  current free plan (no Blaze needed). Each publish that sends uses a few
+  database reads; each phone turning alerts on is one small request to the
+  staff app.
+- HOW (for the developer): FCM topic "news"; the staff app now has three
+  small server routes, `/api/push/*` (send = admins only; subscribe /
+  unsubscribe = called by phones); Firestore `pushLog` remembers what was
+  sent. Details in DEVELOPER.md "Push notifications for announcements".
+- SETUP BEFORE IT WORKS (once, all free; Michael or the owner):
+  1. Firebase console → Project settings → Cloud Messaging → Web Push
+     certificates → Generate key pair. Copy the key into the ATTENDEE
+     Vercel project as `NUXT_PUBLIC_FIREBASE_VAPID_KEY`; redeploy it.
+  2. Firebase console → Project settings → Service accounts → Generate new
+     private key (downloads a .json file; it's a SECRET: never put it in
+     GitHub, chat or email). Paste the whole file into the STAFF Vercel
+     project as `NUXT_FIREBASE_SERVICE_ACCOUNT`, marked Sensitive; redeploy it.
+  3. `npm run deploy:rules` (new `pushLog` rule, so the Publish page can list
+     what it will send).
+  Until 1 and 2 are done, the switch stays hidden and publishing works as
+  before; publishing a ticked item then says push isn't set up yet.
+- TESTED (26 Oct, by Claude): typecheck and both builds; the sending rules;
+  the staff app's routes with a pretend Firebase (editor refused, first
+  publish sends the 3 newest and skips the rest, publishing again sends
+  nothing, a failed send is retried next publish, phones join and leave the
+  list, key pasted as JSON or base64, clear messages for a missing or broken
+  key); the attendee app in a phone-sized test browser with Google faked
+  (switch on → phone on the list; push → notification shown; same one twice
+  → one notification; tap → News without reloading; renewed phone address
+  re-joined on start; switch off → removed; blocked in settings → explained;
+  iPhone Safari → "add to Home Screen first"). Found and fixed on the way:
+  Nuxt turns a JSON setting into an object, which would have stopped sending
+  on Vercel. NOT TESTED: a real notification to a real phone (needs the two
+  keys), and the Publish page with a real admin login.
+
+### Attendee accounts: sign up before using the app (26 Oct 2026, user request)
+- STATUS: built and tested on branch `feature/attendee-accounts` (not yet
+  committed, not deployed). PENDING AFRIFF'S WRITTEN APPROVAL: it reverses
+  the brief's "no sign-up for attendees".
+- WHAT ATTENDEES SEE: the first screen is now "Sign up | Log in"
+  (`/auth`), with the festival posters and opening-night countdown behind
+  it. A QR code to a film page goes to the sign-up page first, then to the
+  film. Sign up = first name, last name, email, 4-digit PIN twice, an
+  UNTICKED "Yes, AFRIFF can email me festival news and updates." box
+  (optional), a short privacy note and a link to the full privacy page
+  (`/privacy`, readable without an account). Welcome cards now come AFTER
+  sign-up. Remembered on the phone until they log out.
+- LOG IN ON ANOTHER PHONE: email + PIN; My Festival (plans, Seen it, stars,
+  queues checked) comes with them and stays in step between phones within
+  seconds. Picks made before signing up are added to the account.
+- FORGOT PIN (user decision 26 Oct): a 6-digit CODE by email, typed in the
+  app, not a link (on iPhone a link opens Safari, not the Home Screen app).
+  Works 15 minutes, 5 tries, at most 3 emails an hour.
+- PIN SAFETY (user agreed 26 Oct): easy PINs refused (1234, 0000, runs,
+  years…); 5 wrong in a row → 15-minute pause; 10 → only a new PIN by
+  emailed code unlocks it; each network gets at most 50 wrong tries per 15
+  minutes across all accounts. PINs stored scrambled with a secret key that
+  lives only on the server (never in the database).
+- NEVER A LOCKOUT: if there's no signal, the server can't be reached or
+  accounts aren't set up yet, the sign-up page shows "Continue for now" at
+  the top (this visit only; asked again next time).
+- "REQUIRE SIGN-UP" SWITCH (console → Attendees, admins): ON by default
+  (what AFRIFF asked: nobody uses the app without an account). OFF = the
+  sign-up page still shows first, but with a "Skip for now" button. Reaches
+  phones within about a minute, no new app version needed. A safety valve
+  if sign-up causes problems on opening night.
+- MY FESTIVAL: account card (name, email, "Saved to your account"),
+  "Festival emails from AFRIFF" switch (joins / leaves the Brevo list), Log
+  out (clears the plan from that phone; it stays in the account; warns if
+  changes made offline haven't reached the account yet), Delete my account
+  (deletes everything, also from Brevo).
+- WHO SEES WHAT: only Admins see attendee details (console → Attendees:
+  list, search, spreadsheets of all "App users" or only "App subscribers",
+  delete someone's account on request). Editors and door volunteers can't
+  (checked by the database rules, not just hidden). Reports → "Sign-ups":
+  sign-ups per day and how many said yes to emails.
+- CONTACT GROUPS: "App users" = everyone, kept in our database (not in
+  Brevo, so nobody can be emailed a campaign by mistake). "App subscribers"
+  = only people who ticked the box, synced to a Brevo list (optionally
+  with Brevo's double opt-in: they confirm by email first). If Brevo isn't
+  set up or fails, they wait and "Send to Brevo" (Attendees page) catches up.
+- TESTED (26 Oct, by Claude): 25 automatic tests of the account rules
+  (`npm run test:accounts`); 37 checks in a phone-sized browser against a
+  pretend server running the real account logic (sign-up, refusing 1234,
+  QR deep link, pick syncing between two phones, emails switch on/off,
+  wrong-PIN countdown and pause, Forgot PIN code, log out / back in,
+  same email twice, Skip for now, Continue for now when the server is down
+  or not set up, delete account signing the other phone out); typecheck and
+  both builds; database rules compile. NOT TESTED: the real database and
+  Firebase sign-in, real Brevo emails, real phones, the console's Attendees
+  page with a real admin login.
+- SETUP BEFORE IT WORKS (until then the app lets everyone in):
+  1. Staff Vercel project: `NUXT_ATTENDEE_PIN_SECRET` (long random text,
+     Sensitive, NEVER change it later) and `NUXT_FIREBASE_SERVICE_ACCOUNT`
+     (same key push notifications need).
+  2. Brevo account OWNED BY AFRIFF: verify afriff.com as a sender domain
+     (whoever runs afriff.com's DNS adds Brevo's records), create the list
+     "App subscribers", then on the staff project: `NUXT_BREVO_API_KEY`
+     (Sensitive), `NUXT_BREVO_SENDER_EMAIL`, `NUXT_BREVO_LIST_ID`
+     (optional double opt-in: `NUXT_BREVO_DOI_TEMPLATE_ID`).
+  3. Attendee Vercel project: `NUXT_PUBLIC_PRIVACY_EMAIL` (AFRIFF's privacy
+     contact); redeploy.
+  4. `npm run deploy:rules` (new attendee rules).
+  5. Remove the yopmail admin logins first (OPEN RISKS 5).
+- NEEDED FROM AFRIFF: written approval; their lawyer to approve the privacy
+  text (`apps/pwa/app/pages/privacy.vue`; Nigeria Data Protection Act 2023;
+  data stored in London) incl. how long accounts are kept; the privacy
+  contact email; who owns the Brevo account.
+- COST: Brevo's free plan sends 300 emails a day (enough for PIN codes;
+  marketing campaigns to a big list need a paid Brevo plan, AFRIFF's
+  cost). Firebase: a few database reads and writes per person per day;
+  another reason for Blaze. Collecting marketing contacts is commercial
+  use: another reason for Vercel Pro.
+
+### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
+- WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
+  afriff.com every 15 minutes and brings the FILMS in the database up to
+  date: title, synopsis, poster, director, cast, country, language, genre,
+  running time, year, programme section, trailer. Films new on afriff.com
+  are added. Nothing is ever deleted. It never publishes: attendees see the
+  changes after an admin presses Publish to app (the brief's approval rule).
+- TIMES AND DATES: afriff.com has none to fetch yet. Its schedule page says
+  "Screening times are added when the programme is out", its film records
+  have no showtime field, and masterclasses have no per-class dates. The
+  function WATCHES for them: the console card says when the schedule page
+  changes or the film records gain new kinds of details. Adding times to the
+  sync is then a small job, once their format is known.
+- THE RULE (keeps "the database is the master copy"): a field only changes
+  when afriff.com changes it, and only if ours still holds afriff.com's
+  previous value. If the team edited that field, the change waits in
+  Approvals ("afriff.com changed the synopsis of …", from "afriff.com sync
+  (automatic)"); approving writes only those fields (`approveChange` now
+  honours a change's `fields`). afriff.com emptying a field never empties
+  ours. A film the team deleted isn't added back. The FIRST check changes
+  nothing; it only learns what afriff.com says. So the 25 Oct cleanup
+  (capitals, 2:Love's synopsis, removed trailers, "Not Specified"…) stays.
+- CLEANING (same as the 25 Oct sync by hand): ALL-CAPS titles and names get
+  normal capitals; "Not Specified" countries and "Other" languages dropped;
+  only YouTube / Vimeo trailer links (Drive / Mega screeners ignored);
+  poster paths become https://afriff.com/__l5e/... links; "coming soon"
+  synopses count as none; genre = afriff.com's first 2 tags; afriff.com's
+  duplicate "Ife Ati Iku" listing only fills gaps in ours (`ALIASES` in
+  `functions/src/config.ts`). NOT checked: whether a YouTube / Vimeo
+  trailer is private (this Mac can't reach YouTube or Vimeo to test it).
+  Clear a bad one in the console and the sync never puts it back.
+- HOW IT READS afriff.com: there's no feed. The film list is a JavaScript
+  file (film-selection-test-<fingerprint>.js) linked from afriff.com/program.
+  Its name only changes when its contents do, so each check downloads just
+  /program and /program/schedule (~150 KB), plus the film file only when its
+  name changed. The file runs inside QuickJS, a JavaScript engine compiled to
+  WebAssembly (no network, no files, no access to our keys; 64 MB and 5 s
+  limits), and only plain data comes out.
+- SAFETY: fewer than 20 films, under half of last time, or many without
+  titles → change nothing and show the error. One all-or-nothing save per
+  check; if someone saves a film in the console mid-save, nothing is saved
+  and the next check redoes it. Every check that changes something leaves a
+  log with before/after values (Firestore `syncRuns`).
+- WHERE TO SEE IT: console → Festival data → "afriff.com sync" card
+  (admins): last check, last change, "Not on phones yet: Publish to app",
+  afriff.com changes waiting in Approvals, the schedule watch, films no
+  longer on afriff.com, and a warning if there's been no check for 45 min.
+  Firestore: `sync/afriff` (status), `sync/afriff-baseline` (what
+  afriff.com said last time), `syncRuns` (logs). New rule `match
+  /sync/{id}` (admins read) → `npm run deploy:rules`.
+- COST: needs Blaze (Cloud Functions and the Cloud Scheduler job aren't on
+  the free Spark plan). Expected about $0: 2,880 runs a month of a few
+  seconds each (free allowance: 2 million), 1 scheduler job (3 free per
+  account), ~2 tiny database writes per check; at most a few cents a month
+  to store the function's code. Set a budget alert anyway.
+- TESTED: `npm run functions:test` (37 tests: cleaning, sandbox limits, the
+  rule above, a "whole season" of checks against a pretend afriff.com and a
+  pretend database, a broken site, an edit during a save).
+  `npm run functions:check` = dry run against live afriff.com and the
+  published copy; changes nothing. Live rehearsal 26 Oct (real afriff.com,
+  pretend database holding our published films): check 1 learned 104 films
+  and changed nothing; check 2 said "unchanged" in 2 s. Rules compile
+  (dry run); staff console typecheck + build pass. NOT TESTED: the real
+  deploy (needs Blaze), the card with a real admin login.
+- NOT SYNCED: masterclasses, jury and partner logos (films only for now;
+  the same code can be extended).
+- TO DEPLOY (Michael, once on Blaze): `npm run functions:install`, `npm run
+  deploy:rules`, `npm run deploy:functions` (runs typecheck, tests and the
+  build first). The first check comes within 15 minutes and the card says
+  "first check done". To run one now: Google Cloud console → Cloud Scheduler
+  → firebase-schedule-syncFromAfriff-europe-west2 → Force run. Logs:
+  `npm --prefix functions run logs`. The `functions/` folder has its own
+  package.json and lockfile, outside the npm workspaces, so the apps'
+  installs and Vercel builds don't change.
 
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on
@@ -1048,3 +1351,12 @@ heavy libraries) apply everywhere.
    an alert end to end, Reports, install + airplane mode; then Clear counts.
 4. Load AFRIFF's real schedule and content in the console; Publish to app.
 5. Host posters / logos / jury photos ourselves; final address + QR codes.
+6. Push notifications: add the two keys (see "Push notifications for
+   announcements"), deploy rules, then on a real Android and iPhone turn
+   alerts on, publish a ticked test item, check it arrives, then delete it.
+7. afriff.com film sync: once on Blaze, deploy rules + functions (see
+   "afriff.com film sync"), then check the card on Festival data after
+   15 minutes.
+8. Attendee accounts: get AFRIFF's written approval, then do "SETUP BEFORE
+   IT WORKS" in "Attendee accounts", test sign-up / Forgot PIN / two phones
+   on real phones, and delete the test accounts (console → Attendees).

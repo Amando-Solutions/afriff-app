@@ -1,30 +1,35 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Screening } from '@afriff/core/types/festival'
-import { filmById } from '@afriff/core/data/programme'
+import { filmById, venueById } from '@afriff/core/data/programme'
+import { time12 } from '@afriff/core/utils/format'
 import { queueAt } from '~/lib/queues'
 import { useFestival } from '~/lib/store'
 
-// One schedule row. Reading order: time → title → where → live queue → section,
-// with the poster and the + at the edge.
+// One schedule row: big time, title in capitals, venue, live queue, section,
+// poster, and the round + to add it to My Festival.
 const props = withDefaults(defineProps<{ screening: Screening; clock?: number }>(), { clock: 0 })
 const { isScheduled, toggleScheduled } = useFestival()
 const film = computed(() => filmById(props.screening.film))
+const venue = computed(() => venueById(props.screening.venue))
 const queue = computed(() => queueAt(props.screening, props.clock || undefined))
-const cancelled = computed(() => props.screening.status === 'cancelled')
+const t = computed(() => time12(props.screening.time))
 </script>
 
 <template>
-  <div v-if="film" class="flex items-center gap-3 border-b border-line py-3.5">
-    <NuxtLink :to="`/film/${film.id}`" class="flex min-w-0 flex-1 items-start gap-3" :class="cancelled && 'opacity-60'">
-      <RowTime :time="screening.time" />
-      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span class="line-clamp-2 text-body font-semibold" :class="cancelled && 'line-through'">{{ film.title }}</span>
-        <VenueLine :venue-id="screening.venue"><StatusTag :status="screening.status" /></VenueLine>
-        <QueueTag v-if="queue" :queue="queue" class="mt-0.5" />
-        <span class="eyebrow mt-1 text-subtle">{{ film.section }}{{ screening.tag === 'Industry' ? ' · Industry' : '' }}</span>
+  <div v-if="film" class="row">
+    <NuxtLink :to="`/film/${film.id}`" class="row-link">
+      <div class="row-time">
+        <span class="row-time-n">{{ t.time }}</span>
+        <span class="row-time-ampm">{{ t.ampm }}</span>
       </div>
-      <FilmPoster :film="film" class="aspect-[2/3] w-12 rounded-thumb" />
+      <div class="row-body">
+        <span class="row-title" :class="{ struck: screening.status === 'cancelled' }">{{ film.title }}</span>
+        <span class="venue-line"><VenueDot :venue-id="screening.venue" /> {{ venue?.name }} <StatusTag :status="screening.status" /></span>
+        <QueueTag v-if="queue" :queue="queue" />
+        <span class="row-cat">{{ film.section }}{{ screening.tag === 'Industry' ? ' · Industry' : '' }}</span>
+      </div>
+      <FilmPoster :film="film" class="poster-thumb" />
     </NuxtLink>
     <AddButton :added="isScheduled(screening.id)" :title="film.title" @toggle="toggleScheduled(screening.id)" />
   </div>
