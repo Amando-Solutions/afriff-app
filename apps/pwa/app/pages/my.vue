@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from 'vue'
-import { ArrowUpRightIcon, CheckIcon, DownloadIcon, ListChecksIcon, Share2Icon, StarIcon } from 'lucide-vue-next'
+import { ArrowUpRightIcon, CheckIcon, DownloadIcon, ListChecksIcon, Share2Icon } from 'lucide-vue-next'
 import { FILMS } from '@afriff/core/data/programme'
 import { dateParts, timeLabel } from '@afriff/core/utils/format'
 import { statusTag } from '~/lib/alerts'
@@ -15,7 +15,7 @@ import { account } from '~/lib/account'
 // itself (emails switch, log out, delete) and the alerts / anonymous counts
 // switches are on Profile (pages/profile.vue, the avatar in the header).
 useHead({ title: 'My Festival' })
-const { state, toggleScheduled, rateWatched } = useFestival()
+const { state, toggleScheduled } = useFestival()
 const diary = useTemplateRef<HTMLElement>('diary')
 const LETTERBOXD_IMPORT = 'https://letterboxd.com/import/'
 
@@ -63,8 +63,6 @@ function exportLetterboxd() {
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
-// tapping your current rating again clears it
-const rate = (filmId: string, current: number, n: number) => rateWatched(filmId, current === n ? 0 : n)
 </script>
 
 <template>
@@ -144,7 +142,7 @@ const rate = (filmId: string, current: number, n: number) => rateWatched(filmId,
       </ol>
 
       <p v-if="entries.length === 0" class="muted">Nothing logged yet. Tap Seen it on a film after the screening.</p>
-      <div v-for="{ film, rating } in entries" :key="film.id" class="diary-row">
+      <div v-for="{ film } in entries" :key="film.id" class="diary-row">
         <NuxtLink :to="`/film/${film.id}`" class="my-row-link">
           <FilmPoster :film="film" class="poster-thumb" />
           <span class="my-row-body">
@@ -152,20 +150,7 @@ const rate = (filmId: string, current: number, n: number) => rateWatched(filmId,
             <span class="muted small">{{ film.director }} · {{ film.country || film.section }}</span>
           </span>
         </NuxtLink>
-        <div class="stars" role="radiogroup" :aria-label="`Your rating for ${film.title}`">
-          <button
-            v-for="n in 5"
-            :key="n"
-            type="button"
-            role="radio"
-            :aria-checked="rating === n"
-            :aria-label="`${n} star${n > 1 ? 's' : ''}`"
-            :class="{ on: n <= rating }"
-            @click="rate(film.id, rating, n)"
-          >
-            <StarIcon :size="20" :fill="n <= rating ? 'currentColor' : 'none'" :stroke-width="1.8" />
-          </button>
-        </div>
+        <StarRating :film-id="film.id" :title="film.title" />
       </div>
     </section>
 
