@@ -296,6 +296,26 @@ it's published.
   allow cross-site calls (phones call them from the attendee app's address;
   they send `text/plain` to skip the CORS preflight on slow data). The
   attendee app still has no server routes.
+- **Changed screenings/events at Publish** (27 Oct): `AdminPublish.vue` diffs
+  the collections against `published/current` with `changeAlerts()`
+  (`apps/admin/shared/changeAlerts.ts`, also used for the item form's "Tell
+  attendees?" wording): date/time/venue/screen/place/status changed → one
+  proposed alert per item, skipped if a news item linked to it is new since the
+  last publish. Ticked ones are written to `news/alert-<base36>` (`push: true`,
+  `urgent: true`) right before `publishToApp()`, then `/api/push/send` sends
+  them like any ticked item. ≤3 changes: pre-ticked; more: none pre-ticked.
+- **Personal pushes (invitations)** (27 Oct): `/api/push/subscribe` also takes
+  `idToken` (the attendee's Firebase ID token, sent in the text/plain body, so
+  still no preflight); verified → `pushTokens/{sha256(token)} = {uid, token,
+  at}` (`server/utils/pushDevices.ts`, Admin SDK only, no client rule); no or
+  bad idToken, or unsubscribe → that doc deleted. Phone side: `setAlertsOwner()`
+  in `apps/pwa/app/lib/push.ts`, called from `lib/account.ts` on sign-in,
+  resume, log-out and delete; `refreshAlerts()` re-links if the saved
+  `afriff-push.uid` differs. `server/invites/logic.ts` calls
+  `pusher.toPeople(uids, invitePush())` after each batch Brevo accepted
+  (skipped when scheduled), `sendEach` per phone, gone tokens deleted;
+  `recipients/{key}.pushedAt` + `invites/{id}.pushed`. Console deletion of an
+  account deletes its `pushTokens` too.
 - **iPhone**: web push only works in the app added to the Home Screen
   (iOS 16.4+); in Safari the switch is replaced by that instruction.
 - **Testing locally**: no service worker in `npm run dev`, so the switch is

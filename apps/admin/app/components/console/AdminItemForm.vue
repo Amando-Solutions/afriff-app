@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { BellIcon, ChevronLeftIcon } from 'lucide-vue-next'
-import { dayLabel, timeLabel } from '@afriff/core/utils/format'
+import { alertFor } from '#shared/changeAlerts'
 import { useFormChecks } from '@afriff/core/utils/formChecks'
 import { COLLECTIONS, fromForm, newItemDefaults, slugify, toForm, type CollectionName, type FormValues } from '~/lib/schema'
 import { fieldProblem } from '~/lib/checks'
@@ -48,24 +48,14 @@ const strip = (doc: Doc | null | undefined): Doc | null => {
 }
 
 // ---------- "Tell attendees?" after changing when or where something happens ----------
-const CHANGE_KEYS = ['date', 'time', 'venue', 'screen', 'place', 'status']
+// The Publish page offers an alert for every such change anyway (shared/changeAlerts.ts,
+// same wording); posting one here is for wording it yourself, or (editors) sending it for approval.
 function suggestAlert(before: Doc | null, after: Doc, id: string): AlertDraft | null {
   const col = props.col
   const r = refs.value
   if (!before || (col !== 'screenings' && col !== 'events')) return null
-  if (!CHANGE_KEYS.some((k) => t(before[k]) !== t(after[k]))) return null
-  const title = col === 'screenings' ? t(r.films?.[t(after.film)]?.title) || 'Screening' : t(after.title)
-  const where = [t(r.venues?.[t(after.venue)]?.name), t(after.screen) || t(after.place)].filter(Boolean).join(', ')
-  const when = `${after.date ? dayLabel(t(after.date)) : ''} at ${after.time ? timeLabel(t(after.time)) : ''}`
-  let draft: AlertDraft
-  if (after.status === 'cancelled' && before.status !== 'cancelled') {
-    draft = { type: 'cancelled', title: `${title} cancelled`, body: `${title} (${when}${where ? `, ${where}` : ''}) has been cancelled.` }
-  } else if (t(before.venue) !== t(after.venue) || (t(before.screen) || t(before.place)) !== (t(after.screen) || t(after.place)) || after.status === 'moved') {
-    draft = { type: 'venue-change', title: `${title} moved`, body: `${title} is now at ${where}, ${when}.` }
-  } else {
-    draft = { type: 'time-change', title: `${title}: new time`, body: `${title} is now ${when}${where ? `, ${where}` : ''}.` }
-  }
-  return { ...draft, [col === 'screenings' ? 'screening' : 'event']: id }
+  const draft = alertFor(col, before, after, { films: r.films ?? {}, venues: r.venues ?? {} })
+  return draft && { ...draft, [col === 'screenings' ? 'screening' : 'event']: id }
 }
 const alertState = reactive({ busy: false, msg: '', error: '' })
 /** The alert's headline and message: both needed, short enough for a phone banner */
@@ -160,14 +150,15 @@ async function remove() {
 
       <div v-if="alertDraft" class="card mt-6 flex flex-col gap-3 border-accent/50 p-4">
         <h2 class="flex items-center gap-2 text-h3 font-semibold"><BellIcon class="size-[1.125rem] text-accent-ink" /> Tell attendees?</h2>
-        <p class="text-meta text-muted">You changed when or where this happens. Post an urgent alert? It shows as a banner on Home and in News, linked to this item, and as a push notification on phones with alerts on.</p>
+        <p v-if="profile.role === 'admin'" class="text-meta text-muted">You changed when or where this happens. When you press Publish to app, the Publish page offers this alert, ticked: a banner on Home and in News, linked to this item, and a push notification to every phone with alerts on. To word it yourself, edit it here and post it now.</p>
+        <p v-else class="text-meta text-muted">You changed when or where this happens. Post an urgent alert? Once an admin approves and publishes it, it shows as a banner on Home and in News, linked to this item, and as a push notification to every phone with alerts on.</p>
         <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Headline<input v-model="alertDraft.title" class="field-input" maxlength="120" /></label>
         <label class="flex flex-col gap-1.5 text-meta font-medium text-muted">Message<textarea v-model="alertDraft.body" rows="3" class="field-input" maxlength="2000" /></label>
         <p v-if="alertState.error" class="text-meta text-danger" role="alert">{{ alertState.error }}</p>
         <p v-if="alertState.msg" class="text-meta text-success">{{ alertState.msg }}</p>
         <div class="flex gap-2">
           <UiButton size="sm" :disabled="alertState.busy || !!alertState.msg" @click="postAlert">{{ alertState.busy ? 'Posting…' : 'Post alert' }}</UiButton>
-          <UiButton size="sm" variant="secondary" :disabled="alertState.busy" @click="alertDraft = null">No thanks</UiButton>
+          <UiButton size="sm" variant="secondary" :disabled="alertState.busy" @click="alertDraft = null">{{ profile.role === 'admin' ? 'Close' : 'No thanks' }}</UiButton>
         </div>
       </div>
     </template>
