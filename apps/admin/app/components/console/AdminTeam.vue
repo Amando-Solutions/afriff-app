@@ -5,6 +5,7 @@ import { isSuperadminEmail, roleLock } from '#shared/team'
 import { db } from '~/lib/firebase'
 import { ROLES, useAdminAuth } from '~/lib/useAdminAuth'
 import type { Profile, Role } from '~/lib/types'
+import { matchesSearch, searchWords } from '~/lib/search'
 import { errMsg } from '~/lib/util'
 import { VENUES } from '@afriff/core/data/programme'
 
@@ -46,7 +47,16 @@ const view = ref<View>('team')
 const hasRole = (p: Profile) => p.role === 'admin' || p.role === 'editor' || p.role === 'volunteer'
 const changed = ref(new Set<string>())
 watch(view, () => { changed.value = new Set() })
-const shown = computed(() => (view.value === 'all' ? people.value : people.value?.filter((p) => hasRole(p) || changed.value.has(p.id))) || [])
+const inView = computed(() => (view.value === 'all' ? people.value : people.value?.filter((p) => hasRole(p) || changed.value.has(p.id))) || [])
+
+// Search by name or email (role and venue match too: "volunteer", "landmark").
+// It looks in the open tab; nobody there but someone in All members → offer it.
+const q = ref('')
+const words = computed(() => searchWords(q.value))
+const venueName = (id: string | null | undefined) => VENUES.find((v) => v.id === id)?.name
+const found = (p: Profile) => matchesSearch(words.value, p.name, p.email, ROLES[p.role], venueName(p.venue))
+const shown = computed(() => inView.value.filter(found))
+const inAll = computed(() => (view.value === 'team' && words.value.length ? (people.value ?? []).filter(found).length - shown.value.length : 0))
 const views = computed(() => [
   { value: 'team' as View, label: `With a role · ${people.value?.filter(hasRole).length ?? 0}` },
   { value: 'all' as View, label: `All members · ${people.value?.length ?? 0}` },
@@ -93,6 +103,14 @@ function pickRole(person: Profile, select: HTMLSelectElement) {
     <template v-if="people">
       <UiSegmented v-model="view" :options="views" label="Who to show" size="md" class="mt-4" />
       <p class="mt-2 text-meta text-muted">{{ view === 'team' ? 'Admins, editors and door volunteers.' : 'Everyone with a staff login, including people with no access yet.' }}</p>
+      <AdminSearch v-model="q" class="mt-3" label="Search by name or email" />
+      <p v-if="words.length && !shown.length" class="mt-4 flex flex-wrap items-center gap-2 text-muted">
+        Nobody {{ view === 'team' ? 'with a role ' : '' }}matches “{{ q.trim() }}”.
+        <UiButton v-if="inAll" size="sm" variant="secondary" @click="view = 'all'">Look in All members ({{ inAll }})</UiButton>
+      </p>
+      <p v-else-if="words.length" class="mt-2 text-meta text-muted">
+        {{ shown.length }} of {{ inView.length }}<template v-if="inAll"> · <button type="button" class="font-medium text-accent-ink underline" @click="view = 'all'">{{ inAll }} more in All members</button></template>
+      </p>
     </template>
 
     <div class="mt-4 flex flex-col gap-2.5">

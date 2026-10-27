@@ -5,6 +5,7 @@ import { byName } from '#shared/contacts'
 import { loadPeople, watchGroups, type Group } from '~/lib/contacts'
 import { lagosText, loadGuests, watchInvite, type InviteDoc } from '~/lib/invites'
 import { csvDownload } from '~/lib/reports'
+import { matchesSearch, searchWords } from '~/lib/search'
 import { errMsg } from '~/lib/util'
 
 // Admins only (lib/access.ts; firestore.rules agree): the door team's list for
@@ -54,6 +55,13 @@ const subtitle = computed(() => {
 })
 useHead({ title: () => `${title.value} · Guest list` })
 
+// Search to find a guest on screen (e.g. at the door). Only hides rows on
+// screen: Print and the spreadsheet always have everyone, numbered as on paper.
+const q = ref('')
+const words = computed(() => searchWords(q.value))
+const isHit = (r: Row) => matchesSearch(words.value, r.firstName, r.lastName, r.email, groupsOf(r), r.vip && 'VIP')
+const hits = computed(() => (rows.value ?? []).filter(isHit).length)
+
 const print = () => window.print()
 
 function download() {
@@ -82,7 +90,12 @@ function download() {
     <p v-else-if="rows === null" class="mt-3 text-muted">Loading…</p>
     <p v-else-if="!rows.length" class="mt-3 text-muted">Nobody on this list yet.</p>
 
-    <table v-if="rows?.length" class="mt-4 w-full border-collapse text-left text-meta">
+    <div v-if="rows?.length" class="no-print mt-4">
+      <AdminSearch v-model="q" label="Find a guest by name or email" />
+      <p v-if="words.length" class="mt-2 text-meta text-muted">{{ hits ? `${hits} of ${rows.length}.` : `Nobody on this list matches “${q.trim()}”.` }} Print and Spreadsheet still have everyone.</p>
+    </div>
+
+    <table v-if="rows?.length" class="mt-4 w-full border-collapse text-left text-meta" :class="!hits && 'not-found'">
       <thead>
         <tr class="border-b border-line-strong text-label text-muted">
           <th class="w-10 py-2 pr-2 font-medium">#</th>
@@ -94,7 +107,7 @@ function download() {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(r, i) in rows" :key="r.key" class="border-b border-line align-top">
+        <tr v-for="(r, i) in rows" :key="r.key" class="border-b border-line align-top" :class="!isHit(r) && 'not-found'">
           <td class="py-2 pr-2 text-muted tabular-nums">{{ i + 1 }}</td>
           <td class="py-2 pr-2 font-semibold">{{ r.lastName || '—' }}</td>
           <td class="py-2 pr-2">{{ r.firstName || r.email }}</td>
@@ -108,6 +121,10 @@ function download() {
 </template>
 
 <style>
+/* the search hides rows on screen only */
+@media screen {
+  .guest-list .not-found { display: none; }
+}
 /* on paper: black on white, no console bar, no buttons */
 @media print {
   html, body { background: #fff !important; color: #000 !important; }

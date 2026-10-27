@@ -1698,6 +1698,35 @@ heavy libraries) apply everywhere.
   NOT TESTED: real logins; that "Forgot password?" adds a password to a
   Google-only login (Firebase's documented behaviour, not tried for real).
 
+### Search in the console (27 Oct 2026, user request: "add the search functionality where needed")
+- STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
+- NEW SEARCH BOXES (CLAUDE'S CHOICE of where it's needed):
+  - Team: by name or email; role and venue match too ("volunteer",
+    "landmark"). Searches the open tab; finding nobody with a role but
+    someone under All members offers "Look in All members (N)".
+  - Approvals: by item, kind ("films"), who sent it ("afriff.com" finds the
+    automatic sync's changes) or the field changed ("synopsis"); "N of N
+    waiting".
+  - Invitations: by event, group, who started it or status ("draft").
+  - Guest list: find a guest on screen (e.g. at the door). Print and
+    Spreadsheet ALWAYS have everyone, and each guest keeps their number.
+- BETTER EVERYWHERE (also Festival data lists, Attendees, Contacts, the
+  invitation people picker): capitals and accents don't matter ("ife ati
+  iku" finds "Ìfẹ́ àti Ikú", "adebayo" finds "Adébáyọ̀"), and each word can
+  match anywhere ("lady landmark"). Festival data lists also search more
+  fields: films by country, language, genre, cast, year, premiere;
+  screenings by Public/Industry and status; events by speaker's role, room,
+  venue, who can attend; venues by address; news by message and type; jury
+  by roles. "Nothing matches" when nothing does.
+- FIXED ON THE WAY: the search icon overlapped the typed text on Attendees
+  and Contacts.
+- NO SEARCH ADDED (short lists): My changes (editors), Sent emails, VIP
+  links, Reports, door view.
+- TESTED (27 Oct, by Claude): 25 checks in a phone-sized test browser with a
+  pretend Firebase (every box above, incl. printing the guest list while
+  searching), the 23 Team checks again, 4 new automatic tests (89 in all),
+  staff typecheck. NOT TESTED: real logins and real data.
+
 ### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
 - WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
   afriff.com every 15 minutes and brings the FILMS in the database up to

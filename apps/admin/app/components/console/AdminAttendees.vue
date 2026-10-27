@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { DownloadIcon, RefreshCwIcon, SearchIcon, Trash2Icon } from 'lucide-vue-next'
+import { DownloadIcon, RefreshCwIcon, Trash2Icon } from 'lucide-vue-next'
+import { matchesSearch, searchWords } from '~/lib/search'
 import {
   attendeeSetup, deleteAttendee, loadAttendees, readRequireSignUp, saveRequireSignUp,
   type AttendeeRow, type AttendeeSetup,
@@ -54,8 +55,8 @@ async function load() {
 
 const people = computed(() => state.people ?? [])
 const shown = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  return q ? people.value.filter((p) => `${p.firstName} ${p.lastName} ${p.email}`.toLowerCase().includes(q)) : people.value
+  const words = searchWords(search.value)
+  return words.length ? people.value.filter((p) => matchesSearch(words, p.firstName, p.lastName, p.email)) : people.value
 })
 const subscribers = computed(() => people.value.filter((p) => p.marketing))
 
@@ -156,10 +157,7 @@ async function remove(p: AttendeeRow) {
           </div>
         </div>
 
-        <label class="relative mt-4 block">
-          <SearchIcon class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-          <input v-model="search" type="search" maxlength="100" class="field-input pl-9" placeholder="Search by name or email" aria-label="Search by name or email">
-        </label>
+        <AdminSearch v-model="search" class="mt-4" label="Search by name or email" />
 
         <p v-if="!shown.length" class="mt-4 text-muted">{{ people.length ? 'Nobody matches.' : 'Nobody has signed up yet.' }}</p>
         <ul class="mt-2 divide-y divide-line">

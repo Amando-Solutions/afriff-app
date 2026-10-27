@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { CheckIcon, XIcon } from 'lucide-vue-next'
 import { COLLECTIONS, getField, isCollection } from '~/lib/schema'
+import { matchesSearch, searchWords } from '~/lib/search'
 import type { ChangeDoc, Profile } from '~/lib/types'
 import { errMsg, whenLagos } from '~/lib/util'
 
@@ -25,6 +26,15 @@ function diffRows(change: ChangeDoc) {
 }
 const when = whenLagos
 const title = (c: string) => (isCollection(c) ? COLLECTIONS[c].title : c)
+
+// Search: the item, its kind ("films"), who sent it ("afriff.com" finds the
+// automatic sync's changes) and which fields changed ("synopsis").
+const q = ref('')
+const items = computed(() => changes.items || [])
+const shown = computed(() => {
+  const words = searchWords(q.value)
+  return items.value.filter((ch) => matchesSearch(words, ch.summary, title(ch.collection), ch.submittedByName, diffRows(ch).map((r) => r.f.label)))
+})
 
 const busy = reactive<Record<string, boolean>>({})
 const errors = reactive<Record<string, string>>({})
@@ -51,8 +61,13 @@ function reject(change: ChangeDoc) {
     <p v-if="changes.error" class="mt-3 text-meta text-danger">{{ changes.error }}</p>
     <p v-if="changes.items == null" class="mt-3 text-muted">Loading…</p>
     <p v-if="changes.items?.length === 0" class="mt-3 text-success">Nothing waiting. You're all caught up.</p>
+    <template v-if="items.length">
+      <AdminSearch v-model="q" class="mt-4" label="Search by item, field or who sent it" />
+      <p class="mt-2 text-meta text-muted">{{ shown.length === items.length ? `${items.length} waiting` : `${shown.length} of ${items.length} waiting` }}</p>
+      <p v-if="!shown.length" class="mt-3 text-muted">Nothing waiting matches “{{ q.trim() }}”.</p>
+    </template>
     <div class="mt-4 flex flex-col gap-3">
-      <div v-for="ch in changes.items || []" :key="ch.id" class="card flex flex-col gap-3 p-4">
+      <div v-for="ch in shown" :key="ch.id" class="card flex flex-col gap-3 p-4">
         <div class="flex flex-col gap-0.5">
           <span class="font-semibold">{{ ch.summary }}</span>
           <span class="text-meta text-muted">{{ title(ch.collection) }} · by {{ ch.submittedByName }} · {{ when(ch.submittedAt) }}</span>

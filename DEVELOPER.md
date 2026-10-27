@@ -698,6 +698,22 @@ tithera14@gmail.com, and admins must never see the word in the console.
 - **Tests:** throwaway build with `firebase/*` aliased to in-memory fakes
   (fake `signInWithEmailAndPassword` added), 23 Playwright checks at 390 px.
 
+### Console search (27 Oct 2026)
+- One matcher, `app/lib/search.ts`: `searchWords(query)` folds case and
+  accents (NFD, strip `\p{M}`) and splits on spaces; `matchesSearch(words,
+  ...texts)` is true when every word is in the joined texts (arrays and
+  empty values are fine). One box, `AdminSearch.vue` (v-model + `label`,
+  used as placeholder and aria-label). Use both for any new list.
+- Festival data lists search `label` + `sub` + the collection's optional
+  `searchAlso(d, refs)` in `lib/schema.ts` (e.g. film country / cast).
+- Used in: AdminDataList, AdminTeam (per tab, `inAll` = hits only in All
+  members), AdminApprovals (summary, collection title, submitter, changed
+  field labels), AdminInvites, AdminGuestList (rows hidden with
+  `.not-found` under `@media screen` only, so print stays complete),
+  AdminAttendees, AdminContacts, AdminInviteForm's picker.
+- **Tests:** `test/search.test.ts` (in `npm run test:accounts`); 25
+  Playwright checks with the in-memory Firebase fakes.
+
 ### afriff.com film sync (Cloud Function, 26 Oct 2026)
 `functions/` holds one scheduled function, `syncFromAfriff` (every 15 min,
 europe-west2, Node 22, 512 MiB, max 1 instance, no retries). It keeps

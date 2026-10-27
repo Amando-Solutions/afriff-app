@@ -13,6 +13,7 @@ import {
   countGuests, deleteInvite, lagosInputToMs, msToLagosInput, saveInvite, sendTest, setReview,
   type InviteDoc, type InviteSetup,
 } from '~/lib/invites'
+import { matchesSearch, searchWords } from '~/lib/search'
 import { useAdminAuth } from '~/lib/useAdminAuth'
 import { errMsg } from '~/lib/util'
 
@@ -92,8 +93,8 @@ const nameOf = (key: string) => {
 }
 const search = reactive({ add: '', out: '' })
 const matches = (q: string, skip: string[]) => {
-  const s = q.trim().toLowerCase()
-  return s.length < 2 ? [] : people.value.filter((p) => !skip.includes(p.key) && `${p.firstName} ${p.lastName} ${p.email}`.toLowerCase().includes(s)).slice(0, 8)
+  const words = searchWords(q)
+  return words.join('').length < 2 ? [] : people.value.filter((p) => !skip.includes(p.key) && matchesSearch(words, p.firstName, p.lastName, p.email)).slice(0, 8)
 }
 function pick(list: 'people' | 'exclude', key: string) {
   if (!audience[list].includes(key)) audience[list].push(key)
