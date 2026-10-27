@@ -1118,6 +1118,9 @@ heavy libraries) apply everywhere.
   then asks permission). Tapping a notification opens News. iPhone: only
   works once AFRIFF is added to the Home Screen (iOS 16.4 or later); in
   Safari the card says so instead of showing the switch.
+- CHANGED 27 Oct (user test: changed a screening, saved, published, no push):
+  the Publish page now offers an alert for every changed screening/event by
+  itself. See "Push: changed screenings at Publish + invitations by push".
 - WHAT THE TEAM DOES: nothing new. News items have a new tick box, "Send as
   a push notification to phones with alerts on", ticked by default on NEW
   items and on "Tell attendees?" alerts (existing items stay unticked). It's
@@ -1727,6 +1730,62 @@ heavy libraries) apply everywhere.
   searching), the 23 Team checks again, 4 new automatic tests (89 in all),
   staff typecheck. NOT TESTED: real logins and real data.
 
+### Push: changed screenings at Publish + invitations by push (27 Oct 2026, user request)
+- STATUS: built and tested, NOT deployed. Invitation pushes committed on `dev`
+  (9b2d226); the Publish-page alerts NOT committed yet. No rules change, no
+  new settings, no cost.
+- WHY (user's test, 27 Oct): an admin changed a screening (s3 marked
+  "moved"), saved, published: no push on a phone with alerts on, signed in
+  or not. Checked in the live database: the change WAS published, but no
+  alert was posted (the "Tell attendees?" card under the form needs "Post
+  alert" pressed), so Publish had nothing to send. Push delivery itself works
+  (below).
+- NOW, ON THE PUBLISH PAGE: "N changes since the last publish: tell
+  attendees?" lists every screening and event whose day, time, venue, screen,
+  room or status changed compared with what attendees have, one alert each
+  ("Lady moved", "Lady: new time", "Lady cancelled", "Lady is back on"), with
+  a tick box. Ticked ones are posted as urgent alerts (Home banner, News,
+  linked to the item) just before publishing and sent as push notifications
+  to every phone with alerts on, logged in or not. Up to 3 changes: ticked by
+  default. More (CLAUDE'S CHOICE, e.g. loading the real timetable changes
+  every time at once): none ticked, the admin picks; still at most 3 pushes
+  per publish. Works for editors' approved changes too, and a screening
+  changed several times before a publish gets ONE alert. An item the team
+  already posted its own alert for since the last publish is left out. The
+  form's "Tell attendees?" card stays, for wording it yourself (admins: its
+  "No thanks" is now "Close", since Publish offers it anyway). Rule and
+  wording: `apps/admin/shared/changeAlerts.ts`.
+- INVITATIONS BY PUSH (user request: "the user should receive the push
+  notification and receive the invitation email as well"): when an invitation
+  (or a change-of-plan update) is sent with "Send now", each guest who uses
+  the attendee app, is LOGGED IN and has "Alerts on this phone" on, also gets
+  a push: "You're invited: Opening Night Gala / Sunday 1 November 2026, 7:00
+  PM · Filmhouse Landmark. Your invitation is in your email." (update: "Change
+  of plan: …" + what changed). Once per guest. Hand-added guests (no app
+  account) get the email only. The console shows "N got a push" on the
+  invite. A push failing never stops the emails.
+  - SCHEDULED invites: email only (said in the console). Nothing runs at the
+    scheduled time to send a push; that needs a timer (Vercel Pro cron or
+    Firebase Blaze, both paid). Ask if wanted.
+  - HOW: a phone with alerts on sends proof of who's logged in when it joins
+    the alerts list; the staff server links that phone to the account
+    (`pushTokens`, server only). Logging out, alerts off or deleting the
+    account unlinks it. Privacy page and the switch's text say so.
+- TESTED (27 Oct, by Claude): REAL push in a real Chromium with the app's own
+  service worker, the live Firebase project and the real staff server routes,
+  sent only to that test browser (never to the "news" list): push address
+  with the app's key, joining the alerts list, an announcement shown, one sent
+  through a private test topic shown, an invitation push to a linked account
+  shown, unlinking, a forged sign-in refused, leaving the list (10/10).
+  Dry run on the live data: the new Publish page would have offered "It's the
+  Blackness moved" for the user's test. 100 automatic tests (11 new), both apps
+  typecheck. NOT TESTED: the Publish page and Invitations with a real admin
+  login, a real phone (Android / iPhone Home Screen app), a real invitation
+  email.
+- TO TRY: deploy both apps; on a phone turn alerts on; in the console change a
+  screening's time, save, open Publish to app, check the alert is ticked,
+  publish. The phone should buzz within seconds.
+
 ### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
 - WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
   afriff.com every 15 minutes and brings the FILMS in the database up to
@@ -1885,6 +1944,8 @@ heavy libraries) apply everywhere.
    inbox / spam / Unsubscribe / Add to calendar / guest list, then the real
    send. Print the guest list for the door. See "VIP invitations, contacts
    and guest lists".
-12. Superadmin: `npm run deploy:rules`; Michael and the owner each sign in to
+12. Push for changed screenings + invitations: deploy both apps, then the
+   test in "Push: changed screenings at Publish + invitations by push".
+13. Superadmin: `npm run deploy:rules`; Michael and the owner each sign in to
    the staff app, open Team, and confirm their email if asked. Then check an
    ordinary admin can't remove an admin. See "Superadmin".
