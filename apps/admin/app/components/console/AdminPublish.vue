@@ -26,7 +26,8 @@ const push = reactive({ busy: false, results: [] as PushOutcome[], error: '' })
 const changes = ref<ChangeAlert[] | null>(null)
 const ticked = reactive<Record<string, boolean>>({})
 const tickedAlerts = () => (changes.value ?? []).filter((a) => ticked[a.itemId])
-async function loadChanges() {
+/** keepTicks: the admin's own ticks stay; items found since follow the usual rule */
+async function loadChanges(keepTicks = false) {
   try {
     const rows = async (col: string) => (await getDocs(collection(db, col))).docs.map((d) => ({ id: d.id, ...d.data() }) as Record<string, unknown>)
     const [pub, screenings, events, news, films, venues] = await Promise.all([
@@ -36,8 +37,9 @@ async function loadChanges() {
     const byId = <T,>(list: Record<string, unknown>[]) => Object.fromEntries(list.map((d) => [String(d.id), d as T]))
     const list = changeAlerts(typeof json === 'string' ? JSON.parse(json) : null, { screenings, events, news }, { films: byId(films), venues: byId(venues) })
     // a few: ticked. Many at once (e.g. a new timetable): the admin picks.
+    const chosen: Record<string, boolean> = keepTicks ? { ...ticked } : {}
     for (const k of Object.keys(ticked)) delete ticked[k]
-    for (const a of list) ticked[a.itemId] = list.length <= MAX_PUSHES_PER_PUBLISH
+    for (const a of list) ticked[a.itemId] = a.itemId in chosen ? chosen[a.itemId]! : list.length <= MAX_PUSHES_PER_PUBLISH
     changes.value = list
   } catch {
     changes.value = null // can't be worked out now: publishing still works
@@ -54,15 +56,20 @@ onBeforeUnmount(stop)
 // null when it can't be worked out (e.g. the database rules aren't updated yet): the server still decides
 const loadUpcoming = () => nextPushes().catch(() => null)
 onMounted(async () => { [upcoming.value] = await Promise.all([loadUpcoming(), loadChanges()]) })
+// back on this tab after editing in another one: look again
+const onVisible = () => { if (document.visibilityState === 'visible' && !state.busy) void loadChanges(true) }
+onMounted(() => document.addEventListener('visibilitychange', onVisible))
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisible))
 
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
 
 async function run() {
-  const due = await loadUpcoming()
+  // worked out again now: something may have been edited since this page opened
+  const [due] = await Promise.all([loadUpcoming(), loadChanges(true)])
   upcoming.value = due
   const alerts = tickedAlerts()
   const pushes = Math.min(MAX_PUSHES_PER_PUBLISH, (due?.send.length ?? 0) + alerts.length)
-  const alertNote = alerts.length ? `\n\nIt posts ${plural(alerts.length, 'alert')} about changed screenings and events.` : ''
+  const alertNote = alerts.length ? `\n\nIt posts ${plural(alerts.length, 'alert')} (News, Home banner): ${alerts.map((a) => `“${a.title}”`).join(', ')}.` : ''
   const pushNote = pushes ? `\n\nIt sends ${plural(pushes, 'push notification')} to every phone with alerts on.` : ''
   if (!window.confirm(`Publish the current festival data to the attendee app? Open phones pick it up within seconds.${alertNote}${pushNote}`)) return
   Object.assign(state, { busy: true, done: null, error: '' })

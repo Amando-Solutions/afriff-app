@@ -1782,9 +1782,22 @@ heavy libraries) apply everywhere.
   typecheck. NOT TESTED: the Publish page and Invitations with a real admin
   login, a real phone (Android / iPhone Home Screen app), a real invitation
   email.
+- WHERE ATTENDEES SEE IT: each alert is a News item: top of News (the bell's
+  page, urgent style, tag, "View screening"), unread count on the bell, Home
+  banner, and the push (tapping opens News).
+- SECOND TEST (27 Oct, 15:17 UTC): published again with s24 marked "moved",
+  still no alert created. The fix (cac70d1) is on GitHub `dev` but NOT on
+  `main`, so a console deployed from main (or before 14:26) still has the old
+  Publish page. ALSO FIXED (NOT committed): the list was only worked out when
+  the Publish page opened, so a change made in another tab while it was open
+  was missed; it's now checked again when Publish is pressed and when you come
+  back to the tab, and the confirm box names the alerts it will post.
+- HOW TO TELL THE CONSOLE HAS THE FIX: after changing a screening, Publish to
+  app shows "1 change since the last publish: tell attendees?" above the
+  button. No box = old version: deploy the staff app from `dev`.
 - TO TRY: deploy both apps; on a phone turn alerts on; in the console change a
   screening's time, save, open Publish to app, check the alert is ticked,
-  publish. The phone should buzz within seconds.
+  publish. The phone should buzz within seconds, and the alert is in News.
 
 ### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
 - WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
