@@ -1,11 +1,9 @@
-// The avatar drawings themselves (DiceBear core + the Open Peeps style, ~107 KB
-// gzipped). Only ever loaded with import() from lib/avatar.ts, so they become
-// their own download, named avatar-<hash>.js (nuxt.config.ts). That download
-// is left out of the offline copy every phone saves up front: only people who
-// sign in fetch it, once, and the service worker keeps it after that.
+// The avatar drawings themselves (DiceBear core + the Notionists Neutral
+// style, ~20 KB gzipped). Only loaded with import() from lib/avatar.ts, so
+// they stay off the first screen's download.
 import { createAvatar } from '@dicebear/core'
-import * as openPeeps from '@dicebear/open-peeps'
+import * as notionistsNeutral from '@dicebear/notionists-neutral'
 
-export function drawOpenPeeps(seed: string, backgroundColor: string[], skinColor: string[]): string {
-  return createAvatar(openPeeps, { seed, backgroundColor, skinColor, maskProbability: 0 }).toDataUri()
+export function drawNotionistsNeutral(seed: string, backgroundColor: string[]): string {
+  return createAvatar(notionistsNeutral, { seed, backgroundColor }).toDataUri()
 }

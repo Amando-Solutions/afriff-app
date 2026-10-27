@@ -78,8 +78,8 @@ export function escapeHtml(s: string): string {
 
 const LINK = /https:\/\/[^\s<>"']+/g
 
-/** One paragraph: escaped, https links made clickable, single line breaks kept. */
-function paragraph(text: string): string {
+/** One paragraph: escaped, https links made clickable, single line breaks kept. (Invitations use it too: ./invites.ts) */
+export function paragraph(text: string): string {
   let html = ''
   let last = 0
   for (const m of text.matchAll(LINK)) {

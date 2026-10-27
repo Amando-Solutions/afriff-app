@@ -37,6 +37,11 @@ export default defineNuxtConfig({
     emailFromAddress: '',
     emailFromName: 'AFRIFF',
     emailReplyTo: '',
+    // SERVER ONLY: invitations (console → Invitations, server/invites/*), same
+    // Brevo key; their own sender, e.g. invites@afriff.app ('' = emailFromAddress).
+    inviteFromAddress: '',
+    inviteFromName: '',
+    inviteReplyTo: '',
     public: {
       // The attendee app's address, for "View the attendee app" links.
       // NUXT_PUBLIC_ATTENDEE_URL on the host if it moves (e.g. app.afriff.com).
@@ -52,6 +57,8 @@ export default defineNuxtConfig({
   // server/api/attendees/*: admins deleting attendee accounts (attendees sign
   // in with Firebase directly). server/api/emails/*: admins sending festival
   // emails, and the public unsubscribe link at the bottom of each one.
+  // server/api/invites/*: invitations (editors prepare and test, admins send),
+  // and each invitation's public "Add to calendar" and unsubscribe links.
 
   vite: {
     server: { allowedHosts: true },

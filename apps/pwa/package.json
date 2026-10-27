@@ -16,7 +16,7 @@
     "@afriff/pwa": "*",
     "@afriff/theme": "*",
     "@dicebear/core": "^9.4.3",
-    "@dicebear/open-peeps": "^9.4.2",
+    "@dicebear/notionists-neutral": "^9.4.2",
     "@vueuse/core": "^15.0.0",
     "@vueuse/nuxt": "^15.0.0",
     "firebase": "^13.0.0",

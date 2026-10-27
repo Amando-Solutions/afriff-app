@@ -8,6 +8,9 @@
 //   /admin/team, /admin/approvals, /admin/publish, /admin/reports, /admin/mine
 //   /admin/attendees               people signed up in the festival app (admins only)
 //   /admin/emails                  festival emails to people who said yes (admins only)
+//   /admin/contacts                contacts, groups, VIP sign-up links (admins and editors; links: admins)
+//   /admin/invites, /admin/invites/<id>  invitations: editors prepare, ADMINS send (the server checks)
+//   /admin/guests?invite=<id> | ?group=<id>  printable guest list (admins only)
 //   /admin/data, /admin/data/<collection>, /admin/data/<collection>/<id or new>
 //
 // Each page names its section in definePageMeta({ section }); the global
@@ -27,6 +30,12 @@ export const ACCESS = {
   attendees: ['admin'],
   // writing to everyone who said yes to festival emails: admins only
   emails: ['admin'],
+  // invitations: who can be invited (names, emails, groups) and the invites themselves.
+  // Editors prepare and test; only admins send (server/invites/logic.ts, routes admin-only)
+  contacts: ['admin', 'editor'],
+  invites: ['admin', 'editor'],
+  // the door team's printed list: admins only (firestore.rules agree)
+  guests: ['admin'],
   approvals: ['admin'],
   mine: ['editor'],
   door: ['admin', 'volunteer'],

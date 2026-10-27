@@ -12,6 +12,9 @@
 
 const DESCRIPTION = 'AFRIFF festival companion: programme, queues and your festival plan.'
 
+// Where Firebase's own sign-in helper pages live (for "Continue with Google").
+const FIREBASE_HELPER = `https://${process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || 'afriff-app'}.firebaseapp.com`
+
 export default defineNuxtConfig({
   extends: ['@afriff/theme', '@afriff/pwa', '@afriff/core'],
 
@@ -47,25 +50,30 @@ export default defineNuxtConfig({
     },
   },
 
+  routeRules: {
+    // "Continue with Google" (app/lib/firebase/google.ts), as in DP Fitness.
+    // Keeps the Google window's link back to the page that opened it, so it
+    // can close itself once signed in: without this header Chrome cuts that
+    // link ("Cross-Origin-Opener-Policy policy would block the window.close
+    // call") and people are left looking at a stuck Google window. It's
+    // stricter than the default everywhere else.
+    '/**': { headers: { 'Cross-Origin-Opener-Policy': 'same-origin-allow-popups' } },
+    // Firebase's sign-in helper, served from this app's own address. The
+    // iPhone Home Screen app can't use a Google window and goes to Google with
+    // the whole page instead, which Safari only lets finish when the helper is
+    // on the same address as the app. Used once NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    // on the attendee project is this app's own address (DEVELOPER.md).
+    '/__/auth/**': { proxy: `${FIREBASE_HELPER}/__/auth/**` },
+  },
+
   devServer: { port: 3000 },
 
   vite: {
     server: {
       allowedHosts: true, // lets a phone on the same Wi-Fi open the dev server
     },
-    build: {
-      // the Firestore SDK chunk (~170 KB gzipped) is loaded after first paint on purpose
-      chunkSizeWarningLimit: 700,
-      // The avatar drawings (app/lib/avatarDrawing.ts, ~107 KB gzipped) get a
-      // name the service worker can recognise, so they stay out of the offline
-      // copy every phone saves (pwa.workbox below). Everything else keeps
-      // Nuxt's usual hash-only name.
-      rolldownOptions: {
-        output: {
-          chunkFileNames: (chunk) => (chunk.name === 'avatarDrawing' ? '_nuxt/avatar-[hash].js' : '_nuxt/[hash].js'),
-        },
-      },
-    },
+    // the Firestore SDK chunk (~170 KB gzipped) is loaded after first paint on purpose
+    build: { chunkSizeWarningLimit: 700 },
     // pre-bundle these for `npm run dev`, so the first page load doesn't reload itself
     optimizeDeps: { include: ['lucide-vue-next', 'firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/messaging'] },
   },
@@ -82,18 +90,8 @@ export default defineNuxtConfig({
 
   // The shared service-worker setup is in @afriff/pwa; this is the attendee app's identity.
   pwa: {
-    workbox: {
-      // Shows push notifications (announcements) and opens the app when one is tapped.
-      importScripts: ['/push-sw.js'],
-      // Avatar drawings (see vite.build above): not saved up front on every
-      // phone, only fetched by signed-in people, then kept for next time.
-      globIgnores: ['**/avatar-*.js'],
-      runtimeCaching: [{
-        urlPattern: ({ sameOrigin, url }) => sameOrigin && /\/_nuxt\/avatar-[\w-]+\.js$/.test(url.pathname),
-        handler: 'CacheFirst',
-        options: { cacheName: 'afriff-avatar', expiration: { maxEntries: 2 }, cacheableResponse: { statuses: [200] } },
-      }],
-    },
+    // Shows push notifications (announcements) and opens the app when one is tapped.
+    workbox: { importScripts: ['/push-sw.js'] },
     manifest: {
       id: '/',
       name: 'AFRIFF 2026 · Africa International Film Festival',

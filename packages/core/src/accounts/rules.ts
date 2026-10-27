@@ -16,8 +16,10 @@ export const EMAIL_MAX = 254
 /**
  * The marketing box's exact wording. Saved with each person's choice, as a
  * record of what they agreed to. Change it here and both apps follow.
+ * (27 Oct 2026: the PM's wording, covering invitations too; people who ticked
+ * the old wording keep it on their record.)
  */
-export const MARKETING_CONSENT = 'Yes, AFRIFF can email me festival news and updates.'
+export const MARKETING_CONSENT = 'AFRIFF may email me invitations and festival updates. I can unsubscribe anytime.'
 
 // ---------- Names ----------
 

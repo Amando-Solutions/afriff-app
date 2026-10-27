@@ -10,7 +10,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "vue-tsc --noEmit -p .nuxt/tsconfig.app.json && vue-tsc --noEmit -p .nuxt/tsconfig.server.json",
-    "test": "node --import tsx --test server/accounts/test/*.test.ts server/emails/test/*.test.ts test/*.test.ts"
+    "test": "node --import tsx --test server/accounts/test/*.test.ts server/emails/test/*.test.ts server/invites/test/*.test.ts test/*.test.ts"
   },
   "dependencies": {
     "@afriff/core": "*",

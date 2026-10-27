@@ -159,7 +159,7 @@ const STATUS = {
 <template>
   <div>
     <h1 class="font-display text-h1 font-semibold">Festival emails</h1>
-    <p class="mt-1 text-muted">Write an email here and send it to everyone who ticked "Yes, AFRIFF can email me festival news and updates" in the app. Brevo delivers it. Only admins can see this page.</p>
+    <p class="mt-1 text-muted">Write an email here and send it to everyone who ticked the box in the app saying AFRIFF may email them (and hasn't switched it off). Brevo delivers it. Only admins can see this page.</p>
 
     <!-- ---------- Set up? Who gets it? ---------- -->
     <section class="card mt-5 flex flex-col gap-3 p-4 text-meta">

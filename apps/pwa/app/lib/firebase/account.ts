@@ -1,6 +1,7 @@
 // Attendee accounts, straight to Firebase from the phone (no server of ours):
-// Firebase's own email + password sign-in, its own "reset your password"
-// email, and the person's records in the database:
+// Firebase's own email + password sign-in (and "Continue with Google", in
+// ./google.ts), its own "reset your password" email, and the person's records
+// in the database:
 //   attendees/{uid}       name, email, festival-emails choice ("App users").
 //                         Created by the phone at sign-up; only the person and
 //                         admins can read it (firestore.rules check every field).
@@ -24,6 +25,7 @@ import {
   signOut,
   updateProfile,
   type Auth,
+  type PopupRedirectResolver,
   type User,
 } from 'firebase/auth'
 import {
@@ -35,12 +37,24 @@ import type { PlanData } from '@afriff/core/accounts/plans'
 
 let auth: Auth | null = null
 
-// initializeAuth, not getAuth: only what's needed here (no pop-up sign-in
-// code), which keeps the download small on slow data.
-function attendeeAuth(): Auth {
-  auth ??= initializeAuth(firebaseApp(), { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence] })
+// initializeAuth, not getAuth: getAuth makes every phone load Google's
+// sign-in helper (a hidden page from firebaseapp.com) on every start. Here it
+// only loads when ./google.ts passes `popups` in, i.e. on the sign-up page
+// and the delete sheet. (Firebase's pop-up code itself is in this download,
+// about 4 KB: Firebase ships all its sign-in code as one file.) When that's
+// what starts the sign-in (someone signed out opening the sign-up page),
+// Firebase gets the Google window ready straight away on phones, so a tap
+// opens it at once instead of being stopped as an unasked-for window.
+export function attendeeAuth(popups?: PopupRedirectResolver): Auth {
+  auth ??= initializeAuth(firebaseApp(), {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
+    popupRedirectResolver: popups,
+  })
   return auth
 }
+
+/** How they sign in: decides what "Delete my account" asks for */
+export type SignIn = 'password' | 'google'
 
 export interface Profile {
   uid: string
@@ -48,7 +62,14 @@ export interface Profile {
   lastName: string
   email: string
   marketing: boolean
+  signIn: SignIn
 }
+
+/** A Google login with no password on it confirms with Google; anything else with its password. */
+export const signInOf = (user: User): SignIn =>
+  !user.providerData.some((p) => p.providerId === 'password') && user.providerData.some((p) => p.providerId === 'google.com')
+    ? 'google'
+    : 'password'
 
 export interface Details {
   firstName: string
@@ -86,7 +107,7 @@ async function createRecord(user: User, d: Details): Promise<Profile> {
     await user.getIdToken(true)
     await write()
   }
-  return { uid: user.uid, firstName, lastName, email, marketing: d.marketing }
+  return { uid: user.uid, firstName, lastName, email, marketing: d.marketing, signIn: signInOf(user) }
 }
 
 /**
@@ -109,11 +130,16 @@ export async function createLogin(email: string, password: string, d: Details): 
 export async function logIn(email: string, password: string): Promise<Profile | null> {
   db()
   const { user } = await signInWithEmailAndPassword(attendeeAuth(), email.trim(), password)
+  return profileOf(user)
+}
+
+/** Their attendee record (and a note of this log-in), or null when there isn't one yet. */
+export async function profileOf(user: User): Promise<Profile | null> {
   const snap = await getDoc(attendeeDoc(user.uid))
   if (!snap.exists()) return null
   void updateDoc(attendeeDoc(user.uid), { lastLoginAt: serverTimestamp() }).catch(() => {})
   const a = snap.data()
-  return { uid: user.uid, firstName: String(a.firstName ?? ''), lastName: String(a.lastName ?? ''), email: String(a.email ?? user.email ?? ''), marketing: a.marketing === true }
+  return { uid: user.uid, firstName: String(a.firstName ?? ''), lastName: String(a.lastName ?? ''), email: String(a.email ?? user.email ?? ''), marketing: a.marketing === true, signIn: signInOf(user) }
 }
 
 /** Saves the attendee record for whoever is signed in. */
@@ -148,21 +174,26 @@ export async function setMarketing(uid: string, on: boolean) {
 }
 
 /**
- * "Delete my account": their records, then their sign-in. Firebase asks for
- * the password again before deleting a sign-in, so the person types it.
+ * "Delete my account": their records, then their sign-in. Firebase wants
+ * proof it's really them before deleting a sign-in: `confirm` is their
+ * password (confirmWithPassword) or their Google account (./google.ts).
  * Someone who is also on the AFRIFF team keeps their sign-in (it's their
  * staff login too); only their attendee records go.
  */
-export async function deleteAccount(password: string) {
+export async function deleteAccount(confirm: (user: User) => Promise<unknown>) {
   const user = await signedInUser()
   if (!user?.email) throw Object.assign(new Error('signed-out'), { code: 'auth/user-token-expired' })
-  await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password))
+  await confirm(user)
   await deleteDoc(doc(db(), 'attendeePlans', user.uid))
   await deleteDoc(attendeeDoc(user.uid))
   const staff = await getDoc(doc(db(), 'users', user.uid)).then((s) => s.exists(), () => false)
   if (staff) await signOut(attendeeAuth())
   else await deleteUser(user)
 }
+
+/** The person types their password again, for deleteAccount() */
+export const confirmWithPassword = (password: string) => (user: User) =>
+  reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email ?? '', password))
 
 /** The console's "Require an account to save to My Festival" switch; null = couldn't find out. */
 export async function requireAccountSetting(): Promise<boolean | null> {

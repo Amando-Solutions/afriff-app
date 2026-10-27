@@ -8,56 +8,19 @@
 //         (Profile → Festival emails from AFRIFF), which turns them on again.
 // The test email's link, or a link that doesn't check out, explains how to
 // switch emails off in the app instead.
-import { escapeHtml } from '#shared/festivalEmail'
 import { TEST_UID } from '../../emails/links'
 
-function page(appUrl: string, title: string, text: string, button = '') {
-  const app = appUrl ? `<p><a href="${escapeHtml(appUrl)}">Open the AFRIFF app</a></p>` : ''
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex">
-<title>${escapeHtml(title)} · AFRIFF</title>
-<style>
-body{margin:0;background:#060A26;color:#F3F3FF;font:16px/1.6 Arial,Helvetica,sans-serif}
-main{max-width:30rem;margin:0 auto;padding:3rem 1.25rem}
-.brand{font-weight:bold;letter-spacing:3px;color:#E9C262;font-size:1.25rem;margin:0 0 2rem}
-h1{font-size:1.5rem;line-height:1.3;margin:0 0 .75rem}
-p{color:#A4AACC;margin:0 0 1.25rem}
-a{color:#E9C262}
-button{font:inherit;font-weight:bold;background:#D9A441;color:#060A26;border:0;border-radius:999px;padding:.8rem 1.5rem;cursor:pointer}
-</style>
-</head>
-<body><main>
-<p class="brand">AFRIFF</p>
-<h1>${escapeHtml(title)}</h1>
-<p>${escapeHtml(text)}</p>
-${button ? `<form method="post"><p><button type="submit">${escapeHtml(button)}</button></p></form>` : ''}
-${app}
-</main></body>
-</html>`
-}
+// the page itself: server/utils/emailPage.ts
+const page = (appUrl: string, title: string, text: string, button = '') => emailPage(appUrl, title, text, { button })
 
 const IN_THE_APP = 'You can switch festival emails off in the AFRIFF app: Profile → Festival emails from AFRIFF.'
-
-/** the database not answering shouldn't leave someone staring at a blank page */
-const within = <T>(work: Promise<T>, ms: number) =>
-  Promise.race([work, new Promise<never>((_, fail) => setTimeout(() => fail(new Error(`no answer in ${ms / 1000} s`)), ms))])
 
 export default defineEventHandler(async (event) => {
   if (event.method !== 'GET' && event.method !== 'HEAD' && event.method !== 'POST') {
     setResponseStatus(event, 405)
     return ''
   }
-  setResponseHeaders(event, {
-    'content-type': 'text/html; charset=utf-8',
-    'cache-control': 'no-store',
-    'x-robots-tag': 'noindex',
-    'referrer-policy': 'no-referrer',
-    'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
-  })
+  emailPageHeaders(event)
   const appUrl = String(useRuntimeConfig().public.attendeeUrl || '')
   const q = getQuery(event)
   const uid = typeof q.u === 'string' ? q.u : ''

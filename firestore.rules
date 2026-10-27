@@ -10,6 +10,13 @@ rules_version = '2';
 //   editor    – proposes changes (they wait in "changes" for approval)
 //   volunteer – updates queue counts for their own venue only
 //
+// SUPERADMINS (the app's two owners) are not a role: their profile says
+// 'admin', so admins can't see the difference. It comes from their confirmed
+// sign-in email (superadminEmails() below; apps/admin/shared/team.ts has the
+// same list). Admins can make someone an admin; only superadmins can take
+// admin access away. A superadmin always stays one (their console puts their
+// profile back to 'admin' if anyone changes it).
+//
 // ATTENDEES (people using the festival app) sign in with Firebase's own email
 // + password, like the team. So a sign-in alone says nothing: team rights come
 // only from users/{uid}.role, attendee records only from attendees/{uid}. One
@@ -23,7 +30,13 @@ service cloud.firestore {
     function role() {
       return signedIn() && exists(profilePath()) ? get(profilePath()).data.role : 'none';
     }
-    function isAdmin() { return role() == 'admin'; }
+    // A confirmed email only: anyone can create a login with an unconfirmed one.
+    function superadminEmails() { return ['michaelakpuofoba@gmail.com', 'tithera14@gmail.com']; }
+    function isSuperadmin() {
+      return signedIn() && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.get('email', '').lower() in superadminEmails();
+    }
+    function isAdmin() { return isSuperadmin() || role() == 'admin'; }
     function isEditor() { return role() == 'editor'; }
     function myVenue() { return get(profilePath()).data.venue; }
     function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
@@ -32,15 +45,25 @@ service cloud.firestore {
     // ---------- Team members ----------
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      // New sign-ups create their own profile, always with no access.
+      // New sign-ups create their own profile, always with no access, under their own email.
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['email', 'name', 'role', 'venue', 'createdAt'])
+        && request.resource.data.email == request.auth.token.get('email', null)
         && request.resource.data.role == 'pending'
         && request.resource.data.venue == null;
-      // Only admins change roles and venues; people can fix their own name.
-      allow update: if isAdmin()
+      // An admin's or a superadmin's profile: admins can't change or remove it.
+      function adminProfile() {
+        return resource.data.role == 'admin'
+          || (resource.data.get('email', null) is string && resource.data.email.lower() in superadminEmails());
+      }
+      function teamRole() { return request.resource.data.role in ['pending', 'volunteer', 'editor', 'admin']; }
+      // Admins change roles and venues of anyone who isn't an admin (making
+      // them an admin too); only superadmins change an admin's. People can fix
+      // their own name.
+      allow update: if (isSuperadmin() && teamRole())
+        || (isAdmin() && !adminProfile() && teamRole())
         || (request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
-      allow delete: if isAdmin();
+      allow delete: if isSuperadmin() || (isAdmin() && !adminProfile());
     }
 
     // ---------- Live festival data (what attendees see) ----------
@@ -98,9 +121,10 @@ service cloud.firestore {
     // ---------- Attendee accounts ----------
     // attendees/{uid}: the "App users" list (name, email, whether they said yes
     // to festival emails). Created by the person's phone when they sign up
-    // (apps/pwa/app/lib/firebase/account.ts), every field checked here. Only
-    // ADMINS can read the list (console → Attendees); each person can read
-    // their own. Editors and door volunteers can't. The person can change only
+    // (apps/pwa/app/lib/firebase/account.ts), every field checked here. ADMINS
+    // and EDITORS can read the list (console → Contacts, for invitations; since
+    // 27 Oct); each person can read their own. Door volunteers can't. The
+    // Attendees page (delete, spreadsheets) stays admins-only. The person can change only
     // their emails choice (so can an email's unsubscribe link, through the staff
     // app's server).
     function newAttendeeOk() {
@@ -129,7 +153,7 @@ service cloud.firestore {
         && (!changed.hasAny(['lastLoginAt']) || d.lastLoginAt == request.time);
     }
     match /attendees/{uid} {
-      allow read: if isAdmin() || isSelf(uid);
+      allow read: if isAdmin() || isEditor() || isSelf(uid);
       allow create: if isSelf(uid) && newAttendeeOk();
       allow update: if isSelf(uid) && attendeeChangeOk();
       allow delete: if isAdmin() || isSelf(uid);
@@ -152,6 +176,72 @@ service cloud.firestore {
     // app's server (Admin SDK), which also does the sending; admins read them.
     match /emails/{id} {
       allow read: if isAdmin();
+    }
+
+    // ---------- Contacts, groups, VIP links, invitations (console → Contacts, Invitations) ----------
+    function isStaff() { return isAdmin() || isEditor(); }
+
+    // groups/{id}: "Gala VIPs", "Opening night", "Press"… (members are listed on contacts)
+    match /groups/{id} { allow read, write: if isStaff(); }
+
+    // vipLinks/{code}: a private sign-up link for one group. The code IS the
+    // secret (long and random): anyone holding the link may read that one
+    // record (the app's /vip/<code> page says "You're invited: …"); nobody but
+    // admins can list them. Only admins make, switch off or delete them.
+    match /vipLinks/{code} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+
+    // contacts/{key}: AFRIFF's own record about someone (groups, VIP, notes;
+    // a guest added by hand: their details). key = their email, lower case.
+    // Admins and editors read and write them. A phone signed in with that
+    // email may add itself to ONE group, through a VIP link that's switched
+    // on, unless an admin took them out of that group; nothing else
+    // (apps/pwa/app/lib/firebase/vip.ts).
+    function vipLink(code) { return get(/databases/$(database)/documents/vipLinks/$(code)).data; }
+    function vipJoinOk(key, before, blocked) {
+      let d = request.resource.data;
+      return signedIn() && key == myEmail()
+        && d.lastLink is string && d.lastLink.size() >= 16 && d.lastLink.size() <= 64
+        && exists(/databases/$(database)/documents/vipLinks/$(d.lastLink))
+        && vipLink(d.lastLink).active == true
+        && !(vipLink(d.lastLink).group in blocked)
+        && d.groups is list
+        && d.groups.toSet() == before.toSet().union([vipLink(d.lastLink).group].toSet())
+        && d.vip == true && d.uid == request.auth.uid && d.joinedAt == request.time;
+    }
+    match /contacts/{key} {
+      allow read, delete: if isStaff();
+      allow create: if isStaff()
+        || (vipJoinOk(key, [], []) && request.resource.data.keys().hasOnly(['groups', 'vip', 'uid', 'lastLink', 'joinedAt']));
+      allow update: if isStaff()
+        || (vipJoinOk(key, resource.data.get('groups', []), resource.data.get('removedFrom', []))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['groups', 'vip', 'uid', 'lastLink', 'joinedAt']));
+    }
+
+    // invites/{id}: invitations. Admins and editors write them while they're a
+    // draft or waiting for approval, only these fields. Sending, scheduling and
+    // what comes after are the staff app's server's (Admin SDK), for ADMINS
+    // ONLY (server/invites/logic.ts): no one can mark an invite sent from here.
+    function inviteFields() {
+      return ['kind', 'parentId', 'subject', 'artworkUrl', 'message', 'event', 'audience',
+              'status', 'reviewNote', 'createdBy', 'createdByName', 'createdAt', 'updatedAt', 'updatedBy', 'updatedByName'];
+    }
+    match /invites/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.keys().hasOnly(inviteFields())
+        && request.resource.data.status in ['draft', 'review']
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isStaff()
+        && resource.data.status in ['draft', 'review']
+        && request.resource.data.status in ['draft', 'review']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(inviteFields())
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isStaff() && resource.data.status in ['draft', 'review'];
+      // the guest list (who it went to): admins only
+      match /recipients/{key} { allow read: if isAdmin(); }
     }
     // settings/attendeeAccounts: the console's "Require an account to save to
     // My Festival" switch. Every phone reads it as the app starts; admins change it.

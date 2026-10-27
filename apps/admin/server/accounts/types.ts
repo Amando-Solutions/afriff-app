@@ -12,7 +12,7 @@ export interface Attendee {
   lastName: string
   email: string
   emailLower: string
-  /** ticked "Yes, AFRIFF can email me festival news and updates" (now): gets festival emails */
+  /** ticked "AFRIFF may email me invitations and festival updates" (now): gets festival emails and invitations */
   marketing: boolean
   /** 1 if ticked when signing up, else 0 (Reports adds these up per day) */
   optInAtSignUp: 0 | 1

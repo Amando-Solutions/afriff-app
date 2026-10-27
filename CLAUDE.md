@@ -19,7 +19,8 @@ CHANGED 26 Oct 2026 (user request, PENDING AFRIFF'S WRITTEN APPROVAL):
 attendees have accounts. CHANGED AGAIN 27 Oct (user decision): Home comes
 first and the whole app can be browsed without an account; sign-up is
 asked for only when someone saves to My Festival. Accounts are plain email +
-password handled by Firebase itself (no PIN). On an iPhone in the
+password handled by Firebase itself (no PIN), or "Continue with Google"
+(ADDED 27 Oct, user request, like DP Fitness). On an iPhone in the
 browser, the first screen is how to add the app to the Home Screen, with
 "Continue on the web". See "Attendee accounts" under Progress.
 
@@ -181,6 +182,13 @@ Three roles:
   approval.
 - Door volunteer: can only update queue count and seats left for their
   venue, with big +1 / -1 buttons usable one-handed on a phone.
+ADDED 27 Oct (PM brief): Admin and Editor see Contacts (names, emails,
+groups) and prepare invitations; ONLY Admin sends them, makes VIP links and
+sees guest lists. See "VIP invitations, contacts and guest lists".
+ADDED 27 Oct (user request): Superadmin, only michaelakpuofoba@gmail.com and
+tithera14@gmail.com. Admins can make someone an admin but can't remove an
+admin; only a superadmin can. Admins never see the word "superadmin" (to
+them the two owners are plain admins). See "Superadmin".
 
 Film fields: title, poster image, trailer link (optional), synopsis,
 director(s), country, language, genre, programme section (replaces
@@ -248,7 +256,12 @@ Read this first; the dated sections below are the detailed history.
   approval; see "Attendee accounts"), Profile page + header avatar
   (27 Oct; NOT committed; see "Profile page + avatar"), festival emails
   written and sent from the console, Brevo only delivers (27 Oct; NOT
-  committed; see "Festival emails from the console").
+  committed; see "Festival emails from the console"), "Continue with
+  Google" sign-up / log-in (27 Oct; NOT committed; see "Continue with
+  Google"), VIP invitations + contacts + VIP sign-up links + guest lists
+  (27 Oct, PM brief; NOT committed; Brevo + afriff.app domain to set up; see
+  "VIP invitations, contacts and guest lists"), superadmin (27 Oct; NOT
+  committed; needs `npm run deploy:rules`; see "Superadmin").
 - Branch `claude/daily-highlights-filmstrip` (filmstrip + "Daily
   highlights" headline) MERGED INTO main 23 Oct (pull request #3). The
   monorepo split (branch dev) is rebased on top of it; dev → main still
@@ -1327,7 +1340,8 @@ heavy libraries) apply everywhere.
   page with a real admin login, how Gmail / Outlook show the email.
 
 ### Profile page + avatar (27 Oct 2026, user request)
-- STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
+- STATUS: committed on `dev` in 7fe69bf with Open Peeps avatars; the switch
+  to neutral faces (below) is NOT committed yet.
 - HEADER: right of the bell, a round avatar (signed in) or a plain person
   icon (not signed in). Both open the Profile page (`/profile`); the circle
   gets a gold ring while you're on it.
@@ -1339,28 +1353,30 @@ heavy libraries) apply everywhere.
   "Keep your plan on any phone · Sign up" card (comes back to Profile after
   signing up) and the same switches. The privacy page and the sign-up
   page's note now say "Profile" instead of "My Festival".
-- AVATARS (user asked for DiceBear with a seed): CLAUDE'S CHOICES, easy to
-  change: style "Open Peeps" (CC0 licence: free for commercial use, no
-  credit needed), with brown skin tones and warm festival colours behind,
-  no face masks. The seed is the account's ID, so everyone gets their own
-  random picture and it's the same on every phone they log in on. Drawn ON
-  THE PHONE with DiceBear's free code library (no request to DiceBear's
-  website, works offline, nothing about the person leaves the phone).
-  Initials show for a moment until it's drawn.
-- SIZE: the drawings are ~107 KB (compressed). So they're NOT in the offline
-  copy every phone saves: only people who sign in download them, once; the
-  phone keeps them after that (checked with a production build and the
-  offline service worker on). Smaller CC0 option if wanted: Lorelei
-  (~51 KB).
+- AVATARS (user asked for DiceBear with a seed; CHANGED 27 Oct, user: "use
+  a neutral dicebear category"): style "Notionists Neutral" = a face only on
+  a plain colour, no hair, body or skin tone (CC0 licence: free for
+  commercial use, no credit needed). CLAUDE'S CHOICES, easy to change: that
+  style out of the CC0 neutral ones (others: Lorelei Neutral, Pixel Art
+  Neutral; Adventurer / Big Ears / Croodles Neutral need a credit), and the
+  colours behind the face: light gold, gold, sky, lilac, coral, mint (no
+  peach or browns, so it reads as a colour, not a skin tone). Replaces "Open
+  Peeps" (people with hair and brown skin tones). The seed is the account's
+  ID, so everyone gets their own random face and it's the same on every
+  phone they log in on. Drawn ON THE PHONE with DiceBear's free code library
+  (no request to DiceBear's website, works offline, nothing about the person
+  leaves the phone). Initials show for a moment until it's drawn.
+- SIZE: ~20 KB (compressed), loaded after the first screen and included in
+  the offline copy like the rest of the app. (Open Peeps was ~107 KB, so it
+  had been kept out of the offline copy; that special setup is gone.)
 - No cost (DiceBear's code library is free and open source).
 - TESTED (27 Oct, by Claude): 28 checks in a phone-sized test browser with a
   pretend login (avatar next to the bell, same picture on Profile and after
   reload, all account details and switches on Profile, counts switch saves,
   My Festival no longer repeats them, log out → person icon + sign-up card,
-  sign-up returns to Profile / My Festival, privacy wording); 9 checks on a
-  production build (signed out: code never downloaded and not in the
-  offline copy; signed in: downloaded once, kept, drawn with no signal);
-  typecheck. NOT TESTED: real phones, a real login.
+  sign-up returns to Profile / My Festival, privacy wording), run again
+  after the switch to neutral faces; typecheck. NOT TESTED: real phones, a
+  real login.
 
 ### Input checks on every form (27 Oct 2026, user request: "proper input validations for all the input fields")
 - STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
@@ -1404,6 +1420,283 @@ heavy libraries) apply everywhere.
   all Firebase traffic blocked); typecheck both apps; staff app build. NOT
   TESTED: real phones; the attendee app's production build (the running dev
   server shares its build folder).
+
+### Continue with Google (27 Oct 2026, user request: "just like how we did the DPfitPWA")
+- STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
+  Part of attendee accounts, so also PENDING AFRIFF'S WRITTEN APPROVAL.
+- WHAT ATTENDEES SEE: a "Continue with Google" button at the top of the
+  sign-up page, on both Sign up and Log in, with "or use your email" under it
+  (CLAUDE'S CHOICE to put it at the top, since it's the quickest way in; easy
+  to move under the form, where DP Fitness has it). One tap opens a small
+  Google window to pick an account; then they're back where they were, with
+  what they tapped saved. Next time, that's all: one tap.
+- FESTIVAL EMAILS BOX FOR GOOGLE SIGN-UPS (27 Oct, user request: "we need to
+  account for it"): the first time someone uses Google, a short "Finish
+  signing up" screen comes before the account is made: the Google email
+  they're signing up with, their name from Google (they can correct it), the
+  "Yes, AFRIFF can email me…" box UNTICKED, the same privacy note as the email
+  form, and "Create my account". The account is only made when they press it,
+  so the emails choice is recorded exactly as for an email sign-up (counted as
+  "said yes at sign-up" in Reports, with the wording they agreed to). If they
+  had already ticked the box on the email form before tapping Google, it
+  starts ticked and they can untick it. "Not now" = no account (signed out
+  again, nothing saved). A name that won't do (one word only, numbers in it)
+  is pointed at in red on the same screen.
+- ALSO 27 Oct (asked by the session building VIP invitations): the sign-up
+  page's privacy notes now say "only AFRIFF's festival team (admins and
+  editors) can see it", since editors can now see attendee names and emails.
+- SAME EMAIL BOTH WAYS: a Gmail address that signed up with a password can
+  also use Google: same account, same plan. Any other address that has a
+  password is told "This email already has an AFRIFF account with a password.
+  Log in with your email and password." The wrong-password message now also
+  says "Signed up with Google? Use Continue with Google".
+- DELETE MY ACCOUNT (Profile): people who use Google confirm with Google
+  instead of typing a password ("Confirm with Google and delete").
+- WHERE THE BUTTON DOESN'T SHOW: inside Instagram's, Facebook's, TikTok's
+  (and similar) built-in browsers, because Google refuses to sign anyone in
+  there; a note says to open the page in Chrome or Safari. And in the iPhone
+  Home Screen app until one setup step is done (below); everyone there can
+  still use email + password.
+- HOW (same as DP Fitness): Firebase's own Google sign-in. A pop-up window
+  everywhere, except the iPhone Home Screen app, where the whole page goes to
+  Google and comes back (a pop-up there opens in Safari and never returns).
+  Privacy page: says Google passes on the name and email (and a profile
+  picture link the app doesn't use), never the Google password.
+- COST: none (Firebase's Google sign-in is free). About 4 KB more to download
+  after the first screen; Google's sign-in helper loads only on the sign-up page.
+- SETUP BEFORE IT WORKS:
+  1. Nothing to switch on: Google sign-in is already enabled in the Firebase
+     project (checked 27 Oct: the Google window reaches Google's account
+     chooser). Optional: Firebase console → Authentication → Sign-in method →
+     Google, to set the name and support email Google shows people.
+  2. Firebase → Authentication → Settings → Authorized domains: the attendee
+     app's address (already on the accounts list).
+  3. For the iPhone Home Screen app: add the app's own sign-in address in
+     Google Cloud and one Vercel setting on the attendee project (exact clicks
+     in DEVELOPER.md "Continue with Google" → SETUP 3), then redeploy and test
+     on a real iPhone.
+- WATCH OUT: staff logins share the same login list. A team member whose
+  staff login is a Gmail address and who taps "Continue with Google" in the
+  attendee app may find their staff PASSWORD stops working (Firebase swaps it
+  for Google). Fix: "Forgot password?" on the staff login. Tell the team.
+- TESTED (27 Oct, by Claude): typecheck; production build for Vercel; the real
+  Firebase in a phone-sized test browser (Google's helper loads when the
+  sign-up page opens, the tap opens Google's account chooser); 35 checks with
+  a pretend Firebase and pretend Google, 48 after the "Finish signing up"
+  step (new person from a film page's + Schedule, back with it saved; the
+  step: unticked box, email shown, no record until "Create my account", ticked
+  there = yes, ticked first then unticked = no, "Not now" = no account;
+  accents; log out and back in with Google skips the step; one-word name;
+  window closed = nothing said; password account with the same email;
+  whole-page route there and back; Instagram; iPhone Home Screen; delete with
+  Google). NOT TESTED: a real Google account
+  (Claude may not sign in), real phones, the iPhone Home Screen route for real.
+
+### VIP invitations, contacts and guest lists (27 Oct 2026, PM brief)
+- STATUS: built and tested (pretend database + pretend Brevo), NOT committed,
+  NOT deployed. Opening-night invites must go out 28–29 Oct.
+- DECISIONS (user, 27 Oct, answering the brief):
+  - Sign-up stays as built: Home first, sign-up only when saving, email +
+    password or Google. The brief's "sign up first, no password" screen is
+    NOT built. From its section 1 only: the box now reads "AFRIFF may email
+    me invitations and festival updates. I can unsubscribe anytime."
+    (MARKETING_CONSENT; people who ticked the old wording keep it on their
+    record), and every sign-up is a contact, one per email.
+  - "Festival emails" stays as it is; invitations are a NEW page.
+  - CHANGED 27 Oct (user): NO Brevo templates. Every invite is AFRIFF's own
+    invitation email, built into the app; Brevo only delivers it. No designer
+    needed, no placeholders to learn.
+  - VIP links open the app's normal sign-up with "You're invited", then put
+    the person in that group, marked VIP.
+  - Who can get an invite: app users only if they ticked the box (their own
+    choice in the app decides); guests added by hand only if an admin ticks
+    "This guest agreed to receive AFRIFF invitations" (saved with who and
+    when). Everyone else is left out, and the send screen says how many and why.
+  - QR check-in (brief section 8): NOT this festival. No QR_IMAGE_URL /
+    INVITE_CODE. The door team uses the printed guest list.
+  - Editors prepare and test invites; ONLY admins send (checked on the server).
+  - CHANGED DECISION: editors can now see attendees' names and emails (the
+    Contacts page needs them; database rules changed). The Attendees page
+    (delete accounts, spreadsheets) stays admins-only. Privacy page and the
+    sign-up notes say so; AFRIFF's lawyer should see the change.
+- CONSOLE → CONTACTS (admins + editors): one list, one person per email: app
+  sign-ups (appear by themselves), guests added by hand, VIP-link sign-ups.
+  Search; filters (group, VIP, can / can't be emailed, how they joined); tick
+  people → add to a group or take them out; tap someone → groups, VIP, notes
+  (hand-added guests also name, email, agreement); remove; spreadsheet.
+  Groups: add and rename (editors too), delete (admins). "Add a VIP by hand":
+  name, email, groups, VIP, the "agreed" box; labelled "Added by AFRIFF". An
+  email already on the list isn't added twice (they just get the groups).
+  Someone taken out of a group can't put themselves back through a VIP link.
+- VIP SIGN-UP LINKS (admins, on Contacts): one per group, with what guests see
+  (e.g. "Opening night"). Address: <attendee app>/vip/<24-character secret>.
+  Copy, switch off / on, delete; shows how many joined. The page: "You're
+  invited · Opening night" → Sign up / Log in (the app's own page) → back →
+  "You're on the guest list". Already signed in: one tap. Without the emails
+  box ticked, it's offered there ("Needed to get your invitation by email").
+- CONSOLE → INVITATIONS (admins + editors), saved as you type, email only:
+  - The event: fill in from a festival event, or type it (Lagos time):
+    name, day, start and end, venue, map link (empty: Google Maps search for
+    the venue), dress code.
+  - THE EMAIL (`renderInvite` in apps/admin/shared/invites.ts; the console's
+    preview is exactly what's sent): navy header with the AFRIFF emblem and
+    "1–7 November 2026 · Lagos"; the artwork (optional image link) full width;
+    gold "YOU'RE INVITED" and the event's name as the headline; "Dear <first
+    name>," and the message (empty: "It would be our pleasure to have you as
+    our guest at this year's Africa International Film Festival. Your
+    invitation details are below."); a cream card with WHEN, WHERE, DRESS CODE
+    and GUEST (<full name>, "Your name is on the guest list."); gold "Add to
+    calendar" and "Get directions"; "We look forward to welcoming you. The
+    AFRIFF team"; navy footer with the app link and the guest's own
+    Unsubscribe. Subject: empty = "You're invited: <event>". An update says
+    "CHANGE OF PLAN" (coral), needs "What has changed", and "Your place on the
+    guest list is unchanged."; subject "Change of plan: <event>". Every detail
+    is real text (not only in the artwork), so nothing is lost when an email
+    app hides images. Built for Gmail, Outlook, Apple Mail and phones (tables,
+    inline styles; buttons fill the width on phones); Gmail and Outlook show
+    Arial where Apple Mail shows the app's Archivo.
+  - Who: whole groups + people picked − people left out; each person once;
+    live count ("2 people get it, each once · 1 left out: haven't agreed").
+  - Preview (filled in for the first guest); test to up to 5 typed addresses
+    ("[Test]" in the subject).
+  - Editors: "Ask an admin to approve" (admins can send it back with a note).
+    Admins: "Send now…" or "Schedule…" (Lagos time, 10 minutes to 71 hours
+    ahead: Brevo holds it and it can be called off until then) → "Send to 87
+    people?" with who's left out and why → sent.
+  - After: the log (sent, delivered, opened, bounced, unsubscribed; Brevo's
+    numbers lag a few minutes; "opened" is a rough guide), "Didn't arrive" with
+    Fix → "Resend to fixed addresses", "Send to new people only…", "Send an
+    update…" (short change-of-plan email to the same people, same approval),
+    "Guest list". The list page's "Delivery numbers" loads them for every invite.
+- GUEST LIST (admins): per invite (who it went to) or per group (everyone in
+  it, emailed or not), A–Z by last name: #, last name, first name, group, VIP,
+  an empty "Arrived" box. Print (black on white) or spreadsheet.
+- IN THE EMAIL: each guest's own Unsubscribe link → "Stop emails from AFRIFF?"
+  → button: no more invitations or festival emails (for app users, the same as
+  the Profile switch). "Add to calendar" → Google Calendar, or a calendar file
+  for Apple / Outlook.
+- BREVO SETUP (PM; nothing here costs money until a plan is chosen):
+  1. Brevo → Senders, Domains & Dedicated IPs → Domains → Add afriff.app.
+     Brevo shows the exact records (or adds them itself if it supports the DNS
+     provider): a TXT "brevo-code" (proves AFRIFF owns the domain), DKIM (two
+     CNAMEs, brevo1._domainkey and brevo2._domainkey, or one TXT) and a DMARC
+     TXT (_dmarc). Brevo doesn't need SPF. Whoever runs afriff.app's DNS adds
+     them; checking can take up to 48 hours.
+  2. Senders → add invites@afriff.app.
+  3. Staff Vercel project: NUXT_INVITE_FROM_ADDRESS=invites@afriff.app (plus
+     NUXT_BREVO_API_KEY and NUXT_FIREBASE_SERVICE_ACCOUNT, as festival emails),
+     then redeploy. 4. `npm run deploy:rules`.
+- BREVO PLAN (PM: check brevo.com/pricing before paying): the free plan sends
+  300 emails a day in all (tests, invites and festival emails together) and
+  adds Brevo's branding; a 300-guest opening night would use a whole day.
+  Recommendation: Starter for Oct–Nov, reported from about $9/month for 5,000
+  emails a month with no daily limit; a bigger tier only if festival emails go
+  to thousands. Cancel after the festival if not needed.
+- TESTED (27 Oct, by Claude): 30 automatic tests with a pretend database and
+  pretend Brevo (each guest's email: their name, every detail in text, their
+  own unsubscribe link, Add to calendar and Get directions, nothing typed
+  becomes code; each guest once; consent; batches; daily limit pauses and
+  Continue carries on, nobody twice; refused addresses; one sender at a time;
+  unfinished invites refused; new people only; update to the same people minus anyone who
+  unsubscribed; bounced address fixed and resent; scheduling limits and calling
+  off; test sends; unsubscribe links, forged ones refused; calendar in Lagos
+  time). All 85 staff tests pass; both apps typecheck; database rules compile
+  (dry run, NOT published). Phone-sized browser with a pretend Firebase: 37
+  console checks (contacts, add VIP + no duplicates, groups, VIP link, guest
+  list + print, invite form, live count, the preview is the real email and
+  shows the message as it's typed, test, "Send to 2 people?",
+  log + fix, update draft, editor can't send / asks for approval / no guest
+  list) and 14 attendee checks (VIP link → sign up → back → in the group;
+  signed in → one tap + emails box; switched-off and unknown links).
+  Screenshots of the invitation (phone and desktop, with and without artwork)
+  and of the update email.
+- NOT TESTED: a real email through Brevo and how Gmail / Outlook / Apple Mail
+  show it, Brevo's statistics and scheduling for real, the console with real logins, real
+  phones, the rules once published. FIXED 27 Oct: NUXT_FIREBASE_SERVICE_ACCOUNT
+  in apps/admin/.env now holds the real key (the downloaded .json file as one
+  base64 line; checked: it reads the live database). The staff Vercel project
+  still needs it too.
+- BEFORE THE REAL SEND (brief: test with 3 people): make a group "Test", put
+  3 people in it, send the real invite to "Test", check inbox and spam,
+  Unsubscribe, Add to calendar and the guest list; then send to the real group.
+- NEEDED: the PM's Brevo account (invite Michael), access to afriff.app's DNS,
+  each event's artwork as an image link (optional), AFRIFF's OK on the privacy
+  change.
+
+### Superadmin (27 Oct 2026, user request)
+- STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
+  Needs `npm run deploy:rules` before it does anything for real.
+- WHO: only michaelakpuofoba@gmail.com and tithera14@gmail.com. The list is
+  in TWO places that must match (an automatic test checks they do):
+  `apps/admin/shared/team.ts` and `superadminEmails()` in `firestore.rules`.
+- WHAT CHANGES ON THE TEAM PAGE:
+  - Admins can still give any role to anyone who isn't an admin, including
+    making them an admin. It asks first: "…you won't be able to take it back".
+  - Admins can't change or remove an admin (role box greyed out, "Admins
+    can't remove other admins."). Nobody can change their own role (as before).
+  - Superadmins can change anyone's role, including taking admin access away
+    (asks first). Nobody can change a superadmin.
+  - Admins never see the word "superadmin": the two owners show as "Admin"
+    like everyone else. Only the two owners see a "Superadmin" tag (on their
+    rows and top-right of the console).
+- HOW (CLAUDE'S CHOICES, easy to change): superadmin is NOT a role saved in
+  the database. The owners' profiles say "admin"; the extra power comes from
+  their sign-in email. So nobody can make someone a superadmin from the
+  console, and every existing "admin" check keeps working. The database
+  rules enforce all of it (not just the screen), and the staff app's server
+  treats the two owners as admins too. If an owner's profile ever says
+  something other than admin, it puts itself back to admin when they open
+  the console.
+- CONFIRM YOUR EMAIL (once, each owner): the power only switches on once
+  Firebase has confirmed the owner really owns that email; otherwise anyone
+  could create a login with one of those addresses and become superadmin.
+  If not confirmed yet, the Team page shows a "Confirm your email" card:
+  Send me the link → tap the link in the email → "I've confirmed it". Signing
+  in with Google confirms it too. An owner who signs up fresh lands on the
+  "Almost there" page with the same card, and is let in as soon as it's done.
+- ALSO TIGHTENED: a new staff sign-up can only save its own email on its
+  profile (stops someone posing as an owner on the Team page).
+- TESTED (27 Oct, by Claude): 25 pretend requests against the new
+  firestore.rules with Firebase's own rules-test service (nothing published;
+  the old rules fail 12 of them, so the test is real); 8 automatic tests
+  (`npm run test:accounts`); 41 checks in a phone-sized test browser with a
+  pretend login (admin view, owner view, unconfirmed email, profile fixing
+  itself, fresh owner sign-up); typecheck; rules compile. NOT TESTED: real
+  logins, the real confirm email.
+- TO DO: `npm run deploy:rules`, then each owner opens Team once and
+  confirms their email if the card shows.
+
+### Team page tabs + one email for both apps (27 Oct 2026, user request)
+- STATUS: built and tested, NOT committed (on `dev` in this laptop's copy).
+  No rules change, no new settings.
+- TEAM PAGE: two tabs. "With a role · N" (admins, editors, door volunteers)
+  opens first; "All members · N" lists everyone with a staff login,
+  "No access yet" included. The "N people are waiting for access" banner
+  has a "See them" button that opens All members. Someone whose role you
+  just took away stays on screen until you switch tabs (so they don't
+  vanish mid-edit). Attendees who only use the festival app are NOT on Team
+  (they're under Attendees), until they log in to the staff app.
+- SAME EMAIL IN BOTH APPS (already worked; smoothed): both apps share one
+  list of logins, so one email = one password. A team role (users/{uid})
+  and an attendee account (attendees/{uid}) are separate records on that
+  login. Festival-app user becoming a volunteer: they LOG IN on the staff
+  app (not Create account) with the same email + password; their "No access
+  yet" record is now made by itself (no more "Finish setting up" button),
+  they show under All members, an admin gives the role. Volunteer using the
+  festival app: they log in there with the staff email + password. Staff
+  login messages now mention the festival app ("…maybe from the AFRIFF
+  festival app. Log in with that password instead."; wrong password adds
+  "Joined the festival app with Google? Tap “Forgot password?” to set a
+  password for this login.").
+- STILL TRUE: a staff Gmail login that taps "Continue with Google" in the
+  festival app can lose its password (see "Continue with Google" → WATCH
+  OUT); "Forgot password?" on the staff login fixes it.
+- TESTED (27 Oct, by Claude): 23 checks in a phone-sized test browser with a
+  pretend Firebase (tabs and counts, See them, role changes in both tabs,
+  festival-app login → "Almost there" with its record made, a volunteer's
+  record never touched, both messages); staff typecheck; 85 automatic tests.
+  NOT TESTED: real logins; that "Forgot password?" adds a password to a
+  Google-only login (Firebase's documented behaviour, not tried for real).
 
 ### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
 - WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
@@ -1551,3 +1844,18 @@ heavy libraries) apply everywhere.
 9. Festival emails: set the sender up in Brevo (authenticate afriff.com), add
    the settings in "Festival emails from the console", send yourself a test,
    check it in Gmail and on a phone, then try its Unsubscribe link.
+10. Continue with Google: on a real Android phone and an iPhone (Safari),
+   sign up with a Google account, log out, log in again with Google, then
+   delete the account from Profile. For the iPhone Home Screen app, do
+   SETUP 3 in "Continue with Google" first.
+11. Invitations (opening night: send 28–29 Oct): PM creates Brevo + picks
+   the plan, afriff.app domain authenticated, invites@afriff.app sender,
+   NUXT_INVITE_FROM_ADDRESS on the staff app, `npm run deploy:rules`, deploy
+   both apps. Then: groups + VIP links on Contacts, the invite written in the
+   console (artwork link optional), a "Test" group of 3 people, real send to "Test", check
+   inbox / spam / Unsubscribe / Add to calendar / guest list, then the real
+   send. Print the guest list for the door. See "VIP invitations, contacts
+   and guest lists".
+12. Superadmin: `npm run deploy:rules`; Michael and the owner each sign in to
+   the staff app, open Team, and confirm their email if asked. Then check an
+   ordinary admin can't remove an admin. See "Superadmin".

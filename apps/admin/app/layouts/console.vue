@@ -19,7 +19,7 @@ const auth$ = useAdminAuth()
           <AppLogo />
           <span class="font-display text-body font-semibold text-accent-ink">Admin</span>
         </NuxtLink>
-        <UiBadge v-if="auth$.profile" tone="accent" class="ml-auto self-center!">{{ ROLES[auth$.profile.role] }}</UiBadge>
+        <UiBadge v-if="auth$.profile" tone="accent" class="ml-auto self-center!">{{ auth$.superadmin ? 'Superadmin' : ROLES[auth$.profile.role] }}</UiBadge>
         <button type="button" class="pressable grid size-9 place-items-center rounded-full text-muted hover:bg-hover hover:text-ink" :class="!auth$.profile && 'ml-auto'" aria-label="Log out" @click="signOut(auth)">
           <LogOutIcon class="size-5" />
         </button>

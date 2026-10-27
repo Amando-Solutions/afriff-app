@@ -1,18 +1,17 @@
-// Attendee avatars (header + Profile): a DiceBear "Open Peeps" drawing
-// (https://www.dicebear.com/styles/open-peeps/, CC0: free for any use, no
-// credit needed) picked by a seed. The seed is the account's ID, so everyone
-// gets their own random picture, and it's the same on every phone they log
-// in on. Drawn on the phone: no request to DiceBear, works offline once
-// loaded, nothing about the person leaves the phone. The drawing code
-// (lib/avatarDrawing.ts) is a separate download, fetched only once someone
-// is signed in (not part of the offline copy every phone saves).
+// Attendee avatars (header + Profile): a DiceBear "Notionists Neutral" face
+// (https://www.dicebear.com/styles/notionists-neutral/, CC0: free for any
+// use, no credit needed) picked by a seed. Neutral = a face only, on a plain
+// colour: no hair, body or skin tone. The seed is the account's ID, so
+// everyone gets their own random face, and it's the same on every phone they
+// log in on. Drawn on the phone: no request to DiceBear, works offline,
+// nothing about the person leaves the phone. The drawing code
+// (lib/avatarDrawing.ts) is its own small download, after the first screen.
 // To try another style: change lib/avatarDrawing.ts and apps/pwa/package.json
-// (pick a CC0 style, e.g. '@dicebear/lorelei', and check its size).
+// (pick a CC0 style; the CC BY ones need a credit in the app).
 
-// warm festival colours behind the drawing (gold, peach, sky, lilac, coral),
-// and a range of brown skin tones for an African festival's audience
-const BACKGROUNDS = ['e9c362', 'dba440', 'f2c9a0', 'a4c8e6', 'c9b8f0', 'f3a08f']
-const SKIN = ['8d5524', 'a26d3d', '6b3e1f', 'c68642', '4a2a12', 'b07042']
+// festival colours behind the face: light gold, gold, sky, lilac, coral, mint
+// (no peach or browns, so the colour reads as a colour, not a skin tone)
+const BACKGROUNDS = ['e9c362', 'dba440', 'a4c8e6', 'c9b8f0', 'f3a08f', 'a8dcc0']
 
 /** seed → picture (an SVG data address), so each is drawn once per visit */
 const drawn = new Map<string, string>()
@@ -24,8 +23,8 @@ export const drawnAvatar = (seed: string) => drawn.get(seed) ?? ''
 export async function drawAvatar(seed: string): Promise<string> {
   const ready = drawn.get(seed)
   if (ready) return ready
-  const { drawOpenPeeps } = await import('./avatarDrawing')
-  const uri = drawOpenPeeps(seed, BACKGROUNDS, SKIN)
+  const { drawNotionistsNeutral } = await import('./avatarDrawing')
+  const uri = drawNotionistsNeutral(seed, BACKGROUNDS)
   drawn.set(seed, uri)
   return uri
 }

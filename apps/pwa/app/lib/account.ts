@@ -5,7 +5,10 @@
 // FIREBASE DOES THE SIGN-IN ITSELF (user decision 27 Oct; replaces an earlier
 // 4-digit PIN checked by our server): email + password, Firebase's own protection
 // against guessing, and Firebase's own "reset your password" email with a
-// link. The phone talks to Firebase directly (lib/firebase/account.ts), so
+// link. Or "Continue with Google" (user request 27 Oct, as in DP Fitness:
+// lib/firebase/google.ts): one tap to log in; the first time, a short
+// "Finish signing up" step (name, festival emails box) makes the account.
+// The phone talks to Firebase directly (lib/firebase/account.ts), so
 // accounts don't depend on the staff app being up. The person is remembered
 // here (localStorage) and by Firebase until they log out, and My Festival
 // follows them between phones (lib/planSync.ts).
@@ -19,7 +22,8 @@
 // instead (plugins/account.client.ts) and nothing is saved. It doesn't ask
 // at all when an admin switches "Require an account" off (console → Attendees).
 import { reactive } from 'vue'
-import { nameProblem } from '@afriff/core/accounts/rules'
+import { cleanName, nameProblem } from '@afriff/core/accounts/rules'
+import { firebaseConfig } from '@afriff/core/firebase/config'
 import { applySave, currentPlan, replacePlan, type SaveIntent } from './store'
 import { planIsSaved, startPlanSync, stopPlanSync } from './planSync'
 
@@ -35,15 +39,24 @@ export interface AccountProfile {
   lastName: string
   email: string
   marketing: boolean
+  /** how they sign in, for "Delete my account" (missing on phones signed in before Google: password) */
+  signIn?: 'password' | 'google'
 }
+
+type Details = { firstName: string; lastName: string; marketing: boolean }
 
 /** A problem to show on the sign-up page, in plain words. */
 export class AccountProblem extends Error {
   constructor(
     message: string,
     readonly field?: string,
-    /** 'exists' | 'wrong' | 'paused' | 'unreachable' | 'signed-out' | 'details' (no name known: ask) | 'unfinished' (details known, not saved yet: Try again) */
+    /**
+     * 'exists' | 'wrong' | 'paused' | 'unreachable' | 'signed-out' | 'details' (no name known: ask) |
+     * 'unfinished' (details known, not saved yet: Try again) | 'cancelled' (closed the Google window: say nothing)
+     */
     readonly reason?: string,
+    /** 'details' after Google: what Google told us, to start the "Finish signing up" step with */
+    readonly known?: Details & { email: string },
   ) {
     super(message)
   }
@@ -56,9 +69,9 @@ const PROBLEMS: Record<string, [string, string | undefined, string | undefined]>
   'auth/missing-email': ['Type your email.', 'email', undefined],
   'auth/weak-password': ['Choose a longer password (at least 8 characters).', 'password', undefined],
   'auth/missing-password': ['Type your password.', 'password', undefined],
-  'auth/invalid-credential': ['That email and password don’t match. Check them, or tap “Forgot password?”.', 'password', 'wrong'],
-  'auth/invalid-login-credentials': ['That email and password don’t match. Check them, or tap “Forgot password?”.', 'password', 'wrong'],
-  'auth/wrong-password': ['That password isn’t right. Check it, or tap “Forgot password?”.', 'password', 'wrong'],
+  'auth/invalid-credential': ['That email and password don’t match. Check them, or tap “Forgot password?”. Signed up with Google? Use “Continue with Google”.', 'password', 'wrong'],
+  'auth/invalid-login-credentials': ['That email and password don’t match. Check them, or tap “Forgot password?”. Signed up with Google? Use “Continue with Google”.', 'password', 'wrong'],
+  'auth/wrong-password': ['That password isn’t right. Check it, or tap “Forgot password?”. Signed up with Google? Use “Continue with Google”.', 'password', 'wrong'],
   'auth/user-not-found': ['That email and password don’t match. Check them, or sign up.', 'password', 'wrong'],
   'auth/too-many-requests': ['Too many tries. Wait a few minutes, or reset your password.', undefined, 'paused'],
   'auth/user-disabled': ['This account has been switched off. Contact AFRIFF.', undefined, undefined],
@@ -67,6 +80,20 @@ const PROBLEMS: Record<string, [string, string | undefined, string | undefined]>
   'auth/user-token-expired': ['Log in again, then try again.', undefined, 'signed-out'],
   'permission-denied': ['Your details couldn’t be saved. Log in again, then try again.', undefined, 'signed-out'],
   unavailable: ['', undefined, 'unreachable'],
+  // ---------- Continue with Google (lib/firebase/google.ts) ----------
+  // closed the Google window, or tapped twice: their choice, not a problem
+  'auth/popup-closed-by-user': ['', undefined, 'cancelled'],
+  'auth/cancelled-popup-request': ['', undefined, 'cancelled'],
+  'auth/user-cancelled': ['', undefined, 'cancelled'],
+  // a password account with this email that Firebase won't join to Google on Google's word
+  // (it does for Gmail addresses, and refuses for the rest)
+  'auth/account-exists-with-different-credential': ['This email already has an AFRIFF account with a password. Log in with your email and password.', undefined, 'exists'],
+  'auth/operation-not-allowed': ['Google sign-in isn’t switched on yet. Use your email for now.', undefined, undefined],
+  'auth/unauthorized-domain': ['Google sign-in doesn’t work from this address yet. Use your email for now.', undefined, undefined],
+  'auth/web-storage-unsupported': ['This browser is blocking what Google sign-in needs (private browsing?). Use your email instead.', undefined, undefined],
+  'auth/user-mismatch': ['That’s a different Google account. Choose the one you use for AFRIFF.', undefined, undefined],
+  'google/unfinished': ['Google sign-in didn’t finish. Try again, or use your email.', undefined, undefined],
+  'google/log-in-again': ['To delete your account, first log out, log in again with Google, then delete it straight away.', undefined, undefined],
 }
 
 function problemFrom(e: unknown): AccountProblem {
@@ -116,6 +143,33 @@ export const account = reactive({
 
 /** Saving to My Festival can go ahead without asking. */
 export const canSaveNow = () => Boolean(account.profile || account.required === false)
+
+/** Instagram, Facebook, TikTok, Snapchat, LinkedIn and Android apps' built-in browsers, where Google refuses to sign anyone in */
+const IN_APP_BROWSER = /Instagram|FBAN|FBAV|FB_IAB|FB4A|Snapchat|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Line\/|; wv\)/i
+
+/**
+ * Can "Continue with Google" work here?
+ *   'ok'     yes
+ *   'in-app' inside another app's built-in browser: Google says no there, so the page says why
+ *   'off'    the iPhone Home Screen app, until Google sign-in is served from the app's own
+ *            address (lib/firebase/google.ts); everyone there still has email + password
+ */
+export function googleSignInHere(): 'ok' | 'in-app' | 'off' {
+  if (typeof window === 'undefined') return 'off'
+  if (IN_APP_BROWSER.test(navigator.userAgent)) return 'in-app'
+  const homeScreenIphone = (navigator as Navigator & { standalone?: boolean }).standalone === true
+  if (homeScreenIphone) {
+    try {
+      if (firebaseConfig().authDomain !== window.location.host) return 'off'
+    } catch {
+      return 'off'
+    }
+  }
+  return 'ok'
+}
+
+/** The page is just back from Google (lib/firebase/google.ts keeps this note while it's away). */
+export const backFromGoogle = () => storage.get(session(), 'afriff-google-pending') !== null
 
 /** Read the console's switch (once, as the app starts). */
 export async function loadAccountSetting() {
@@ -183,8 +237,6 @@ function watchSignOut(fb: typeof import('./firebase/account')) {
     if (typeof window !== 'undefined') window.location.assign('/')
   })
 }
-
-type Details = { firstName: string; lastName: string; marketing: boolean }
 
 /** The sign-up form's details, kept on this phone until they reach the database */
 function keepDetails(uid: string, d: Details | null) {
@@ -266,6 +318,67 @@ export async function logIn(email: string, password: string) {
   await finishSetup()
 }
 
+// ---------- Continue with Google ----------
+
+/**
+ * "Continue with Google": signs up or logs in, whichever it is. `marketing` =
+ * they ticked "Yes, AFRIFF can email me…" before tapping it (sign-up only).
+ * False = the page is on its way to Google and /auth finishes it on the way
+ * back (resumeGoogle).
+ */
+export async function continueWithGoogle(marketing: boolean): Promise<boolean> {
+  const g = await import('./firebase/google')
+  let result
+  try {
+    result = await g.googleSignIn(marketing)
+  } catch (e) {
+    throw problemFrom(e)
+  }
+  if (!result) return false
+  await afterGoogle(result)
+  return true
+}
+
+/** On opening /auth: finishes a trip to Google if the page is back from one. False = it isn't. */
+export async function resumeGoogle(): Promise<boolean> {
+  const g = await import('./firebase/google')
+  let result
+  try {
+    result = await g.googleReturn()
+  } catch (e) {
+    throw problemFrom(e)
+  }
+  if (!result) return false
+  await afterGoogle(result)
+  return true
+}
+
+/**
+ * Signed in with Google. Someone who already has an account is in. The first
+ * time, the sign-up page shows "Finish signing up" (user decision 27 Oct):
+ * their name from Google (to check), the UNTICKED "Yes, AFRIFF can email me…"
+ * box (ticked only if they ticked it before tapping Google) and the privacy
+ * note, as the email form has. The attendee record is only made when they
+ * press "Create my account" (finishDetails), so its emails choice, consent
+ * wording and `optInAtSignUp` are what they chose there, the same as an email
+ * sign-up. "Not now" signs them out again (cancelDetails): no record.
+ */
+async function afterGoogle(r: import('./firebase/google').GoogleResult) {
+  const fb = await import('./firebase/account')
+  if (r.profile) return signedIn(fb, r.profile)
+  throw new AccountProblem('', undefined, 'details', {
+    firstName: cleanName(r.firstName),
+    lastName: cleanName(r.lastName),
+    email: r.email,
+    marketing: r.marketing,
+  })
+}
+
+/** The delete sheet, for someone who signs in with Google: the Google code downloaded before the tap. */
+export async function loadGoogle() {
+  await import('./firebase/google')
+}
+
 /** "Try again" after an account was made but its details didn't save: no questions asked. */
 export async function finishSetup() {
   const fb = await import('./firebase/account')
@@ -316,6 +429,9 @@ export async function resumeAccount(): Promise<boolean> {
     forgetHere()
     return false
   }
+  // e.g. a Gmail address that signed up with a password, then used Google (Firebase joins them)
+  const signIn = fb.signInOf(user)
+  if (profile.signIn !== signIn) saveProfile({ ...profile, signIn })
   void startPlanSync(user.uid)
   watchSignOut(fb)
   return true
@@ -348,13 +464,17 @@ export async function logOut() {
   forgetHere()
 }
 
-/** Delete the account for good (and everything in it). Firebase wants the password again first. */
-export async function deleteAccount(password: string) {
+/**
+ * Delete the account for good (and everything in it). Firebase wants proof
+ * first: their password, or (password null) their Google account.
+ */
+export async function deleteAccount(password: string | null) {
   stopWatchingSignOut?.()
   stopWatchingSignOut = null
   const fb = await import('./firebase/account')
   try {
-    await fb.deleteAccount(password)
+    const confirm = password === null ? (await import('./firebase/google')).confirmWithGoogle : fb.confirmWithPassword(password)
+    await fb.deleteAccount(confirm)
   } catch (e) {
     const user = await fb.signedInUser().catch(() => null)
     if (user) watchSignOut(fb)

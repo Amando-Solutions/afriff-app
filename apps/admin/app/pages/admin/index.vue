@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
 import {
-  ChartColumnIcon, ClipboardListIcon, ContactIcon, DatabaseIcon, MailIcon, SendIcon, SquareCheckIcon, UserCheckIcon, UsersIcon,
+  BookUserIcon, ChartColumnIcon, ClipboardListIcon, ContactIcon, DatabaseIcon, MailIcon, SendIcon, SquareCheckIcon, TicketIcon, UserCheckIcon, UsersIcon,
 } from 'lucide-vue-next'
 import { venueById } from '@afriff/core/data/programme'
 import { canOpen, type SectionId } from '~/lib/access'
@@ -23,6 +23,8 @@ const TILES: Tile[] = [
   { id: 'reports', title: 'Reports', text: 'Sign-ups, most planned, ratings and app usage', icon: ChartColumnIcon, to: '/admin/reports' },
   { id: 'attendees', title: 'Attendees', text: 'People signed up in the app, their email choices, the sign-up switch', icon: ContactIcon, to: '/admin/attendees' },
   { id: 'emails', title: 'Festival emails', text: 'Write and send emails to people who said yes to them', icon: MailIcon, to: '/admin/emails' },
+  { id: 'invites', title: 'Invitations', text: 'Opening night and other invites by email: prepare, test, approve, send, guest lists', icon: TicketIcon, to: '/admin/invites' },
+  { id: 'contacts', title: 'Contacts', text: 'Everyone AFRIFF can invite: groups, VIPs, VIP sign-up links', icon: BookUserIcon, to: '/admin/contacts' },
   { id: 'approvals', title: 'Approvals', text: 'Check editors\' changes before attendees see them', icon: SquareCheckIcon, to: '/admin/approvals' },
   { id: 'mine', title: 'My changes', text: 'Changes you sent for approval', icon: ClipboardListIcon, to: '/admin/mine' },
   { id: 'door', title: 'Door counter', text: 'Count queues at the door (opens the door view)', icon: UserCheckIcon, to: '/door' },

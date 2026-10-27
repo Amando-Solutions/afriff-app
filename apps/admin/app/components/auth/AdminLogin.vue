@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { PASSWORD_HINT, cleanName, emailProblem, nameProblem, passwordProblem } from '@afriff/core/accounts/rules'
 import { useFormChecks } from '@afriff/core/utils/formChecks'
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { createProfile } from '~/lib/useAdminAuth'
+import { createProfile, ensureProfile } from '~/lib/useAdminAuth'
 import { auth } from '~/lib/firebase'
 
 // the attendee app is its own app and address (apps/pwa)
@@ -11,9 +11,9 @@ const attendeeUrl = useRuntimeConfig().public.attendeeUrl as string
 
 // Plain-language versions of Firebase's error codes
 const MESSAGES: Record<string, string> = {
-  'auth/invalid-credential': 'That email and password don\'t match. Check them and try again.',
+  'auth/invalid-credential': 'That email and password don\'t match. Check them and try again. Joined the festival app with Google? Tap “Forgot password?” to set a password for this login.',
   'auth/invalid-email': 'That doesn\'t look like an email address.',
-  'auth/email-already-in-use': 'There\'s already an account with this email. Log in instead.',
+  'auth/email-already-in-use': 'There\'s already an account with this email, maybe from the AFRIFF festival app. Log in with that password instead.',
   'auth/weak-password': 'Use a password of at least 8 characters.',
   'auth/too-many-requests': 'Too many tries. Wait a few minutes, then try again.',
   'auth/network-request-failed': 'No connection. Check your internet and try again.',
@@ -66,7 +66,9 @@ async function submit() {
   note.value = ''
   try {
     if (mode.value === 'login') {
-      await signInWithEmailAndPassword(auth, email.value.trim(), password.value)
+      const { user } = await signInWithEmailAndPassword(auth, email.value.trim(), password.value)
+      // if this fails, /pending offers "Finish setup" instead
+      await ensureProfile(user).catch(() => {})
     } else {
       const { user } = await createUserWithEmailAndPassword(auth, email.value.trim(), password.value)
       await updateProfile(user, { displayName: name.value.trim() })

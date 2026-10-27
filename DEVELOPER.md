@@ -419,6 +419,98 @@ it's published.
   (`dataVersion`), which closes an open bottom sheet (e.g. the delete
   confirmation) if a publish lands while it's open. Pre-existing; rare.
 
+### Continue with Google (27 Oct 2026, user request: "like DP Fitness")
+- **Same approach as DP Fitness** (`DPfitPWA/apps/pwa/app/lib/datasource/firestore.ts`
+  `signInWithGoogle` / `resumeSignIn`): `signInWithPopup` with
+  `prompt: 'select_account'`; `signInWithRedirect` when `navigator.standalone`
+  (iPhone Home Screen app: a pop-up opens in Safari and never reports back) or
+  when the pop-up is blocked; the return trip is finished by `getRedirectResult`.
+  Differences from DP: AFRIFF lets Google **make** accounts (DP deletes new ones
+  and sends them to an access code), and AFRIFF has self-service delete.
+- **Code**: `apps/pwa/app/lib/firebase/google.ts` (lazy; `googleSignIn`,
+  `googleReturn`, `confirmWithGoogle`), plain words + the flow in
+  `lib/account.ts` (`continueWithGoogle`, `resumeGoogle`, `googleSignInHere`,
+  `backFromGoogle`), button in `pages/auth.vue` (top of both tabs, "or use your
+  email" under it), `components/account/GoogleMark.vue` (the G). sessionStorage
+  `afriff-google-pending` = the page is away at Google (+ the emails box), so
+  the return shows "Opening Google…" and a lost trip says "didn't finish".
+- **First Google sign-in** = "Finish signing up" (user decision 27 Oct, so the
+  emails consent is asked explicitly): `afterGoogle` throws `AccountProblem`
+  reason `details` with `known` = Google's `given_name` / `family_name` (else
+  displayName split at the last space), the account's email, and `marketing` =
+  whether the email form's box was ticked before tapping. `auth.vue` shows the
+  `details` form with a Google heading, the email, the names (editable), the
+  box (unticked unless ticked before), the full privacy note and "Create my
+  account"; red only if a name fails `nameProblem`. The record is written only
+  on that button (`finishDetails` → `finishWith`), so `marketing`,
+  `optInAtSignUp` and `consentText` are what they chose, as for email sign-ups.
+  "Not now" = `cancelDetails` (signed out; the Firebase login stays, with no
+  record, and the next Google tap shows the step again). Same record shape,
+  so **no rules change**. `?redirect=` survives the step (`leave()`).
+- **Same email, two ways in**: Firebase joins Google to an existing password
+  login for **Gmail** addresses (same uid, the record and plan carry on; if that
+  password login's email was never verified, Firebase **drops the password**:
+  "Forgot password?" sets one again). For other addresses it refuses
+  (`auth/account-exists-with-different-credential` → "already has an AFRIFF
+  account with a password", + "Log in instead"). Staff logins are in the same
+  pool: a staff member on a Gmail address who taps Google in the attendee app
+  can lose their staff password the same way.
+- **Delete my account**: `AccountProfile.signIn` ('password' | 'google', from
+  `providerData`, refreshed by `resumeAccount`). Google-only accounts get
+  "Confirm with Google and delete" → `reauthenticateWithPopup`; where there's no
+  pop-up (Home Screen iPhone, blocked) it goes ahead only if the ID token's
+  `auth_time` is under 4 min old (Firebase's limit is 5), else "log out, log in
+  again with Google, then delete it straight away". `deleteAccount` now takes a
+  `confirm(user)` function (`confirmWithPassword` or `confirmWithGoogle`).
+- **Getting the pop-up ready**: `attendeeAuth(popups?)` passes
+  `browserPopupRedirectResolver` to `initializeAuth` only from google.ts. If that
+  creates Auth (signed-out person opening `/auth`), Firebase loads its helper
+  iframe from the auth domain at once on phones/Safari, so the tap opens the
+  window inside the user gesture (otherwise iOS blocks it). Signed-in starts don't
+  load it. Size: +≈4 KB gz in the account chunk (Firebase ships auth as one
+  module), +≈7 KB gz all told.
+- **Where it's hidden**: Instagram / Facebook / TikTok / Snapchat / LinkedIn /
+  Android WebView browsers (Google refuses them: a note says to open Chrome or
+  Safari); the Home Screen iPhone app while `authDomain` isn't the app's own host
+  (Safari's storage partitioning loses the redirect result otherwise).
+- **Hosting bits** (`apps/pwa/nuxt.config.ts` routeRules): `Cross-Origin-Opener-Policy:
+  same-origin-allow-popups` on every page (as DP, so Firebase can close the
+  pop-up; Chrome still logs Google's own report-only "would block the
+  window.closed call" warnings, harmless), and `/__/auth/**` proxied to
+  `https://<projectId>.firebaseapp.com/__/auth/**` (Nitro proxy, runs in the
+  Vercel function; checked in dev: handler + handler.js answer 200). `/__/` is in
+  the shared service worker's `navigateFallbackDenylist`, so the handler is never
+  replaced by the app shell.
+- **SETUP**:
+  1. Google sign-in is **already enabled** in Firebase (checked 27 Oct: the
+     pop-up reaches Google's account chooser from localhost). Optional: Firebase
+     console → Authentication → Sign-in method → Google → the public-facing name
+     and support email Google shows.
+  2. Authorized domains must list the attendee app's address (already needed for
+     password resets). Without it: "Google sign-in doesn't work from this address yet".
+  3. **For the iPhone Home Screen app** (else the button is hidden there):
+     Google Cloud console → APIs & Services → Credentials → the OAuth client
+     "Web client (auto created by Google Service)" → Authorized redirect URIs →
+     add `https://<attendee address>/__/auth/handler`; then on the **attendee**
+     Vercel project set `NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<attendee address>` (no
+     https; a project variable, so the staff app keeps firebaseapp.com) and
+     redeploy. Test on a real iPhone (Add to Home Screen → Continue with Google).
+     Preview deploys keep firebaseapp.com unless you set it there too.
+- **Tested** (27 Oct): typecheck; Vercel-preset production build (header route
+  and proxy present; popup code only in the account chunk); real Firebase in a
+  phone-sized browser: helper iframe loads on opening `/auth`, the tap opens
+  accounts.google.com; 48 checks with both Firebase modules faked (incl. the
+  "Finish signing up" step: unticked, no record before the button, ticked /
+  unticked there, "Not now") (new person
+  from a film page's + Schedule and back with it saved, record fields, emails
+  box, accented names, log out → Google again finds the account, one-word name
+  → pre-filled "One more step", window closed → silent, password account →
+  "Log in instead", wrong-password hint, whole-page route there and back and
+  its "didn't finish", Instagram note, Home Screen iPhone hidden, delete with
+  Google: cancelled / too old / done, password delete unchanged). **Not
+  tested**: a real Google account end to end (Claude may not sign in), real
+  phones, the iPhone Home Screen redirect for real (needs step 3).
+
 ### Profile page + header avatar (27 Oct 2026)
 - `/profile` (`apps/pwa/app/pages/profile.vue`): `AccountCard` (now takes a
   `back` prop for the sign-up redirect, default `/profile`), `AlertsSwitch`
@@ -428,15 +520,12 @@ it's published.
   `UserAvatar` when signed in, lucide `CircleUserRound` when not.
 - Avatars: `components/account/UserAvatar.vue` (initials until drawn) →
   `lib/avatar.ts` (seed = Firebase uid, colours, per-visit cache) →
-  `lib/avatarDrawing.ts` (`@dicebear/core` + `@dicebear/open-peeps`, both 9.x:
-  the style packages need core ^9). Generated locally, no DiceBear HTTP API.
-- The drawing chunk is ~107 KB gz, so `apps/pwa/nuxt.config.ts` names it
-  `_nuxt/avatar-[hash].js` (`vite.build.rolldownOptions.output.chunkFileNames`;
-  every other chunk keeps Nuxt's `_nuxt/[hash].js`), leaves it out of the
-  precache (`pwa.workbox.globIgnores`) and caches it on first use
-  (`runtimeCaching`, CacheFirst, `afriff-avatar`, 2 entries). Layer arrays
-  merge, so the shared `@afriff/pwa` ignores still apply (checked in a build).
-  If you rename `avatarDrawing.ts`, update the chunk name check.
+  `lib/avatarDrawing.ts` (`@dicebear/core` + `@dicebear/notionists-neutral`,
+  both 9.x: the style packages need core ^9). Generated locally, no DiceBear
+  HTTP API. Lazy `import()`, ~20 KB gz chunk, precached like every other
+  chunk. (7fe69bf used `@dicebear/open-peeps`, ~107 KB gz, with a named
+  chunk kept out of the precache; replaced on 27 Oct by the neutral style
+  and that nuxt.config setup removed.)
 
 ### Input checks on every form (27 Oct 2026)
 - **The rules** (plain functions: problem in plain words, or null):
@@ -471,6 +560,143 @@ it's published.
   pasted from Word/PDFs are dropped on save.
 - Tests: `apps/admin/test/checks.test.ts` (in `npm run test:accounts`).
 - The database rules still check sizes and shapes only, not these rules.
+
+### Invitations, contacts, VIP links and guest lists (27 Oct 2026, PM brief)
+
+Editors prepare invitations, **only admins send** (enforced in the server
+routes). The email is **ours** (`renderInvite`); Brevo only delivers it. No
+Brevo templates (user decision 27 Oct). Decisions and the PM's setup steps: CLAUDE.md "VIP
+invitations, contacts and guest lists". No QR check-in this festival.
+
+**Data** (Firestore; rules in `firestore.rules`, "Contacts, groups, VIP links, invitations"):
+- `attendees/{uid}`: unchanged, but **editors can now read it** (Contacts).
+- `contacts/{key}`: AFRIFF's own record of a person, `key` = email lower-case
+  (doc ids can't hold "/", so such emails can't be added by hand). Groups,
+  `vip`, `removedFrom` (taken out by staff: a VIP link can't re-add them),
+  notes; for hand-added guests (`source: 'afriff'`) also name, email and
+  `agreed` (+ who/when). Staff read/write. A phone may only `set(merge)` its
+  OWN email's doc with exactly `groups` (old ∪ the link's group), `vip: true`,
+  `uid`, `lastLink`, `joinedAt`, and only through an active `vipLinks/{code}`.
+- `groups/{id}` `{ name }`: staff. `vipLinks/{code}` `{ group, label, active }`:
+  `get` for anyone (the 24-char code is the secret), list/write admins.
+- `invites/{id}`: staff create/update **only while `draft`/`review`** and only
+  the draft fields (`inviteFields()` in the rules). Everything after is the
+  server's (Admin SDK). `invites/{id}/recipients/{key}` = the guest list
+  (status queued/sent/failed, groups' names, VIP, fixedFrom, unsubscribedAt),
+  admins read.
+- A **contact** = `attendees` ∪ `contacts` joined by email:
+  `apps/admin/shared/contacts.ts` (`mergePeople`, `resolveAudience`), shared by
+  the console (live count) and the server (the real send). Consent: app users
+  → `attendees.marketing`; others → `contacts.agreed` (unless `unsubscribedAt`).
+
+**Code:**
+- `apps/admin/shared/invites.ts`: invite shape (`kind`, `subject` ('' =
+  `defaultSubject`), `artworkUrl`, `message` ('' = `DEFAULT_MESSAGE`), `event`),
+  checks, and `renderInvite(content, guest, links)`: THE invitation email,
+  per guest. Email-safe HTML: tables, inline styles, 600 px with an MSO
+  wrapper for Outlook, light colour scheme, bulletproof buttons (colour on
+  the cell), a small `<style>` only for phones (`.px`, `.btns`, `.btn`,
+  `.title`, `.dates`), Archivo with Arial fallback, header emblem from
+  `<attendee app>/pwa-192x192.png` (PNG: Outlook can't show webp). Everything
+  typed is escaped. Also .ics + Google Calendar link (Lagos = UTC+1).
+- `apps/admin/server/invites/`: `logic.ts` (send / new / resend / continue /
+  cancel / fix / stats / test / unsubscribe; batches of 50, 8 s per call,
+  90 s lock, pause on Brevo refusals; same pattern as `server/emails/`),
+  `brevo.ts` (batch send, each `messageVersion` with its own subject and HTML;
+  `scheduledAt` + `batchId` (UUID) and `DELETE /smtp/email/{batchId}`;
+  `aggregatedReport?tag=`; `statistics/events` for bounces; every email
+  tagged `afriff-invite-<id>`), `links.ts` (unsubscribe links signed per
+  guest AND invite), `firestoreStore.ts`, `test/` (30 tests).
+- Routes `apps/admin/server/api/invites/`: `setup`,
+  `count`, `test`, `stats` (admins + editors, `staffRoute` →
+  `requireRole(event, ['admin','editor'])`); `send`, `continue`, `cancel`, `fix`
+  (`adminRoute`); public `unsubscribe` (GET page → POST button) and
+  `calendar` (?format=ics). Small HTML pages: `server/utils/emailPage.ts`
+  (festival emails' unsubscribe uses it too now).
+- Console: `app/lib/contacts.ts`, `app/lib/invites.ts`; pages
+  `/admin/contacts`, `/admin/invites`, `/admin/invites/[id]`, `/admin/guests`
+  (`?invite=` / `?group=`); components `AdminContacts`, `AdminContactSheet`,
+  `AdminAddVip`, `AdminGroupSheet`, `AdminVipLinks`, `AdminInvites`,
+  `AdminInvite` (owns sending + the confirm sheet), `AdminInviteForm` (draft,
+  autosaved), `AdminInviteSent` (log, bounces, new-only, update),
+  `AdminInvitePreview`, `AdminInviteConfirm`, `AdminGuestList` (print CSS).
+  Access: `contacts` / `invites` admins + editors, `guests` admins (`lib/access.ts`).
+- Attendee app: `/vip/[code]` (`pages/vip/[code].vue`, `lib/firebase/vip.ts`):
+  reads the link, sends signed-out people to `/auth?redirect=/vip/<code>`
+  (sessionStorage `afriff-vip-join` finishes the join on return), offers the
+  emails box if they haven't ticked it. `MARKETING_CONSENT` changed in
+  `packages/core/src/accounts/rules.ts`.
+
+**Settings** (staff project, server-only): `NUXT_INVITE_FROM_ADDRESS` (e.g.
+invites@afriff.app; empty = `NUXT_EMAIL_FROM_ADDRESS`), optional
+`NUXT_INVITE_FROM_NAME`, `NUXT_INVITE_REPLY_TO`; plus `NUXT_BREVO_API_KEY` and
+`NUXT_FIREBASE_SERVICE_ACCOUNT`. Then `npm run deploy:rules`.
+
+**Scheduling** is Brevo's own (max 72 h ahead, so the console allows 10 min to
+71 h). "New people only" on a still-scheduled invite joins the same `batchId`
+and time; "Call it off" deletes the batch at Brevo and the guest list, back to
+`review`.
+
+**Tests:** `npm run test:accounts` (all staff tests). UI was checked in a
+throwaway Nuxt build outside the repo with `firebase/*` aliased to in-memory
+fakes and `/api/invites/*` answered by Playwright; the email rendered to
+screenshots at phone and desktop width. **Not tested:** real Brevo (send,
+stats, scheduling) and real inboxes (Gmail, Outlook, Apple Mail), real logins,
+real phones, the rules once published.
+
+### Superadmin (27 Oct 2026, user request)
+Admins can make someone an admin but can't demote or delete an admin; only a
+superadmin can. Superadmins are exactly michaelakpuofoba@gmail.com and
+tithera14@gmail.com, and admins must never see the word in the console.
+
+- **Not a stored role.** `users/{uid}.role` stays `'admin'` for them, so
+  `Role`, `ACCESS`, `requireRole(['admin'])` and every `role === 'admin'`
+  check are unchanged. Superadmin = the sign-in's email is in the list AND
+  `email_verified` is true (unverified, anyone could create a login with that
+  address). The list lives in `apps/admin/shared/team.ts`
+  (`SUPERADMIN_EMAILS`) and in `firestore.rules` (`superadminEmails()`);
+  `apps/admin/test/team.test.ts` fails if they differ.
+- **Rules** (`firestore.rules`): `isSuperadmin()`; `isAdmin()` is now
+  `isSuperadmin() || role() == 'admin'`, so a superadmin is an admin
+  everywhere even without a profile. `match /users/{uid}`: superadmins update
+  any profile; admins only profiles that aren't `adminProfile()` (role admin,
+  or a superadmin email); role must be one of the four real ones; delete
+  likewise. Create now also requires `email == request.auth.token.email`.
+- **Server**: `requireRole` (`server/utils/firebaseAdmin.ts`) counts a
+  verified superadmin as `'admin'` (signature and return unchanged).
+- **Console**: `useAdminAuth()` has `superadmin` and `ownerCheck` (superadmin
+  email, not verified yet). A superadmin's profile is shown as `admin` at once
+  and, if the stored one says otherwise, written back to `admin` once per
+  sign-in (`keepOwnerAdmin`; once, so old rules refusing it can't loop).
+  `roleLock()` (shared/team.ts) decides which Team rows are locked; the page
+  asks before making or removing an admin. `AdminOwnerCheck.vue` (Team page
+  and /pending) sends Firebase's verification email (`sendEmailVerification`,
+  default template) and, on "I've confirmed it", `reload()` +
+  `getIdToken(true)` so the rules see `email_verified`. The header badge and
+  the Superadmin tag on Team rows only render when `superadmin` is true.
+- **Tests:** `npm run test:accounts` (team.test.ts). Rules: 25 cases through
+  the Firebase Rules `projects.test` API (no emulator needed; published
+  nothing), all pass, the old rules fail 12. UI: throwaway build with
+  `firebase/*` aliased to in-memory fakes, 41 Playwright checks at 390 px.
+  **Not tested:** real logins, the real verification email.
+- **Deploy:** `npm run deploy:rules`, then each owner opens Team once.
+
+### Team tabs + one login for both apps (27 Oct 2026)
+- **Team page** (`AdminTeam.vue`): `UiSegmented` switch, "With a role"
+  (role admin / editor / volunteer) by default, "All members" (every
+  `users/*`). Rows whose role was changed this visit stay in the first tab
+  until the tab changes (`changed` set). No query change: still one listener
+  on `users` ordered by `createdAt`.
+- **One login, two records:** the attendee app and the staff app share
+  Firebase Auth. Staff rights = `users/{uid}`, attendee account =
+  `attendees/{uid}` (+ `attendeePlans/{uid}`); neither implies the other.
+  Staff log-in now calls `ensureProfile()` (`lib/useAdminAuth.ts`): reads
+  `users/{uid}` and, only if missing, writes the same "pending" profile as
+  sign-up (allowed by the existing create rule). Never writes over an
+  existing profile, so it can't reset anyone's role. Failure is ignored;
+  `/pending` keeps its "Finish setup" button as the fallback.
+- **Tests:** throwaway build with `firebase/*` aliased to in-memory fakes
+  (fake `signInWithEmailAndPassword` added), 23 Playwright checks at 390 px.
 
 ### afriff.com film sync (Cloud Function, 26 Oct 2026)
 `functions/` holds one scheduled function, `syncFromAfriff` (every 15 min,
