@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { MailPlusIcon, PlayIcon, PrinterIcon, RefreshCwIcon, RotateCwIcon, UserPlusIcon, XCircleIcon } from 'lucide-vue-next'
 import { cleanInvite, subjectOf } from '#shared/invites'
@@ -77,7 +78,14 @@ async function saveFix(key: string) {
 // ---------- Calling off a scheduled one (admins) ----------
 const cancelState = reactive({ busy: false, error: '' })
 async function cancel() {
-  if (!window.confirm(`Call off this invite? Brevo won't send it at ${lagosText(c.value.scheduledAt)}, and it goes back to waiting for approval.`)) return
+  const ok = await confirmAction({
+    title: 'Call off this invite?',
+    message: `Brevo won't send it at ${lagosText(c.value.scheduledAt)} (Lagos time), and it goes back to waiting for approval.`,
+    confirmLabel: 'Call it off',
+    cancelLabel: 'Keep it scheduled',
+    tone: 'danger',
+  })
+  if (!ok) return
   Object.assign(cancelState, { busy: true, error: '' })
   try {
     await cancelSchedule(c.value.id)

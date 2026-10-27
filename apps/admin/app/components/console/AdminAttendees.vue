@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { DownloadIcon, RefreshCwIcon, Trash2Icon } from 'lucide-vue-next'
 import { matchesSearch, searchWords } from '~/lib/search'
@@ -72,7 +73,13 @@ function download(which: 'users' | 'subscribers') {
 }
 
 async function remove(p: AttendeeRow) {
-  if (!window.confirm(`Delete ${p.firstName} ${p.lastName}'s account (${p.email})? Their festival plan and watched list go too, and they get no more festival emails. This can't be undone.`)) return
+  const ok = await confirmAction({
+    title: `Delete ${p.firstName} ${p.lastName}'s account?`,
+    message: `${p.email}: their festival plan and watched list go too, and they get no more festival emails. This can't be undone.`,
+    confirmLabel: 'Delete account',
+    tone: 'danger',
+  })
+  if (!ok) return
   Object.assign(state, { busy: true, error: '', note: '' })
   try {
     const r = await deleteAttendee(p.uid)

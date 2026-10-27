@@ -59,7 +59,8 @@ function onBackdropClick(event: MouseEvent) {
           <XIcon class="size-5" />
         </button>
       </header>
-      <div class="pb-safe min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-6">
+      <!-- 1.5rem at the bottom, or the iPhone home bar's room if that's more (pb-safe alone overrode pb-6 to 0) -->
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <slot />
       </div>
     </div>

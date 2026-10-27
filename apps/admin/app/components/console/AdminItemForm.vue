@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { confirmAction } from '~/lib/confirm'
 import { computed, reactive, ref, watch } from 'vue'
 import { BellIcon, ChevronLeftIcon } from 'lucide-vue-next'
 import { alertFor } from '#shared/changeAlerts'
@@ -110,7 +111,14 @@ async function save() {
 }
 
 async function remove() {
-  if (!window.confirm(`Delete this ${c.single}? ${props.profile.role === 'admin' ? 'This can\'t be undone.' : 'An admin will need to approve it.'}`)) return
+  const admin = props.profile.role === 'admin'
+  const ok = await confirmAction({
+    title: `Delete this ${c.single}?`,
+    message: `“${c.label(existing.value ?? {}, refs.value)}” ${admin ? 'is deleted from the festival data (attendees see it gone after Publish to app). This can\'t be undone.' : 'is deleted once an admin approves it.'}`,
+    confirmLabel: admin ? 'Delete' : 'Ask to delete',
+    tone: 'danger',
+  })
+  if (!ok) return
   Object.assign(status, { busy: true, msg: '', error: '' })
   try {
     const result = await deleteItem({ profile: props.profile, col: props.col, id: props.id, before: strip(existing.value), summary: `Delete ${c.single}: ${c.label(existing.value ?? {}, refs.value)}` })
