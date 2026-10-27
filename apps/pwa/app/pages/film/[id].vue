@@ -8,7 +8,7 @@ import { dateParts, fromMinutes, initials, queueLabel, runtimeLabel, screeningSt
 import { queueAt, useLiveClock } from '~/lib/queues'
 import { useFestival } from '~/lib/store'
 
-// FILM PAGE: poster, title, Seen it, synopsis, showtimes, live queue, credits, more from the section.
+// FILM PAGE: poster, title, Seen it (+ your star rating once seen), synopsis, showtimes, live queue, credits, more from the section.
 const route = useRoute()
 const router = useRouter()
 const film = computed(() => filmById(String(route.params.id)))
@@ -121,6 +121,10 @@ const more = computed(() => {
       </button>
       <button type="button" class="round-btn big" aria-label="Share this film" @click="share"><Share2Icon :size="20" /></button>
     </div>
+    <div v-if="isWatched(film.id)" class="film-rating">
+      <span class="film-rating-label">Your rating</span>
+      <StarRating :film-id="film.id" :title="film.title" />
+    </div>
 
     <template v-if="film.synopsis">
       <p class="synopsis" :class="{ open: expanded }">{{ film.synopsis }}</p>
@@ -160,6 +164,10 @@ const more = computed(() => {
           </button>
         </div>
       </div>
+      <p v-if="showings.length > 0" class="ticket-note">
+        Adding to My Festival doesn't book a seat.
+        <a :href="FESTIVAL.ticketsUrl" target="_blank" rel="noopener noreferrer">Get your tickets on afriff.com</a>.
+      </p>
     </section>
 
     <section v-if="showings.length > 0" class="section">

@@ -137,11 +137,19 @@ user decision). Home's top banner depends on the Lagos date:
   trailer" button on it (opens a YouTube link, only if one exists).
 - Film title in bold capitals, then a "Seen it" button (adds to the
   watched log; shows ticked when done).
+  ADDED 28 Oct (user request: nobody found the stars): once "Seen it" is
+  on, a "Your rating" row of 1–5 stars shows under it. Same rating as My
+  Festival's Watched list (one shared piece, `components/festival/
+  StarRating.vue`); tap the same star again to clear. NOT committed yet.
 - Synopsis cut to 3 lines with "Read more".
 - "Showtimes": a card per screening (big date number, month and day,
   time, venue dot + venue, tag "Public" or "Industry"), each with a
   "+ Schedule" button under it. "On afriff.com" link top-right for
   tickets.
+  CONFIRMED 28 Oct (user): attendees buy tickets on afriff.com, never in
+  the app. Under the showtime cards: "Adding to My Festival doesn't book a
+  seat. Get your tickets on afriff.com." (links to afriff.com/tickets).
+  NOT committed yet.
 - "Queue": live count and label (Good chance / Tight / Unlikely /
   Full); "No queues left for this film" once all showings are done.
 - "Directed by": initials tile (or photo) and director name, then

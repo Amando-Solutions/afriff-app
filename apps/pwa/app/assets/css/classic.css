@@ -524,6 +524,8 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
   height: 46px; padding: 0 20px; border-radius: 23px; border: 1px solid var(--border); font-weight: 600;
 }
 .btn-seen.on { background: var(--gold); border-color: var(--gold); color: #1a1205; }
+.film-rating { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.film-rating-label { color: var(--muted); font-size: 14px; font-weight: 600; }
 .synopsis {
   margin-top: 18px; color: var(--muted); font-size: 16px; line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
@@ -555,6 +557,8 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
   border-radius: 21px; border: 1px solid var(--border); font-weight: 600; font-size: 14px;
 }
 .btn-schedule.added { background: rgba(219, 164, 64, 0.12); border-color: var(--gold); color: var(--gold-light); }
+.ticket-note { margin-top: 14px; font-size: 13px; color: var(--muted); }
+.ticket-note a { color: var(--text); font-weight: 600; text-decoration: underline; text-decoration-color: var(--gold); text-underline-offset: 3px; }
 
 .queue-card {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px;
@@ -631,7 +635,8 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
   background: var(--gold); color: #1a1205; font-size: 13px; font-weight: 800; display: grid; place-items: center;
 }
 .diary-row { display: flex; flex-direction: column; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--divider); }
-.stars { display: flex; gap: 2px; margin-left: 68px; }
+.stars { display: flex; gap: 2px; }
+.diary-row .stars { margin-left: 68px; }
 .stars button { width: 36px; height: 36px; display: grid; place-items: center; color: var(--placeholder); }
 .stars button.on { color: var(--gold-light); }
 
