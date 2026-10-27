@@ -19,6 +19,11 @@
 //   - an address Brevo won't take is skipped and listed, the rest go on.
 // SCHEDULED: the same batches, each told to wait at Brevo until the time
 // (Brevo holds them up to 72 hours). Calling it off asks Brevo to drop them.
+// PUSH NOTIFICATIONS: as each batch is handed to Brevo, the guests in it who
+// use the attendee app (signed in, alerts on) also get a push on their phones
+// ("You're invited: …", or "Change of plan: …"), once each (pushedAt). Not for
+// scheduled sends: nothing here runs at the scheduled time to send them, so
+// those go by email only. A push failing never stops the emails.
 import { emailProblem } from '@afriff/core/accounts/rules'
 import { audienceKeys, contactKey, resolveAudience, type Person, type Resolved, type SkipReason } from '../../shared/contacts'
 import {
@@ -26,13 +31,16 @@ import {
 } from '../../shared/invites'
 import { AccountError } from '../accounts/types'
 import { MailerError } from '../emails/types'
+import { invitePush } from '../../shared/push'
 import { TEST_GUEST, type InviteLinkSigner } from './links'
-import type { Batch, DeliveryProblem, InviteMailer, InviteRecord, InviteStatus, InviteStore, OneEmail, RecipientRecord } from './types'
+import type { Batch, DeliveryProblem, InviteMailer, InvitePusher, InviteRecord, InviteStatus, InviteStore, OneEmail, RecipientRecord } from './types'
 
 export interface InviteDeps {
   store: InviteStore
   mailer: InviteMailer
   links: InviteLinkSigner
+  /** guests' phones; none = email only */
+  pusher?: InvitePusher
   /** the attendee app's address (APP_LINK) */
   appUrl: string
   now?: () => number
@@ -63,6 +71,8 @@ export interface SendProgress {
   total: number
   sent: number
   failed: number
+  /** guests whose phones also got a push notification */
+  pushed: number
   scheduledAt: number
   /** call continue() again: there's more to send */
   more: boolean
@@ -90,7 +100,7 @@ export const effectiveStatus = (c: Pick<InviteRecord, 'status' | 'scheduledAt'>,
   c.status === 'scheduled' && c.scheduledAt <= now ? 'sent' : c.status
 
 
-export function createInvites({ store, mailer, links, appUrl, now = Date.now, newBatchId = () => crypto.randomUUID() }: InviteDeps) {
+export function createInvites({ store, mailer, links, pusher, appUrl, now = Date.now, newBatchId = () => crypto.randomUUID() }: InviteDeps) {
   function ready() {
     if (!mailer.ready) throw new AccountError(503, `Sending isn't set up on the server yet. Missing: ${mailer.missing.join('; ')}.`)
   }
@@ -136,7 +146,7 @@ export function createInvites({ store, mailer, links, appUrl, now = Date.now, ne
       key: p.key, uid: p.uid, email: p.email, firstName: p.firstName, lastName: p.lastName,
       groups: (chosen.length ? chosen : p.groups).map((g) => names[g]).filter((n): n is string => Boolean(n)),
       vip: p.vip, addedByAfriff: p.source === 'afriff',
-      status: 'queued', reason: '', run, sentAt: 0, fixedFrom: '', unsubscribedAt: 0,
+      status: 'queued', reason: '', run, sentAt: 0, fixedFrom: '', unsubscribedAt: 0, pushedAt: 0,
     }
   }
 
@@ -148,8 +158,11 @@ export function createInvites({ store, mailer, links, appUrl, now = Date.now, ne
     return { to: { email: guest.email, name: `${guest.firstName} ${guest.lastName}`.trim() }, subject: opts.subject ?? subjectOf(c), html }
   }
 
+  /** Brevo holds this invite's emails until a time still to come */
+  const isLater = (c: InviteRecord) => c.scheduledAt > now() + 60_000
+
   function batchOf(c: InviteRecord, emails: OneEmail[]): Batch {
-    const later = c.scheduledAt > now() + 60_000
+    const later = isLater(c)
     return {
       tag: tagFor(c.id),
       emails,
@@ -186,8 +199,25 @@ export function createInvites({ store, mailer, links, appUrl, now = Date.now, ne
     return r
   }
 
+  /**
+   * The push notification for guests just sent the email, who use the app and
+   * haven't had it yet (e.g. a fixed bounced address resent). Returns the keys
+   * of those it reached. Never throws: the emails matter more.
+   */
+  async function pushTo(c: InviteRecord, guests: RecipientRecord[]): Promise<string[]> {
+    const due = guests.filter((g) => g.uid && !g.pushedAt)
+    if (!pusher || !due.length || isLater(c)) return []
+    try {
+      const reached = await pusher.toPeople(due.map((g) => g.uid), invitePush(c.id, c, now()))
+      return due.filter((g) => reached.has(g.uid)).map((g) => g.key)
+    } catch (e) {
+      console.warn(`[invites] push for ${c.id} failed:`, e instanceof Error ? e.message : e)
+      return []
+    }
+  }
+
   const progress = (c: InviteRecord, status: InviteStatus, more: boolean, error = ''): SendProgress =>
-    ({ id: c.id, status, total: c.total, sent: c.sent, failed: c.failed, scheduledAt: c.scheduledAt, more, error })
+    ({ id: c.id, status, total: c.total, sent: c.sent, failed: c.failed, pushed: c.pushed, scheduledAt: c.scheduledAt, more, error })
 
   /** Sends to whoever is still queued, for a few seconds. `held`: begin() already took it. */
   async function carryOn(id: string, held = false): Promise<SendProgress> {
@@ -215,15 +245,17 @@ export function createInvites({ store, mailer, links, appUrl, now = Date.now, ne
       const page = await store.queued(id, BATCH)
       if (page.length) {
         const r = await sendPage(c, page)
+        const pushed = new Set(await pushTo(c, page.filter((g) => r.sent.includes(g.key))))
         const at = c.scheduledAt > now() ? c.scheduledAt : now()
         await store.setRecipients(id, [
-          ...r.sent.map((key) => ({ key, patch: { status: 'sent' as const, sentAt: at, run: c.runs, reason: '' } })),
+          ...r.sent.map((key) => ({ key, patch: { status: 'sent' as const, sentAt: at, run: c.runs, reason: '', ...(pushed.has(key) ? { pushedAt: now() } : {}) } })),
           ...r.failed.map((f) => ({ key: f.key, patch: { status: 'failed' as const, reason: f.reason } })),
         ])
         c.sent += r.sent.length
         c.failed += r.failed.length
+        c.pushed += pushed.size
         c.failures = [...c.failures, ...r.failed.map((f) => ({ email: f.email, reason: f.reason }))].slice(-FAILURES_KEPT)
-        await store.update(id, { sent: c.sent, failed: c.failed, failures: c.failures, lockUntil: now() + HOLD_MS })
+        await store.update(id, { sent: c.sent, failed: c.failed, pushed: c.pushed, failures: c.failures, lockUntil: now() + HOLD_MS })
         if (r.stop) {
           const error = brevoReason(r.stop)
           await store.update(id, { status: 'paused', error, lockUntil: 0 })
@@ -254,7 +286,7 @@ export function createInvites({ store, mailer, links, appUrl, now = Date.now, ne
   return {
     /** For the console: can it send, and from which address? */
     setup() {
-      return { ready: mailer.ready, missing: mailer.missing, from: mailer.from }
+      return { ready: mailer.ready, missing: mailer.missing, from: mailer.from, push: Boolean(pusher) }
     },
 
     /** Who it would go to now: for "Send to 87 people?", and "Send to new people only". */
@@ -322,7 +354,7 @@ export function createInvites({ store, mailer, links, appUrl, now = Date.now, ne
         taken(await store.begin(c.id, ['draft', 'review'], t, t + HOLD_MS, {
           status: 'sending', scheduledAt: at, batchId: at ? newBatchId() : '', total: resolved.send.length, sent: 0, failed: 0, failures: [],
           runs: run, error: '', linkBase, groupNames: c.audience.groups.map((g) => names[g]).filter((n): n is string => Boolean(n)),
-          unsubscribed: 0, sentByName: by.name, sentAt: t, finishedAt: 0,
+          unsubscribed: 0, pushed: 0, sentByName: by.name, sentAt: t, finishedAt: 0,
         }))
         await store.addRecipients(c.id, resolved.send.map((p) => recipientFor(p, c, names, run)))
         return carryOn(c.id, true)
@@ -373,7 +405,7 @@ export function createInvites({ store, mailer, links, appUrl, now = Date.now, ne
       }
       await store.deleteRecipients(c.id)
       await store.update(c.id, {
-        status: 'review', scheduledAt: 0, batchId: '', total: 0, sent: 0, failed: 0, failures: [], runs: 0, error: '',
+        status: 'review', scheduledAt: 0, batchId: '', total: 0, sent: 0, failed: 0, pushed: 0, failures: [], runs: 0, error: '',
         sentByName: '', sentAt: 0, finishedAt: 0, lockUntil: 0,
       })
       return { status: 'review' as const }

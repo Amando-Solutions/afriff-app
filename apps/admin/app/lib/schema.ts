@@ -46,6 +46,8 @@ export interface CollectionDef {
   idFrom?: string;
   label: (d: Doc, refs: Refs) => string;
   sub: (d: Doc, refs: Refs) => string;
+  /** more text the list's search box looks in, besides label and sub */
+  searchAlso?: (d: Doc, refs: Refs) => unknown[];
   sort: (a: Doc, b: Doc) => number;
   fields: FieldDef[];
 }
@@ -81,6 +83,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     title: 'Films', single: 'film', idFrom: 'title',
     label: (f) => t(f.title),
     sub: (f) => [t(f.director), t(f.section)].filter(Boolean).join(' · '),
+    searchAlso: (f) => [f.country, f.language, f.genre, f.cast, f.year, f.premiere],
     sort: (a, b) => t(a.title).localeCompare(t(b.title)),
     fields: [
       { key: 'title', label: 'Title', type: 'text', required: true, max: 150 },
@@ -105,6 +108,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     title: 'Screenings', single: 'screening',
     label: (s, refs) => t(refs.films?.[t(s.film)]?.title) || t(s.film) || '(no film)',
     sub: (s, refs) => [s.date && dayLabel(t(s.date)), s.time && timeLabel(t(s.time)), t(refs.venues?.[t(s.venue)]?.name), t(s.screen)].filter(Boolean).join(' · '),
+    searchAlso: (s) => [s.tag, STATUS_OPTIONS.find((o) => o.value === s.status)?.label],
     sort: (a, b) => `${t(a.date)}${t(a.time)}`.localeCompare(`${t(b.date)}${t(b.time)}`),
     fields: [
       { key: 'film', label: 'Film', type: 'ref', ref: 'films', required: true },
@@ -123,6 +127,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     title: 'Masterclasses & events', single: 'event', idFrom: 'title',
     label: (e) => t(e.title),
     sub: (e) => [EVENT_TYPES[t(e.type) as EventType]?.label, e.date && dayLabel(t(e.date)), e.time && timeLabel(t(e.time)), t(e.speaker)].filter(Boolean).join(' · '),
+    searchAlso: (e, refs) => [e.speakerRole, e.place, refs.venues?.[t(e.venue)]?.name, e.tag, e.access],
     sort: (a, b) => `${t(a.date)}${t(a.time)}`.localeCompare(`${t(b.date)}${t(b.time)}`),
     fields: [
       { key: 'type', label: 'Type', type: 'select', required: true, options: Object.entries(EVENT_TYPES).map(([value, t]) => ({ value, label: t.label })) },
@@ -150,6 +155,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     title: 'Venues', single: 'venue', idFrom: 'name',
     label: (v) => t(v.name),
     sub: (v) => t(v.area),
+    searchAlso: (v) => [v.address],
     sort: (a, b) => t(a.name).localeCompare(t(b.name)),
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true, max: 100 },
@@ -163,6 +169,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     title: 'News & alerts', single: 'news item',
     label: (d) => `${d.urgent ? '⚠ ' : ''}${t(d.title)}`,
     sub: (d) => (d.time ? new Date(t(d.time)).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' }) : ''),
+    searchAlso: (d) => [d.body, NEWS_TYPES.find((o) => o.value === d.type)?.label],
     sort: (a, b) => t(b.time).localeCompare(t(a.time)),
     fields: [
       { key: 'title', label: 'Headline', type: 'text', required: true, max: 120 },
@@ -207,6 +214,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     title: 'Jury', single: 'jury member', idFrom: 'name',
     label: (j) => t(j.name),
     sub: (j) => [t(j.jury), t(j.country)].filter(Boolean).join(' · '),
+    searchAlso: (j) => [j.roles],
     sort: (a, b) => t(a.jury).localeCompare(t(b.jury)) || n(a.order) - n(b.order),
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true, max: 100 },

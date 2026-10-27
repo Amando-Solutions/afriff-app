@@ -33,6 +33,8 @@ export interface InviteDoc extends InviteContent {
   error: string
   groupNames: string[]
   unsubscribed: number
+  /** guests whose phones also got a push notification (signed in to the app, alerts on) */
+  pushed: number
   createdBy: string
   createdByName: string
   createdAt: Timestamp | null
@@ -60,6 +62,7 @@ function inviteFrom(id: string, d: Record<string, unknown>): InviteDoc {
     runs: num(d.runs), lockUntil: num(d.lockUntil), error: String(d.error ?? ''),
     groupNames: Array.isArray(d.groupNames) ? (d.groupNames as string[]) : [],
     unsubscribed: num(d.unsubscribed),
+    pushed: num(d.pushed),
     createdBy: String(d.createdBy ?? ''), createdByName: String(d.createdByName ?? ''),
     createdAt: (d.createdAt as Timestamp | null) ?? null, updatedAt: (d.updatedAt as Timestamp | null) ?? null,
     updatedByName: String(d.updatedByName ?? ''),
@@ -132,7 +135,7 @@ export interface Stats {
   queued: number
   unsubscribed: number
 }
-export interface SendProgress { id: string; status: InviteStatus; total: number; sent: number; failed: number; scheduledAt: number; more: boolean; error: string }
+export interface SendProgress { id: string; status: InviteStatus; total: number; sent: number; failed: number; pushed: number; scheduledAt: number; more: boolean; error: string }
 
 export const inviteSetup = () => adminCall<InviteSetup>('/api/invites/setup')
 export const countGuests = (id: string) => adminCall<Count>('/api/invites/count', { id })

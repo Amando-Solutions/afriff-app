@@ -12,7 +12,7 @@ import { MailerError } from '../../emails/types'
 import { inviteLinkSigner, TEST_GUEST } from '../links'
 import { BATCH, SCHEDULE_MAX_MS, createInvites, tagFor } from '../logic'
 import type { InviteRecord, OneEmail } from '../types'
-import { fakeInviteMailer, memoryInvites } from './fakes'
+import { fakeInviteMailer, fakePusher, memoryInvites } from './fakes'
 
 const BASE = 'https://staff.example.com'
 const APP = 'https://app.example.com'
@@ -24,18 +24,19 @@ const WITH_ART: InviteContent = { ...INVITE, subject: 'Your invitation', artwork
 function setup(opts: { clock?: () => number } = {}) {
   const db = memoryInvites()
   const brevo = fakeInviteMailer()
+  const phones = fakePusher()
   const links = inviteLinkSigner('test-secret')
   let n = 0
-  const inv = createInvites({ store: db.store, mailer: brevo.mailer, links, appUrl: APP, now: opts.clock ?? (() => NOW), newBatchId: () => `batch-${++n}` })
+  const inv = createInvites({ store: db.store, mailer: brevo.mailer, links, pusher: phones.pusher, appUrl: APP, now: opts.clock ?? (() => NOW), newBatchId: () => `batch-${++n}` })
   db.groups.set('vip', 'Gala VIPs')
   db.groups.set('press', 'Press')
-  return { db, brevo, links, inv }
+  return { db, brevo, phones, links, inv }
 }
 
 function draft(db: ReturnType<typeof memoryInvites>, id: string, content: InviteContent, audience: Partial<InviteRecord['audience']> = {}, extra: Partial<InviteRecord> = {}) {
   db.invites.set(id, {
     ...content, id, audience: { groups: [], people: [], exclude: [], ...audience }, parentId: '', status: 'review', scheduledAt: 0, batchId: '',
-    total: 0, sent: 0, failed: 0, failures: [], runs: 0, lockUntil: 0, error: '', linkBase: '', groupNames: [], unsubscribed: 0,
+    total: 0, sent: 0, failed: 0, failures: [], runs: 0, lockUntil: 0, error: '', linkBase: '', groupNames: [], unsubscribed: 0, pushed: 0,
     createdByName: 'Ed Editor', sentByName: '', sentAt: 0, finishedAt: 0, ...extra,
   })
 }
@@ -346,6 +347,83 @@ describe('late additions, updates and bounced addresses', () => {
     const p = await sendAll(inv, 'inv-b', 'resend')
     assert.equal(p.status, 'sent')
     assert.deepEqual(brevo.emails().slice(before).map((e) => e.to.email), ['dayo@example.com'])
+  })
+})
+
+describe('push notifications to guests’ phones', () => {
+  it('guests who use the app (signed in, alerts on) also get a push; hand-added guests get the email only', async () => {
+    const { db, brevo, phones, inv } = setup()
+    threeGuests(db)
+    phones.phone('u1')
+    draft(db, 'inv-push', INVITE, { groups: ['vip'] })
+    const p = await sendAll(inv, 'inv-push')
+    assert.equal(brevo.emails().length, 3, 'everyone still gets the email')
+    assert.equal(phones.pushes.length, 1)
+    assert.deepEqual(phones.pushes[0]!.uids.sort(), ['u1', 'u2'], 'only app users are asked for (Dayo was added by hand)')
+    assert.deepEqual(phones.pushes[0]!.push.data, {
+      title: 'You’re invited: Opening Night Gala',
+      body: 'Sunday 1 November 2026, 7:00 PM · Filmhouse Landmark. Your invitation is in your email.',
+      url: '/',
+      tag: 'invite-inv-push',
+    })
+    assert.equal(phones.pushes[0]!.push.ttlSeconds, 3 * 24 * 3600, 'kept for 3 days at most')
+    assert.equal(p.pushed, 1, 'Bola has no phone with alerts on')
+    assert.equal(db.invites.get('inv-push')!.pushed, 1)
+    const guests = db.guests('inv-push')
+    assert.ok(guests.find((g) => g.uid === 'u1')!.pushedAt > 0)
+    assert.equal(guests.find((g) => g.uid === 'u2')!.pushedAt, 0)
+    assert.equal(guests.find((g) => g.key === 'dayo@example.com')!.pushedAt, 0)
+  })
+
+  it('an update’s push says "Change of plan" and what changed', async () => {
+    const { db, phones, inv } = setup()
+    threeGuests(db)
+    phones.phone('u1')
+    draft(db, 'inv-pu', INVITE, { groups: ['vip'] })
+    await sendAll(inv, 'inv-pu')
+    draft(db, 'upd-pu', { ...INVITE, kind: 'update', message: 'We now start at 8 PM.' }, {}, { parentId: 'inv-pu' })
+    await sendAll(inv, 'upd-pu')
+    const last = phones.pushes.at(-1)!
+    assert.equal(last.push.data.title, 'Change of plan: Opening Night Gala')
+    assert.equal(last.push.data.body, 'We now start at 8 PM. The details are in your email.')
+    assert.equal(db.invites.get('upd-pu')!.pushed, 1)
+  })
+
+  it('nobody gets it twice: "new people only" pushes just the new guests', async () => {
+    const { db, phones, inv } = setup()
+    threeGuests(db)
+    phones.phone('u1')
+    draft(db, 'inv-p2', INVITE, { groups: ['vip'] })
+    await sendAll(inv, 'inv-p2')
+    db.signUp('u3', 'femi@example.com', 'Femi', 'Kuti', true)
+    db.contact('femi@example.com', { groups: ['vip'] })
+    phones.phone('u3')
+    const p = await sendAll(inv, 'inv-p2', 'new')
+    assert.deepEqual(phones.pushes.at(-1)!.uids, ['u3'])
+    assert.equal(p.pushed, 2)
+  })
+
+  it('a scheduled invite goes by email only (nothing runs at that time to send a push)', async () => {
+    const { db, brevo, phones, inv } = setup()
+    threeGuests(db)
+    phones.phone('u1')
+    draft(db, 'inv-ps', INVITE, { groups: ['vip'] })
+    await sendAll(inv, 'inv-ps', 'all', NOW + 24 * 3_600_000)
+    assert.equal(brevo.emails().length, 3)
+    assert.equal(phones.pushes.length, 0)
+    assert.equal(db.invites.get('inv-ps')!.pushed, 0)
+  })
+
+  it('a push failing never stops the emails', async () => {
+    const { db, brevo, phones, inv } = setup()
+    threeGuests(db)
+    phones.phone('u1')
+    phones.setDown(new Error('FCM is down'))
+    draft(db, 'inv-pf', INVITE, { groups: ['vip'] })
+    const p = await sendAll(inv, 'inv-pf')
+    assert.equal(p.status, 'sent')
+    assert.equal(brevo.emails().length, 3)
+    assert.equal(p.pushed, 0)
   })
 })
 

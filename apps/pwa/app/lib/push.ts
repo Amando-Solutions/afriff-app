@@ -11,8 +11,12 @@
 //   off: remove it from the topic and delete the address.
 // The phone's service worker shows what arrives (public/push-sw.js).
 //
-// Opt-in, never automatic. Kept on this phone (localStorage): we store no
-// list of phones; the address only lives in FCM's topic.
+// Opt-in, never automatic. Kept on this phone (localStorage). For someone
+// signed in, the staff app's server also links this phone to their account
+// (it sends their Firebase ID token along), so invitations sent to them reach
+// it as a notification too (apps/admin/server/utils/pushDevices.ts). Logging
+// out, deleting the account or turning alerts off unlinks it. Signed out, we
+// store no list of phones; the address only lives in FCM's topic.
 //
 // iPhone: alerts only work in the app added to the Home Screen (iOS 16.4+),
 // so in Safari the switch is replaced by how to add it (AlertsSwitch.vue).
@@ -23,7 +27,8 @@ const KEY = 'afriff-push'
 /** Re-join the topic now and then anyway, in case the phone dropped off it. */
 const REFRESH_MS = 7 * 24 * 60 * 60 * 1000
 
-interface Saved { token: string; at: number }
+/** uid: the account this phone is linked to on the server (null/missing = none) */
+interface Saved { token: string; at: number; uid?: string | null }
 
 const store = {
   get: (): Saved | null => {
@@ -46,6 +51,9 @@ const store = {
 
 let config = { adminUrl: '', vapidKey: '' }
 
+/** Who's signed in here (lib/account.ts tells us); known = it has, once, since the app started */
+const owner = { uid: null as string | null, known: false }
+
 export const pushState = reactive({
   on: false,
   permission: 'default' as NotificationPermission,
@@ -66,14 +74,30 @@ export const pushConfigured = () => Boolean(config.adminUrl && config.vapidKey) 
 export const browserCanPush = () =>
   typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 
-async function tellServer(action: 'subscribe' | 'unsubscribe', token: string) {
+/** Proof that `uid` is signed in on this phone (a Firebase ID token), or '' */
+async function idTokenOf(uid: string | null): Promise<string> {
+  if (!uid) return ''
+  try {
+    const { signedInUser } = await import('./firebase/account')
+    const user = await signedInUser()
+    return user?.uid === uid ? await user.getIdToken() : ''
+  } catch {
+    return ''
+  }
+}
+
+/** Joins (or leaves) the alerts topic; joining for `uid` also links this phone to them. Returns the uid it's linked to. */
+async function tellServer(action: 'subscribe' | 'unsubscribe', token: string, uid: string | null = null): Promise<string | null> {
+  const idToken = action === 'subscribe' ? await idTokenOf(uid) : ''
   // text/plain: no extra preflight round trip on slow data (see the server side)
   const res = await fetch(`${config.adminUrl}/api/push/${action}`, {
     method: 'POST',
     headers: { 'content-type': 'text/plain' },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify(idToken ? { token, idToken } : { token }),
   })
   if (!res.ok) throw new Error(`the alerts service answered ${res.status}`)
+  const answer = (await res.json().catch(() => null)) as { linked?: unknown } | null
+  return answer?.linked === true ? uid : null
 }
 
 const reason = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -88,8 +112,8 @@ export async function turnOnAlerts() {
   try {
     const { pushToken } = await import('./firebase/messaging')
     const token = await pushToken(config.vapidKey)
-    await tellServer('subscribe', token)
-    store.set({ token, at: Date.now() })
+    const uid = await tellServer('subscribe', token, owner.uid)
+    store.set({ token, at: Date.now(), uid })
     pushState.on = true
   } catch (e) {
     pushState.error = navigator.onLine === false
@@ -119,9 +143,26 @@ export async function turnOffAlerts() {
 }
 
 /**
+ * Called by lib/account.ts when someone signs in (or is found signed in as the
+ * app starts), and when they log out or their account is deleted: with alerts
+ * on, this phone is linked to them on the server, or unlinked. Quiet: if it
+ * can't be done now, refreshAlerts tries again on the next start.
+ */
+export function setAlertsOwner(uid: string | null) {
+  owner.uid = uid
+  owner.known = true
+  const saved = store.get()
+  if (!saved || (saved.uid ?? null) === uid || !pushConfigured() || navigator.onLine === false) return
+  void tellServer('subscribe', saved.token, uid).then((linked) => {
+    if (owner.uid === uid && store.get()?.token === saved.token) store.set({ ...saved, uid: linked })
+  }, () => {})
+}
+
+/**
  * On each start, if alerts are on: notice if they were blocked in the phone's
  * settings, and re-join the topic if FCM renewed this phone's address (or
- * weekly anyway). Quiet: any failure is retried on the next start.
+ * weekly anyway), or if it's linked to someone other than who's signed in
+ * here. Quiet: any failure is retried on the next start.
  */
 export async function refreshAlerts() {
   const saved = store.get()
@@ -136,9 +177,10 @@ export async function refreshAlerts() {
   try {
     const { pushToken } = await import('./firebase/messaging')
     const token = await pushToken(config.vapidKey)
-    if (token === saved.token && Date.now() - saved.at < REFRESH_MS) return
-    await tellServer('subscribe', token)
-    store.set({ token, at: Date.now() })
+    const linkedRight = !owner.known || (saved.uid ?? null) === owner.uid
+    if (token === saved.token && Date.now() - saved.at < REFRESH_MS && linkedRight) return
+    const uid = owner.known ? owner.uid : (saved.uid ?? null)
+    store.set({ token, at: Date.now(), uid: await tellServer('subscribe', token, uid) })
   } catch {
     /* next start tries again */
   }

@@ -9,6 +9,7 @@
 // (the server remembers what it sent in pushLog/{newsId}). An item whose banner
 // end time ("until") has passed isn't sent at all.
 import type { NewsItem } from '@afriff/core/types/festival'
+import { clockText, defaultSubject, eventDateText, eventSpan, type InviteContent } from './invites'
 
 /** The FCM topic every phone with alerts on is subscribed to. */
 export const PUSH_TOPIC = 'news'
@@ -55,6 +56,44 @@ export function pushPayload(n: PushableNews, now = Date.now()) {
       tag: `news-${n.id}`,
     },
     ttlSeconds: Math.max(60, Math.min(MAX_TTL_SECONDS, untilSeconds)),
+  }
+}
+
+// ---------- Personal pushes: invitations ----------
+//
+// An invitation (console → Invitations) also reaches the invited person's own
+// phones: those where they're signed in to the attendee app with "Alerts on
+// this phone" switched on (server/utils/pushDevices.ts). Sent with the email,
+// to the same people; the email has the details, the push says to look there.
+
+/** A notification for some people's own phones. */
+export interface PersonalPush {
+  data: { title: string; body: string; url: string; tag: string }
+  ttlSeconds: number
+}
+
+/** Phones offline longer than this don't get an invitation's push late (the email still has it). */
+const INVITE_TTL_SECONDS = 3 * 24 * 60 * 60
+
+/** "You're invited: Opening Night Gala" / "Sunday 1 November 2026, 7:00 PM · Filmhouse Landmark. Your invitation is in your email." */
+export function invitePush(id: string, c: Pick<InviteContent, 'kind' | 'message' | 'event'>, now = Date.now()): PersonalPush {
+  const e = c.event
+  const update = c.kind === 'update'
+  const when = [eventDateText(e.date), clockText(e.time)].filter(Boolean).join(', ')
+  const details = [when, clip(e.venue, 80)].filter(Boolean).join(' · ')
+  const body = update
+    ? `${clip(c.message, 150)} The details are in your email.`
+    : `${details ? `${details}. ` : ''}Your invitation is in your email.`
+  const span = eventSpan(e)
+  const untilEnd = span ? Math.floor((span.end.getTime() - now) / 1000) : INVITE_TTL_SECONDS
+  return {
+    data: {
+      title: clip(defaultSubject(c), 90),
+      body: clip(body, 200),
+      url: '/',
+      tag: `invite-${id}`,
+    },
+    ttlSeconds: Math.max(60, Math.min(INVITE_TTL_SECONDS, untilEnd)),
   }
 }
 

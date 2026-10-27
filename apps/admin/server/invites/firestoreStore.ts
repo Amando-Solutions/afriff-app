@@ -35,6 +35,7 @@ function inviteFrom(id: string, d: DocumentData): InviteRecord {
     linkBase: s(d.linkBase),
     groupNames: strings(d.groupNames),
     unsubscribed: n(d.unsubscribed),
+    pushed: n(d.pushed),
     createdByName: s(d.createdByName),
     sentByName: s(d.sentByName),
     sentAt: n(d.sentAt),
@@ -48,6 +49,7 @@ function recipientFrom(key: string, d: DocumentData): RecipientRecord {
     groups: strings(d.groups), vip: d.vip === true, addedByAfriff: d.addedByAfriff === true,
     status: d.status === 'sent' || d.status === 'failed' ? d.status : 'queued',
     reason: s(d.reason), run: n(d.run), sentAt: n(d.sentAt), fixedFrom: s(d.fixedFrom), unsubscribedAt: n(d.unsubscribedAt),
+    pushedAt: n(d.pushedAt),
   }
 }
 

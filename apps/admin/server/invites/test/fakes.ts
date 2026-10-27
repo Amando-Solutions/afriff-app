@@ -1,8 +1,9 @@
-// A pretend database and a pretend Brevo for the invitation tests: same
-// behaviour as firestoreStore.ts / brevo.ts, kept in memory.
+// A pretend database, a pretend Brevo and pretend phones for the invitation
+// tests: same behaviour as firestoreStore.ts / brevo.ts / pushDevices.ts, kept in memory.
 import { contactFrom, contactKey, mergePeople, type AttendeeFacts, type ContactRecord } from '../../../shared/contacts'
 import { MailerError } from '../../emails/types'
-import type { Batch, DeliveryProblem, InviteMailer, InviteRecord, InviteStore, RecipientRecord } from '../types'
+import type { PersonalPush } from '../../../shared/push'
+import type { Batch, DeliveryProblem, InviteMailer, InvitePusher, InviteRecord, InviteStore, RecipientRecord } from '../types'
 
 export function memoryInvites() {
   const invites = new Map<string, InviteRecord>()
@@ -117,5 +118,25 @@ export function fakeInviteMailer(opts: { ready?: boolean } = {}) {
     setAllowance: (n: number) => { allowance = n },
     setDown: (e: MailerError | null) => { down = e },
     bounce: (tag: string, email: string) => problems.push({ tag, email, kind: 'hardBounces', reason: 'Mailbox does not exist', date: '2026-10-28T10:00:00Z' }),
+  }
+}
+
+/** Pretend phones (pushDevices.ts): who has one linked, and every push asked for. */
+export function fakePusher() {
+  const phones = new Set<string>()
+  const pushes: { uids: string[]; push: PersonalPush }[] = []
+  let down: Error | null = null
+  const pusher: InvitePusher = {
+    async toPeople(uids, push) {
+      if (down) throw down
+      pushes.push({ uids: [...uids], push: structuredClone(push) })
+      return new Set(uids.filter((u) => phones.has(u)))
+    },
+  }
+  return {
+    pusher, pushes,
+    /** this person is signed in on a phone with alerts on */
+    phone: (uid: string) => phones.add(uid),
+    setDown: (e: Error | null) => { down = e },
   }
 }

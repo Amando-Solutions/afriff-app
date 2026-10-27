@@ -4,6 +4,7 @@
 // Brevo (test/invites.test.ts); the real ones are firestoreStore.ts and brevo.ts.
 import type { Person } from '../../shared/contacts'
 import type { Audience, InviteContent } from '../../shared/invites'
+import type { PersonalPush } from '../../shared/push'
 
 /**
  * invites/{id}.status
@@ -44,6 +45,8 @@ export interface InviteRecord extends InviteContent {
   /** the groups' names when it was sent, for the log */
   groupNames: string[]
   unsubscribed: number
+  /** guests whose phones also got a push notification */
+  pushed: number
   createdByName: string
   sentByName: string
   sentAt: number
@@ -68,6 +71,8 @@ export interface RecipientRecord {
   /** the address it first went to, when an admin fixed a bounced one */
   fixedFrom: string
   unsubscribedAt: number
+  /** ms: when a push notification reached their phone (0 = none: no app account, no alerts, or scheduled) */
+  pushedAt: number
 }
 
 /** The database, as the logic needs it. */
@@ -146,4 +151,13 @@ export interface InviteMailer {
   cancel(batchId: string): Promise<void>
   stats(tag: string): Promise<InviteStats>
   problems(tag: string): Promise<DeliveryProblem[]>
+}
+
+/**
+ * Push notifications to guests' own phones (server/utils/pushDevices.ts):
+ * phones where they're signed in to the attendee app with alerts on.
+ */
+export interface InvitePusher {
+  /** Returns whose phones it reached. */
+  toPeople(uids: string[], push: PersonalPush): Promise<Set<string>>
 }

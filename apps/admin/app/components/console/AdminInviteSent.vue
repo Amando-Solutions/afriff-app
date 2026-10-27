@@ -48,6 +48,7 @@ const tiles = computed(() => {
   const s = stats.value?.stats
   return [
     { label: 'sent', value: c.value.sent },
+    { label: 'got a push', value: c.value.pushed },
     { label: 'delivered', value: s?.delivered },
     { label: 'opened', value: s?.uniqueOpens },
     { label: 'bounced', value: s ? s.hardBounces + s.softBounces + s.blocked + s.invalid : undefined },
@@ -149,14 +150,14 @@ const STATUS: Record<InviteStatus, { label: string; tone: 'success' | 'accent' |
           <RefreshCwIcon class="size-4" :class="statsState.busy && 'animate-spin'" />
         </button>
       </div>
-      <div class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+      <div class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
         <div v-for="t in tiles" :key="t.label" class="card flex flex-col p-3">
           <span class="font-display text-h1 font-semibold tabular-nums">{{ t.value ?? '–' }}</span>
           <span class="text-label text-muted">{{ t.label }}</span>
         </div>
       </div>
       <p class="mt-2 text-label text-muted">
-        From Brevo, which can take a few minutes to catch up. "Opened" is a rough guide: some email apps (Apple Mail) open every email by themselves, others block the counting.
+        From Brevo, which can take a few minutes to catch up ("got a push" is ours: guests logged in to the AFRIFF app with alerts on). "Opened" is a rough guide: some email apps (Apple Mail) open every email by themselves, others block the counting.
         {{ c.failed ? `${c.failed} turned down by Brevo when sending.` : '' }}
       </p>
       <p v-if="statsState.error" class="mt-2 text-meta text-danger" role="alert">{{ statsState.error }}</p>

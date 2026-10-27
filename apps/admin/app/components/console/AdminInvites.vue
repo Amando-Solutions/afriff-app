@@ -5,6 +5,7 @@ import {
   createInvite, inviteSetup, lagosText, loadStats, shownStatus, watchInvites,
   type InviteDoc, type InviteSetup, type InviteStatus, type Stats,
 } from '~/lib/invites'
+import { matchesSearch, searchWords } from '~/lib/search'
 import { useAdminAuth } from '~/lib/useAdminAuth'
 import { errMsg, whenLagos } from '~/lib/util'
 
@@ -64,6 +65,13 @@ const STATUS: Record<InviteStatus, { label: string; tone: 'success' | 'accent' |
   sent: { label: 'Sent', tone: 'success' },
 }
 const waiting = computed(() => (list.value ?? []).filter((c) => c.status === 'review').length)
+
+// Search: the event, its groups, who started it, its status ("draft", "sent")
+const q = ref('')
+const shown = computed(() => {
+  const words = searchWords(q.value)
+  return (list.value ?? []).filter((c) => matchesSearch(words, c.event.name || 'Untitled', c.event.venue, c.groupNames, c.createdByName, STATUS[shownStatus(c)].label, c.parentId && 'Update'))
+})
 </script>
 
 <template>
@@ -95,8 +103,12 @@ const waiting = computed(() => (list.value ?? []).filter((c) => c.status === 're
     <p v-if="listError" class="mt-4 text-meta text-danger" role="alert">{{ listError }}</p>
     <p v-else-if="list === null" class="mt-4 text-muted">Loading…</p>
     <p v-else-if="!list.length" class="mt-4 text-muted">No invitations yet.</p>
+    <template v-else>
+      <AdminSearch v-model="q" class="mt-4" label="Search by event, group or status" />
+      <p v-if="!shown.length" class="mt-3 text-muted">No invitation matches “{{ q.trim() }}”.</p>
+    </template>
     <ul class="mt-3 divide-y divide-line">
-      <li v-for="c in list ?? []" :key="c.id">
+      <li v-for="c in shown" :key="c.id">
         <NuxtLink :to="`/admin/invites/${c.id}`" class="flex flex-col gap-1 py-3 hover:bg-hover/40">
           <span class="flex flex-wrap items-center gap-2">
             <span class="min-w-0 flex-1 truncate font-semibold">{{ c.event.name || 'Untitled' }}</span>
@@ -105,7 +117,7 @@ const waiting = computed(() => (list.value ?? []).filter((c) => c.status === 're
           </span>
           <span class="text-meta text-muted">
             <template v-if="c.status === 'draft' || c.status === 'review'">Started {{ whenLagos(c.createdAt) }} by {{ c.createdByName || 'someone' }}</template>
-            <template v-else>{{ c.status === 'scheduled' && c.scheduledAt > Date.now() ? 'Goes out' : 'Sent' }} {{ lagosText(c.scheduledAt || c.sentAt) }} · {{ c.sent }} {{ c.sent === 1 ? 'person' : 'people' }}{{ c.unsubscribed ? ` · ${c.unsubscribed} unsubscribed` : '' }}</template>
+            <template v-else>{{ c.status === 'scheduled' && c.scheduledAt > Date.now() ? 'Goes out' : 'Sent' }} {{ lagosText(c.scheduledAt || c.sentAt) }} · {{ c.sent }} {{ c.sent === 1 ? 'person' : 'people' }}{{ c.pushed ? ` · ${c.pushed} by push too` : '' }}{{ c.unsubscribed ? ` · ${c.unsubscribed} unsubscribed` : '' }}</template>
             <template v-if="c.groupNames.length"> · {{ c.groupNames.join(', ') }}</template>
           </span>
           <span v-if="delivery(c.id)" class="text-label text-muted">{{ delivery(c.id) }}</span>

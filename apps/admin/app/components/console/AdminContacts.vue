@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { CrownIcon, DownloadIcon, ListChecksIcon, PrinterIcon, RefreshCwIcon, SearchIcon, UserPlusIcon } from 'lucide-vue-next'
+import { CrownIcon, DownloadIcon, ListChecksIcon, PrinterIcon, RefreshCwIcon, UserPlusIcon } from 'lucide-vue-next'
 import { CONSENT_LABEL, SOURCE_LABEL, byName, type Person, type Source } from '#shared/contacts'
 import { canOpen } from '~/lib/access'
 import { createGroup, groupNameProblem, loadPeople, setMembership, watchGroups, watchVipLinks, type Group, type VipLink } from '~/lib/contacts'
 import { csvDownload } from '~/lib/reports'
+import { matchesSearch, searchWords } from '~/lib/search'
 import { useAdminAuth } from '~/lib/useAdminAuth'
 import { errMsg } from '~/lib/util'
 
@@ -42,9 +43,9 @@ const membersOf = (id: string) => people.value.filter((p) => p.groups.includes(i
 // ---------- Filters ----------
 const f = reactive({ search: '', group: '' as string, vip: false, email: '' as '' | 'yes' | 'no', source: '' as '' | Source })
 const shown = computed(() => {
-  const q = f.search.trim().toLowerCase()
+  const words = searchWords(f.search)
   return people.value.filter((p) =>
-    (!q || `${p.firstName} ${p.lastName} ${p.email}`.toLowerCase().includes(q))
+    matchesSearch(words, p.firstName, p.lastName, p.email)
     && (!f.group || (f.group === 'none' ? !p.groups.some((g) => groupName(g)) : p.groups.includes(f.group)))
     && (!f.vip || p.vip)
     && (!f.email || (f.email === 'yes') === p.canEmail)
@@ -177,10 +178,7 @@ const counts = computed(() => ({ all: people.value.length, emailable: people.val
     <!-- ---------- The list ---------- -->
     <section class="mt-8">
       <h2 class="font-display text-h2 font-semibold">People</h2>
-      <label class="relative mt-3 block">
-        <SearchIcon class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-        <input v-model="f.search" type="search" maxlength="100" class="field-input pl-9" placeholder="Search by name or email" aria-label="Search by name or email">
-      </label>
+      <AdminSearch v-model="f.search" class="mt-3" label="Search by name or email" />
       <div class="mt-3 flex flex-wrap items-center gap-2">
         <UiChip small :on="f.vip" @click="f.vip = !f.vip"><CrownIcon /> VIPs</UiChip>
         <UiChip small :on="f.email === 'yes'" @click="f.email = f.email === 'yes' ? '' : 'yes'">Can be emailed</UiChip>
