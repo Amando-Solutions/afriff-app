@@ -7,7 +7,8 @@
 //                                 empty = festival emails' NUXT_EMAIL_FROM_ADDRESS
 //   NUXT_INVITE_FROM_NAME         optional, default "AFRIFF"
 //   NUXT_INVITE_REPLY_TO          optional: where guests' replies go
-//   NUXT_FIREBASE_SERVICE_ACCOUNT reading contacts, writing the guest list, signing links
+//   NUXT_FIREBASE_SERVICE_ACCOUNT reading contacts, writing the guest list, signing links,
+//                                 push notifications to guests' phones (pushDevices.ts)
 //
 // WHO MAY DO WHAT (checked here, on the server):
 //   admins and editors  count guests, send tests, see the log
@@ -17,6 +18,7 @@ import { brevoInvites } from '../invites/brevo'
 import { firestoreInvites } from '../invites/firestoreStore'
 import { inviteLinkSigner } from '../invites/links'
 import { createInvites, type Invitations } from '../invites/logic'
+import { pushToPeople } from './pushDevices'
 
 export function inviteMailer() {
   const c = useRuntimeConfig()
@@ -35,6 +37,7 @@ export function invitations(): Invitations {
     store: firestoreInvites(adminDb()),
     mailer: inviteMailer(),
     links: inviteLinkSigner(serverSecret()),
+    pusher: { toPeople: pushToPeople },
     appUrl: String(useRuntimeConfig().public.attendeeUrl || ''),
   })
   return invites

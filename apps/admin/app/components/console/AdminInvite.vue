@@ -66,8 +66,9 @@ async function ask(mode: Mode, scheduledAt = 0) {
 const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 
 function finished(p: SendProgress) {
-  if (p.status === 'scheduled') send.note = `Scheduled: Brevo sends it at ${lagosText(p.scheduledAt)} (Lagos time) to ${plural(p.sent, 'person', 'people')}.`
-  else if (p.status === 'sent') send.note = `Sent to ${plural(p.sent, 'person', 'people')}${p.failed ? `; ${plural(p.failed, 'address', 'addresses')} turned down (listed below)` : ''}.`
+  const pushed = p.pushed ? ` ${plural(p.pushed, 'guest')} also got a push notification on their phone.` : ''
+  if (p.status === 'scheduled') send.note = `Scheduled: Brevo sends it at ${lagosText(p.scheduledAt)} (Lagos time) to ${plural(p.sent, 'person', 'people')}, by email only (no push notifications for scheduled invites).`
+  else if (p.status === 'sent') send.note = `Sent to ${plural(p.sent, 'person', 'people')}${p.failed ? `; ${plural(p.failed, 'address', 'addresses')} turned down (listed below)` : ''}.${pushed}`
   else if (p.status === 'paused') send.error = `Paused after ${plural(p.sent, 'email')}. ${p.error}`
   else send.note = `Sent ${plural(p.sent, 'email')} so far. Press Continue sending to carry on.`
 }

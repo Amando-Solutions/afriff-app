@@ -26,6 +26,7 @@ import { cleanName, nameProblem } from '@afriff/core/accounts/rules'
 import { firebaseConfig } from '@afriff/core/firebase/config'
 import { applySave, currentPlan, replacePlan, type SaveIntent } from './store'
 import { planIsSaved, startPlanSync, stopPlanSync } from './planSync'
+import { setAlertsOwner } from './push'
 
 const PROFILE_KEY = 'afriff-account-v1'
 /** sessionStorage: what they tapped before being sent to sign up */
@@ -227,6 +228,8 @@ function signedIn(fb: typeof import('./firebase/account'), profile: AccountProfi
   void startPlanSync(profile.uid)
   savePending()
   watchSignOut(fb)
+  // with alerts on, invitations sent to them reach this phone too
+  setAlertsOwner(profile.uid)
 }
 
 /** If the sign-in ends by itself (account deleted, e.g. from another phone), forget it here too. */
@@ -422,7 +425,10 @@ export async function sendResetLink(email: string) {
  */
 export async function resumeAccount(): Promise<boolean> {
   const profile = account.profile
-  if (!profile) return true
+  if (!profile) {
+    setAlertsOwner(null)
+    return true
+  }
   const fb = await import('./firebase/account')
   const user = await fb.signedInUser().catch(() => null)
   if (!user || user.uid !== profile.uid) {
@@ -434,6 +440,7 @@ export async function resumeAccount(): Promise<boolean> {
   if (profile.signIn !== signIn) saveProfile({ ...profile, signIn })
   void startPlanSync(user.uid)
   watchSignOut(fb)
+  setAlertsOwner(user.uid)
   return true
 }
 
@@ -486,6 +493,7 @@ export async function deleteAccount(password: string | null) {
 /** Forget the account on this phone, and the My Festival that belonged to it. */
 function forgetHere() {
   stopPlanSync(true)
+  setAlertsOwner(null)
   saveProfile(null)
   replacePlan({ scheduled: [], watched: {}, queuesChecked: [] })
 }

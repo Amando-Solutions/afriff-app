@@ -117,7 +117,7 @@ const shown = computed(() => {
           </span>
           <span class="text-meta text-muted">
             <template v-if="c.status === 'draft' || c.status === 'review'">Started {{ whenLagos(c.createdAt) }} by {{ c.createdByName || 'someone' }}</template>
-            <template v-else>{{ c.status === 'scheduled' && c.scheduledAt > Date.now() ? 'Goes out' : 'Sent' }} {{ lagosText(c.scheduledAt || c.sentAt) }} · {{ c.sent }} {{ c.sent === 1 ? 'person' : 'people' }}{{ c.unsubscribed ? ` · ${c.unsubscribed} unsubscribed` : '' }}</template>
+            <template v-else>{{ c.status === 'scheduled' && c.scheduledAt > Date.now() ? 'Goes out' : 'Sent' }} {{ lagosText(c.scheduledAt || c.sentAt) }} · {{ c.sent }} {{ c.sent === 1 ? 'person' : 'people' }}{{ c.pushed ? ` · ${c.pushed} by push too` : '' }}{{ c.unsubscribed ? ` · ${c.unsubscribed} unsubscribed` : '' }}</template>
             <template v-if="c.groupNames.length"> · {{ c.groupNames.join(', ') }}</template>
           </span>
           <span v-if="delivery(c.id)" class="text-label text-muted">{{ delivery(c.id) }}</span>

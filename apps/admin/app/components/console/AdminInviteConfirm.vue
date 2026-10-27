@@ -23,7 +23,7 @@ const skipped = computed(() => Object.entries(props.count.skipped).filter(([, k]
     <p class="font-display text-h1 font-semibold">{{ headline }}</p>
     <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-meta">
       <dt class="text-muted">Subject</dt><dd>{{ subject }}</dd>
-      <dt class="text-muted">When</dt><dd>{{ when ? `${when} (Lagos time). Brevo holds it until then.` : 'Now' }}</dd>
+      <dt class="text-muted">When</dt><dd>{{ when ? `${when} (Lagos time). Brevo holds it until then. By email only: push notifications go only with Send now.` : 'Now. Guests who use the AFRIFF app (logged in, alerts on) also get a push notification.' }}</dd>
       <template v-if="mode === 'new'">
         <dt class="text-muted">Already sent</dt><dd>{{ people(count.send - count.newPeople) }} (they don't get it again)</dd>
       </template>
