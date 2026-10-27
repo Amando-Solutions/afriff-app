@@ -1,25 +1,30 @@
 // Attendee accounts on the phone: who's signed in, and signing up, logging
-// in, Forgot PIN, the emails switch, logging out and deleting the account.
+// in, "Forgot password?", the emails switch, logging out and deleting the
+// account.
 //
-// The PIN check, wrong-PIN pauses and emailed codes happen on the staff app's
-// server (apps/admin/server/api/account/*, a different address: adminUrl).
-// After a good PIN it answers with a token, and lib/firebase/account.ts signs
-// this phone in to Firebase with it. The person is then remembered here
-// (localStorage) until they log out, and My Festival follows them between
-// phones (lib/planSync.ts).
+// FIREBASE DOES THE SIGN-IN ITSELF (user decision 27 Oct; replaces an earlier
+// 4-digit PIN checked by our server): email + password, Firebase's own protection
+// against guessing, and Firebase's own "reset your password" email with a
+// link. The phone talks to Firebase directly (lib/firebase/account.ts), so
+// accounts don't depend on the staff app being up. The person is remembered
+// here (localStorage) and by Firebase until they log out, and My Festival
+// follows them between phones (lib/planSync.ts).
 //
-// The sign-up page shows first (middleware/account.global.ts). It never locks
-// people out of the app when accounts can't work: no signal, the server
-// unreachable, accounts not set up yet, or an admin switched "Require
-// sign-up" off. Then "Continue for now" / "Skip for now" lets them in for this
-// visit, and the page shows again next time the app is opened.
+// WHEN IT'S ASKED FOR (user decision 27 Oct): anyone can browse the whole app
+// without an account. Saving to My Festival (+ on a screening or event,
+// "Seen it" on a film) asks first: with no account, the person goes to the
+// sign-up page (/auth), and what they tapped is saved once they've signed up
+// or logged in (plugins/account.client.ts, lib/store.ts guardSaves).
+// With no internet, signing up can't happen, so the tap shows a short message
+// instead (plugins/account.client.ts) and nothing is saved. It doesn't ask
+// at all when an admin switches "Require an account" off (console → Attendees).
 import { reactive } from 'vue'
-import { currentPlan, replacePlan } from './store'
+import { applySave, currentPlan, replacePlan, type SaveIntent } from './store'
 import { planIsSaved, startPlanSync, stopPlanSync } from './planSync'
 
 const PROFILE_KEY = 'afriff-account-v1'
-/** sessionStorage: let in without an account, for this visit only */
-const SKIP_KEY = 'afriff-account-skip'
+/** sessionStorage: what they tapped before being sent to sign up */
+const PENDING_KEY = 'afriff-save-after-signup'
 
 export interface AccountProfile {
   uid: string
@@ -29,31 +34,52 @@ export interface AccountProfile {
   marketing: boolean
 }
 
-export interface AccountStatus {
-  /** the server can create and check accounts */
-  accounts: boolean
-  /** Forgot PIN emails can be sent */
-  email: boolean
-  /** the console's "Require sign-up" switch */
-  requireSignUp: boolean
-}
-
-interface Session {
-  token: string
-  profile: AccountProfile
-}
-
 /** A problem to show on the sign-up page, in plain words. */
 export class AccountProblem extends Error {
   constructor(
     message: string,
-    /** HTTP status; 0 = couldn't reach the server */
-    readonly status: number,
     readonly field?: string,
+    /** 'exists' | 'wrong' | 'paused' | 'unreachable' | 'signed-out' | 'details' */
     readonly reason?: string,
   ) {
     super(message)
   }
+}
+
+/** Firebase's error codes, in plain words (and which field to point at). */
+const PROBLEMS: Record<string, [string, string | undefined, string | undefined]> = {
+  'auth/email-already-in-use': ['This email is already signed up. Log in instead.', 'email', 'exists'],
+  'auth/invalid-email': ['That doesn’t look like an email address.', 'email', undefined],
+  'auth/missing-email': ['Type your email.', 'email', undefined],
+  'auth/weak-password': ['Choose a longer password (at least 8 characters).', 'password', undefined],
+  'auth/missing-password': ['Type your password.', 'password', undefined],
+  'auth/invalid-credential': ['That email and password don’t match. Check them, or tap “Forgot password?”.', 'password', 'wrong'],
+  'auth/invalid-login-credentials': ['That email and password don’t match. Check them, or tap “Forgot password?”.', 'password', 'wrong'],
+  'auth/wrong-password': ['That password isn’t right. Check it, or tap “Forgot password?”.', 'password', 'wrong'],
+  'auth/user-not-found': ['That email and password don’t match. Check them, or sign up.', 'password', 'wrong'],
+  'auth/too-many-requests': ['Too many tries. Wait a few minutes, or reset your password.', undefined, 'paused'],
+  'auth/user-disabled': ['This account has been switched off. Contact AFRIFF.', undefined, undefined],
+  'auth/network-request-failed': ['', undefined, 'unreachable'],
+  'auth/requires-recent-login': ['Log in again, then try again.', undefined, 'signed-out'],
+  'auth/user-token-expired': ['Log in again, then try again.', undefined, 'signed-out'],
+  'permission-denied': ['Your details couldn’t be saved. Log in again, then try again.', undefined, 'signed-out'],
+  unavailable: ['', undefined, 'unreachable'],
+}
+
+function problemFrom(e: unknown): AccountProblem {
+  if (e instanceof AccountProblem) return e
+  const code = String((e as { code?: unknown } | null)?.code ?? '').replace(/^firestore\//, '')
+  const [message, field, reason] = PROBLEMS[code] ?? [`Something went wrong (${code || 'unknown'}). Try again.`, undefined, undefined]
+  if (reason === 'unreachable' || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+    return new AccountProblem(
+      typeof navigator !== 'undefined' && navigator.onLine === false
+        ? 'You’re offline. Connect to the internet and try again.'
+        : 'We can’t reach AFRIFF right now. Check your connection and try again.',
+      undefined,
+      'unreachable',
+    )
+  }
+  return new AccountProblem(message, field, reason)
 }
 
 const storage = {
@@ -81,11 +107,46 @@ function readProfile(): AccountProfile | null {
 
 export const account = reactive({
   profile: readProfile(),
-  skipped: storage.get(session(), SKIP_KEY) === '1',
+  /** the console's "Require an account" switch, read as the app starts; null = not known (yet) */
+  required: null as boolean | null,
 })
 
-/** Signed in, or let in without an account for this visit */
-export const mayUseApp = () => Boolean(account.profile || account.skipped)
+/** Saving to My Festival can go ahead without asking. */
+export const canSaveNow = () => Boolean(account.profile || account.required === false)
+
+/** Read the console's switch (once, as the app starts). */
+export async function loadAccountSetting() {
+  const fb = await import('./firebase/account')
+  account.required = await fb.requireAccountSetting()
+}
+
+// ---------- What they tapped before signing up ----------
+
+/** Remember what they tapped, to save it after they sign up. */
+export function rememberSave(intent: SaveIntent) {
+  storage.set(session(), PENDING_KEY, JSON.stringify(intent))
+}
+
+function readPending(): SaveIntent | null {
+  try {
+    const p = JSON.parse(storage.get(session(), PENDING_KEY) || 'null')
+    return p && (p.kind === 'plan' || p.kind === 'seen') && typeof p.id === 'string' ? p : null
+  } catch {
+    return null
+  }
+}
+
+/** What's waiting to be saved (for the sign-up page's wording), without taking it. */
+export const pendingSave = readPending
+
+/** Left the sign-up page without signing up: nothing is saved. */
+export const dropPendingSave = () => storage.set(session(), PENDING_KEY, null)
+
+function savePending() {
+  const p = readPending()
+  dropPendingSave()
+  if (p) applySave(p)
+}
 
 /** A ?redirect= value, only if it's an address inside this app */
 export function safeRedirect(value: unknown): string | null {
@@ -98,88 +159,16 @@ function saveProfile(p: AccountProfile | null) {
   storage.set(local(), PROFILE_KEY, p ? JSON.stringify(p) : null)
 }
 
-/** "Continue for now" / "Skip for now": into the app without an account, until it's closed. */
-export function skipForNow() {
-  account.skipped = true
-  storage.set(session(), SKIP_KEY, '1')
-}
-
-// ---------- Talking to the staff app's server ----------
-
-let apiBase = ''
-
-/** Called once as the app starts (plugins/account.client.ts), with the public runtime config. */
-export function configureAccounts(pub: { adminUrl?: unknown }) {
-  apiBase = String(pub.adminUrl || '').replace(/\/+$/, '')
-}
-
-const unreachable = () =>
-  new AccountProblem(
-    typeof navigator !== 'undefined' && navigator.onLine === false
-      ? 'You\'re offline. Connect to the internet and try again.'
-      : 'We can\'t reach AFRIFF right now. Check your connection and try again.',
-    0,
-    undefined,
-    'unreachable',
-  )
-
-function withTimeout(ms: number) {
-  const c = new AbortController()
-  setTimeout(() => c.abort(), ms)
-  return c.signal
-}
-
-async function call<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  let res: Response
-  try {
-    // text/plain: no extra preflight round trip on slow data (see the server side)
-    res = await fetch(`${apiBase}/api/account/${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'text/plain' },
-      body: JSON.stringify(body),
-      signal: withTimeout(20000),
-    })
-  } catch {
-    throw unreachable()
-  }
-  const json = (await res.json().catch(() => null)) as { error?: { message?: string; field?: string; reason?: string } } | null
-  if (!res.ok) {
-    const e = json?.error
-    if (!e?.message && res.status >= 500) throw unreachable()
-    throw new AccountProblem(e?.message || `Something went wrong (${res.status}). Try again.`, res.status, e?.field, e?.reason)
-  }
-  return json as T
-}
-
-/** Can accounts be used now, and must people sign up? null = couldn't find out (offline, server down). */
-export async function fetchAccountStatus(): Promise<AccountStatus | null> {
-  if (!apiBase) return null
-  try {
-    const res = await fetch(`${apiBase}/api/account/status`, { signal: withTimeout(10000) })
-    if (!res.ok) return null
-    const s = (await res.json()) as Partial<AccountStatus>
-    return { accounts: s.accounts === true, email: s.email === true, requireSignUp: s.requireSignUp !== false }
-  } catch {
-    return null
-  }
-}
-
-// ---------- Signing in ----------
+// ---------- Signing up and in ----------
 
 let stopWatchingSignOut: (() => void) | null = null
 
-async function finish({ token, profile }: Session) {
-  const fb = await import('./firebase/account')
-  try {
-    await fb.signInWithToken(token)
-  } catch {
-    throw new AccountProblem('Your details are saved, but this phone couldn\'t finish logging in. Check your connection, then log in.', 0, undefined, 'unreachable')
-  }
+function signedIn(fb: typeof import('./firebase/account'), profile: AccountProfile) {
   saveProfile(profile)
-  account.skipped = false
-  storage.set(session(), SKIP_KEY, null)
-  // picks made before signing up are added to the account (planSync merges them)
+  // picks made before signing up are added to the account (planSync merges them),
+  // and so is whatever they tapped that sent them here
   void startPlanSync(profile.uid)
+  savePending()
   watchSignOut(fb)
 }
 
@@ -188,26 +177,66 @@ function watchSignOut(fb: typeof import('./firebase/account')) {
   stopWatchingSignOut?.()
   stopWatchingSignOut = fb.onSignedOut(() => {
     forgetHere()
-    if (typeof window !== 'undefined') window.location.assign('/auth')
+    if (typeof window !== 'undefined') window.location.assign('/')
   })
 }
 
-export async function signUp(form: { firstName: string; lastName: string; email: string; pin: string; marketing: boolean }) {
-  await finish(await call<Session>('signup', form))
+export async function signUp(form: { firstName: string; lastName: string; email: string; password: string; marketing: boolean }) {
+  const fb = await import('./firebase/account')
+  try {
+    signedIn(fb, await fb.signUp(form.email, form.password, form))
+  } catch (e) {
+    // the sign-in was made but the details didn't save (signal dropped):
+    // the sign-up page asks to save them again (finishDetails)
+    if (await fb.signedInUser().catch(() => null)) {
+      throw new AccountProblem('Your account is made. Save your details to finish.', undefined, 'details')
+    }
+    throw problemFrom(e)
+  }
 }
 
-export async function logIn(email: string, pin: string) {
-  await finish(await call<Session>('login', { email, pin }))
+/**
+ * Logs in. Throws reason 'details' when the sign-in is fine but there's no
+ * attendee record yet (a staff login, or details that didn't save): the
+ * sign-up page then asks for their name (finishDetails).
+ */
+export async function logIn(email: string, password: string) {
+  const fb = await import('./firebase/account')
+  let profile: AccountProfile | null
+  try {
+    profile = await fb.logIn(email, password)
+  } catch (e) {
+    throw problemFrom(e)
+  }
+  if (!profile) throw new AccountProblem('One more step: tell us your name.', undefined, 'details')
+  signedIn(fb, profile)
 }
 
-/** Forgot PIN, step 1: email a 6-digit code. Returns the (partly hidden) address it went to. */
-export async function sendCode(email: string): Promise<string> {
-  return (await call<{ sentTo: string }>('code', { email })).sentTo
+export async function finishDetails(form: { firstName: string; lastName: string; marketing: boolean }) {
+  const fb = await import('./firebase/account')
+  try {
+    signedIn(fb, await fb.finishDetails(form))
+  } catch (e) {
+    throw problemFrom(e)
+  }
 }
 
-/** Forgot PIN, step 2: the code and a new PIN; logs in. */
-export async function resetPin(email: string, code: string, pin: string) {
-  await finish(await call<Session>('reset', { email, code, pin }))
+/** Closed the "tell us your name" step: don't stay half signed in. */
+export async function cancelDetails() {
+  const fb = await import('./firebase/account')
+  await fb.signOutHere().catch(() => {})
+}
+
+/** "Forgot password?": Firebase emails a link to choose a new one. */
+export async function sendResetLink(email: string) {
+  const fb = await import('./firebase/account')
+  try {
+    await fb.sendReset(email)
+  } catch (e) {
+    // an unknown email isn't an error people need to see (and Firebase may not say)
+    if ((e as { code?: string }).code === 'auth/user-not-found') return
+    throw problemFrom(e)
+  }
 }
 
 /**
@@ -231,13 +260,17 @@ export async function resumeAccount(): Promise<boolean> {
 
 // ---------- In My Festival ----------
 
-/** "Emails from AFRIFF" switch: on = joins the "App subscribers" list. */
+/** "Festival emails from AFRIFF" switch: on = "App subscribers" (sent to Brevo from the console). */
 export async function setMarketing(on: boolean) {
+  const p = account.profile
+  if (!p) throw new AccountProblem('Log in again, then try again.', undefined, 'signed-out')
   const fb = await import('./firebase/account')
-  const idToken = await fb.idToken().catch(() => {
-    throw new AccountProblem('Log in again, then try again.', 401)
-  })
-  saveProfile(await call<AccountProfile>('marketing', { idToken, marketing: on }))
+  try {
+    await fb.setMarketing(p.uid, on)
+  } catch (e) {
+    throw problemFrom(e)
+  }
+  saveProfile({ ...p, marketing: on })
 }
 
 /** True when everything in My Festival has reached the account (safe to log out). */
@@ -252,14 +285,19 @@ export async function logOut() {
   forgetHere()
 }
 
-/** Delete the account for good (and everything in it). */
-export async function deleteAccount() {
+/** Delete the account for good (and everything in it). Firebase wants the password again first. */
+export async function deleteAccount(password: string) {
+  stopWatchingSignOut?.()
+  stopWatchingSignOut = null
   const fb = await import('./firebase/account')
-  const idToken = await fb.idToken().catch(() => {
-    throw new AccountProblem('Log in again, then try again.', 401)
-  })
-  await call('delete', { idToken })
-  await logOut()
+  try {
+    await fb.deleteAccount(password)
+  } catch (e) {
+    const user = await fb.signedInUser().catch(() => null)
+    if (user) watchSignOut(fb)
+    throw problemFrom(e)
+  }
+  forgetHere()
 }
 
 /** Forget the account on this phone, and the My Festival that belonged to it. */

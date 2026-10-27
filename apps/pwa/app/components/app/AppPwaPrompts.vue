@@ -6,7 +6,8 @@ import { DownloadIcon, PlusSquareIcon, ShareIcon, XIcon } from 'lucide-vue-next'
  * The install toast above the bottom bar (logic in useInstallApp, from @afriff/pwa):
  * - Android / Chrome / Edge: "Install the AFRIFF app" → the browser's own install dialog
  * - iPhone / iPad (Safari has no install prompt): how to use Share → Add to Home Screen
- * Not shown on top of the first-open welcome cards. "Not now" is remembered for a week.
+ * Not shown on top of the first-open welcome cards or the iPhone install-first
+ * screen. "Not now" (or "Continue on the web" there) is remembered for a week.
  *
  * There's no "new version ready" toast any more: a new version installs by
  * itself and the app reloads onto it when it's next reopened
@@ -14,6 +15,8 @@ import { DownloadIcon, PlusSquareIcon, ShareIcon, XIcon } from 'lucide-vue-next'
  */
 const install = useInstallApp()
 const welcomeOpen = useState('welcome-open', () => false)
+// the iPhone install-first screen (layouts/default.vue) says it all already
+const installFirstOpen = useState('install-first-open', () => false)
 
 // give people a moment with the app before asking on iPhone
 const iosReady = ref(false)
@@ -21,7 +24,7 @@ onMounted(() => {
   setTimeout(() => { iosReady.value = true }, 15000)
 })
 
-const blocked = computed(() => welcomeOpen.value || install.snoozed.value)
+const blocked = computed(() => welcomeOpen.value || installFirstOpen.value || install.snoozed.value)
 const showInstall = computed(() => !blocked.value && install.method.value === 'prompt')
 const showIos = computed(() => !blocked.value && install.method.value === 'ios' && iosReady.value)
 

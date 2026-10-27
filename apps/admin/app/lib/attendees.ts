@@ -76,46 +76,41 @@ export async function saveRequireSignUp(on: boolean) {
   }, { merge: true })
 }
 
-// ---------- What's set up on the server ----------
-
-export interface AccountsSetup {
-  accounts: boolean
-  email: boolean
-  list: boolean
-  doubleOptIn: boolean
-  requireSignUp: boolean
-}
-
-export async function accountsSetup(): Promise<AccountsSetup | null> {
-  try {
-    const res = await fetch('/api/account/status', { cache: 'no-store' })
-    return res.ok ? ((await res.json()) as AccountsSetup) : null
-  } catch {
-    return null
-  }
-}
-
 // ---------- Server actions (admins) ----------
+// Attendees sign up and log in with Firebase directly. The staff app's server
+// is only needed for these two admin jobs (they use keys that can't live in a
+// browser): deleting an account (its sign-in too) and "Send to Brevo".
 
-async function adminCall<T>(path: string, body: unknown): Promise<T> {
+async function adminCall<T>(path: string, body?: unknown): Promise<T> {
   const user = auth.currentUser
   if (!user) throw new Error('Sign in again first.')
   const res = await fetch(path, {
-    method: 'POST',
+    method: body === undefined ? 'GET' : 'POST',
     headers: { 'content-type': 'application/json', Authorization: `Bearer ${await user.getIdToken()}` },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   })
   const json = (await res.json().catch(() => null)) as { error?: { message?: string }; statusMessage?: string } | null
   if (!res.ok) throw new Error(json?.error?.message || json?.statusMessage || `The server answered ${res.status}.`)
   return json as T
 }
 
-/** Deletes the account, its plan, its sign-in and its Brevo contact. */
-export const deleteAttendee = (uid: string) =>
-  adminCall<{ brevo: 'deleted' | 'not-needed' | 'failed' }>('/api/attendees/delete', { uid })
+export interface AttendeeSetup {
+  /** the service-account key is there (needed to delete accounts) */
+  serviceAccount: boolean
+  /** Brevo key + list number: "Send to Brevo" works */
+  list: boolean
+  doubleOptIn: boolean
+}
 
-/** Sends people waiting for Brevo, 50 at a time; repeats while it's getting somewhere. */
-export async function sendWaitingToBrevo(): Promise<{ done: number; failed: number }> {
+/** What's set up on the staff app's server; null = couldn't reach it. */
+export const attendeeSetup = () => adminCall<AttendeeSetup>('/api/attendees/setup').catch(() => null)
+
+/** Deletes the account, its plan, its Brevo contact and its sign-in (kept for team members). */
+export const deleteAttendee = (uid: string) =>
+  adminCall<{ brevo: 'deleted' | 'not-needed' | 'failed'; login: 'deleted' | 'kept-staff' }>('/api/attendees/delete', { uid })
+
+/** "Send to Brevo", 50 at a time; repeats while it's getting somewhere. */
+export async function sendToBrevo(): Promise<{ done: number; failed: number }> {
   let done = 0
   let failed = 0
   for (let round = 0; round < 40; round++) {

@@ -2,21 +2,21 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { DownloadIcon, RefreshCwIcon, SearchIcon, SendIcon, Trash2Icon } from 'lucide-vue-next'
 import {
-  BREVO_LABELS, accountsSetup, deleteAttendee, loadAttendees, readRequireSignUp, saveRequireSignUp, sendWaitingToBrevo,
-  type AccountsSetup, type AttendeeRow,
+  BREVO_LABELS, attendeeSetup, deleteAttendee, loadAttendees, readRequireSignUp, saveRequireSignUp, sendToBrevo,
+  type AttendeeRow, type AttendeeSetup,
 } from '~/lib/attendees'
 import { csvDownload } from '~/lib/reports'
 import { errMsg } from '~/lib/util'
 
 // Admins only (lib/access.ts; firestore.rules agree): people who signed up in
 // the festival app ("App users"), the "Require sign-up" switch, and Brevo.
-const setup = ref<AccountsSetup | null | undefined>(undefined)
+const setup = ref<AttendeeSetup | null | undefined>(undefined)
 const requireSignUp = ref<boolean | null>(null)
 const switchBusy = ref(false)
 const switchError = ref('')
 
 onMounted(async () => {
-  const [s, r] = await Promise.all([accountsSetup(), readRequireSignUp().catch((e) => { switchError.value = errMsg(e); return null })])
+  const [s, r] = await Promise.all([attendeeSetup(), readRequireSignUp().catch((e) => { switchError.value = errMsg(e); return null })])
   setup.value = s
   requireSignUp.value = r
 })
@@ -70,11 +70,13 @@ function download(which: 'users' | 'subscribers') {
   ])
 }
 
-async function sendToBrevo() {
+async function runBrevo() {
   Object.assign(state, { busy: true, error: '', note: '' })
   try {
-    const r = await sendWaitingToBrevo()
-    state.note = `Sent ${r.done} to Brevo${r.failed ? `; ${r.failed} still failing (see each person's Brevo problem)` : ''}.`
+    const r = await sendToBrevo()
+    state.note = r.done || r.failed
+      ? `Brevo updated for ${r.done} ${r.done === 1 ? 'person' : 'people'}${r.failed ? `; ${r.failed} still failing (see each person's Brevo problem)` : ''}.`
+      : 'Nothing waiting: Brevo is up to date.'
     state.people = await loadAttendees()
   } catch (e) {
     state.error = errMsg(e)
@@ -89,9 +91,11 @@ async function remove(p: AttendeeRow) {
   try {
     const r = await deleteAttendee(p.uid)
     state.people = people.value.filter((x) => x.uid !== p.uid)
-    state.note = r.brevo === 'failed'
-      ? `Deleted ${p.email} from the app, but Brevo couldn't be reached: delete the contact in Brevo by hand.`
-      : `Deleted ${p.email}.`
+    state.note = [
+      `Deleted ${p.email}.`,
+      r.login === 'kept-staff' ? 'They\'re on the AFRIFF team, so their login stays (for the console).' : '',
+      r.brevo === 'failed' ? 'Brevo couldn\'t be reached: delete the contact in Brevo by hand.' : '',
+    ].filter(Boolean).join(' ')
   } catch (e) {
     state.error = errMsg(e)
   } finally {
@@ -109,10 +113,11 @@ async function remove(p: AttendeeRow) {
     <section class="card mt-5 flex flex-col gap-4 p-4">
       <label class="flex cursor-pointer items-center gap-4">
         <span class="flex flex-1 flex-col gap-1">
-          <span class="text-body font-semibold">Require sign-up</span>
+          <span class="text-body font-semibold">Require an account to save to My Festival</span>
           <span class="text-meta text-muted">
-            On: attendees must sign up or log in before they can use the app.
-            Off: the sign-up page still shows first, with a "Skip for now" button.
+            Anyone can browse the app without an account.
+            On: tapping + on a screening or event, or "Seen it" on a film, asks people to sign up or log in first (then it's saved).
+            Off: those save on the phone without an account; signing up stays available in My Festival.
             Reaches phones within about a minute.
           </span>
           <span v-if="switchError" class="text-meta text-danger" role="alert">{{ switchError }}</span>
@@ -123,23 +128,23 @@ async function remove(p: AttendeeRow) {
           aria-hidden="true"
         />
       </label>
-      <p class="text-meta text-muted">Whatever this says, the app always lets people in when signing up can't work (no signal, or the server can't be reached), and asks again next time.</p>
+      <p class="text-meta text-muted">With no internet, people without an account are told to connect first; people already signed in can save offline (it reaches their account later).</p>
 
       <div class="flex flex-col gap-2 border-t border-line pt-4 text-meta">
         <p v-if="setup === undefined" class="text-muted">Checking the server…</p>
         <p v-else-if="setup === null" class="text-danger">Couldn't reach this app's server to check what's set up.</p>
         <template v-else>
           <p class="flex items-start gap-2">
-            <UiBadge :tone="setup.accounts ? 'success' : 'danger'">{{ setup.accounts ? 'Ready' : 'Off' }}</UiBadge>
-            <span><strong class="font-semibold">Accounts.</strong> {{ setup.accounts ? 'Sign-up and log-in work.' : 'Missing NUXT_ATTENDEE_PIN_SECRET or NUXT_FIREBASE_SERVICE_ACCOUNT on the staff app. Until then the app lets everyone in without an account.' }}</span>
+            <UiBadge tone="success">Firebase</UiBadge>
+            <span><strong class="font-semibold">Sign-up and log-in.</strong> Firebase's own email + password, with its own protection against guessing and its own "reset your password" email (wording: Firebase console → Authentication → Templates).</span>
           </p>
           <p class="flex items-start gap-2">
-            <UiBadge :tone="setup.email ? 'success' : 'danger'">{{ setup.email ? 'Ready' : 'Off' }}</UiBadge>
-            <span><strong class="font-semibold">Forgot PIN emails (Brevo).</strong> {{ setup.email ? 'Codes are emailed.' : 'Missing NUXT_BREVO_API_KEY or NUXT_BREVO_SENDER_EMAIL: people who forget their PIN can\'t reset it.' }}</span>
+            <UiBadge :tone="setup.serviceAccount ? 'success' : 'danger'">{{ setup.serviceAccount ? 'Ready' : 'Off' }}</UiBadge>
+            <span><strong class="font-semibold">Deleting accounts here.</strong> {{ setup.serviceAccount ? 'The delete button removes the account and its login.' : 'Missing NUXT_FIREBASE_SERVICE_ACCOUNT on the staff app (the same key push notifications use).' }}</span>
           </p>
           <p class="flex items-start gap-2">
             <UiBadge :tone="setup.list ? 'success' : 'danger'">{{ setup.list ? 'Ready' : 'Off' }}</UiBadge>
-            <span><strong class="font-semibold">"App subscribers" list in Brevo.</strong> {{ setup.list ? (setup.doubleOptIn ? 'People who tick the box are asked to confirm by email, then join the list.' : 'People who tick the box join the list straight away.') : 'Missing NUXT_BREVO_LIST_ID: people who tick the box wait here until you press "Send to Brevo".' }}</span>
+            <span><strong class="font-semibold">"App subscribers" list in Brevo.</strong> {{ setup.list ? `Press "Send to Brevo" below to add people who ticked the box and take off those who unticked it${setup.doubleOptIn ? ' (Brevo asks them to confirm by email first)' : ''}.` : 'Missing NUXT_BREVO_API_KEY or NUXT_BREVO_LIST_ID. Until then, download "App subscribers" and import it in Brevo by hand.' }}</span>
           </p>
         </template>
       </div>
@@ -154,7 +159,7 @@ async function remove(p: AttendeeRow) {
         <template v-if="state.people">
           <UiButton size="sm" variant="secondary" :disabled="!people.length" @click="download('users')"><DownloadIcon /> All app users</UiButton>
           <UiButton size="sm" variant="secondary" :disabled="!subscribers.length" @click="download('subscribers')"><DownloadIcon /> App subscribers</UiButton>
-          <UiButton v-if="waiting > 0 && setup?.list" size="sm" variant="secondary" :disabled="state.busy" @click="sendToBrevo"><SendIcon /> Send {{ waiting }} to Brevo</UiButton>
+          <UiButton v-if="setup?.list" size="sm" variant="secondary" :disabled="state.busy" @click="runBrevo"><SendIcon /> Send to Brevo{{ waiting ? ` (${waiting} waiting)` : '' }}</UiButton>
         </template>
       </div>
       <p v-if="state.error" class="mt-3 text-meta text-danger" role="alert">{{ state.error }}</p>

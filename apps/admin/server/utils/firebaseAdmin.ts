@@ -1,8 +1,8 @@
 // Firebase with full rights, for the staff app's server only (never shipped to
 // a browser). Used to send push notifications (Google only accepts a send
 // signed with the project's private service-account key, which is why sending
-// lives on a server at all) and for attendee accounts (server/accounts/: the
-// PIN check, and the sign-in token phones get after it).
+// lives on a server at all) and for deleting attendee accounts from the
+// console (removing someone's Firebase sign-in needs this key too).
 //
 // THE KEY. Firebase console → Project settings → Service accounts → Generate
 // new private key downloads a .json file. Paste its whole contents into the
@@ -38,7 +38,7 @@ function adminApp(): App {
   const config = useRuntimeConfig()
   const key = serviceAccount(config.firebaseServiceAccount)
   if (!key && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    throw createError({ statusCode: 503, statusMessage: 'The staff app\'s server isn\'t set up yet: it has no NUXT_FIREBASE_SERVICE_ACCOUNT key (needed for push notifications and attendee accounts).' })
+    throw createError({ statusCode: 503, statusMessage: 'The staff app\'s server isn\'t set up yet: it has no NUXT_FIREBASE_SERVICE_ACCOUNT key (needed for push notifications and deleting attendee accounts).' })
   }
   const projectId = (config.public.firebase as { projectId?: string } | undefined)?.projectId || undefined
   app = getApps()[0] ?? initializeApp({ credential: key ? cert(key) : applicationDefault(), projectId })

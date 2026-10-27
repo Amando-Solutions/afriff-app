@@ -40,7 +40,7 @@ npm run build          # build both (or build:pwa / build:admin); output in apps
 npm run preview:pwa    # run a production build with the service worker (offline, install, updates)
 npm run preview:admin
 npm run typecheck      # TypeScript check of both apps and the shared packages (run before every commit)
-npm run test:accounts  # attendee accounts: PIN rules, lockouts, codes, Brevo list (pretend database, ~6 s)
+npm run test:accounts  # attendee accounts: shared checks, deleting, Send to Brevo (pretend database, ~1 s)
 ```
 Add a dependency to the app or package that uses it, e.g.
 `npm install some-lib -w afriff-pwa` or `-w @afriff/core`.
@@ -304,66 +304,84 @@ it's published.
   the current Google-supported route (Google retires older Admin SDK versions'
   topic calls after 29 Sep 2027; keep `firebase-admin` up to date after that).
 
-### Attendee accounts: sign-up before using the app (26 Oct 2026)
+### Attendee accounts (26 Oct 2026; reworked 27 Oct: Firebase email + password)
 **Pending AFRIFF's written approval** (it reverses the brief's "no sign-up").
-The attendee app opens on **`/auth`** (sign up / log in / Forgot PIN) until
-the person has an account on that phone; deep links survive
-(`/auth?redirect=/film/lady`). `/privacy` is open to everyone.
-- **Who checks the PIN**: the **staff app's server**, not Firebase's own
-  email/password sign-in (that needs 6+ character passwords and its lockout
-  can't be set). Routes, all `text/plain` JSON, cross-site like the push ones:
-  `/api/account/status` (GET: accounts set up? emails? "Require sign-up"?),
-  `signup`, `login`, `code` (Forgot PIN: email a 6-digit code), `reset`
-  (code + new PIN), `marketing` and `delete` (these two take the phone's
-  Firebase ID token in the body). A good PIN or code returns a Firebase
-  **custom token** with the claim `attendee: true`; the phone signs in with it
-  (`apps/pwa/app/lib/firebase/account.ts`, `firebase/auth` via `initializeAuth`,
-  ~17 KB gz, lazy). Attendee users have no email/password in Firebase Auth, so
-  they can't use the staff login, and `firestore.rules` stop them creating a
-  staff profile (`isAttendee()`).
-- **Logic** lives in `apps/admin/server/accounts/` (no Nuxt globals, testable):
-  `logic.ts` (rules), `pin.ts` (scrypt + server secret "pepper"),
-  `firestoreStore.ts` (Admin SDK), `brevo.ts` (code email + list),
-  `test/` (`npm run test:accounts`, pretend database). Shared limits and
-  wording: `packages/core/src/accounts/rules.ts`.
-- **Security (agreed with the owner)**: 4-digit PINs, ~120 easy ones refused
-  (repeats, runs, top leaked PINs, years 1950–2030); PIN = scrypt(HMAC(secret,
-  pin), salt), so a database copy is useless without `NUXT_ATTENDEE_PIN_SECRET`;
-  5 wrong in a row → 15-minute pause; 10 → only a new PIN by emailed code
-  unlocks; codes 15 min / 5 tries / 3 emails an hour; 50 wrong tries per
-  network per 15 min across all accounts (networks stored only as a hash;
-  generous because mobile data and venue Wi-Fi share addresses).
-- **Collections**: `attendees/{uid}` (the "App users" list: admins read all,
-  the person reads their own), `attendeePlans/{uid}` (My Festival; only its
-  owner, only while the account exists, shape and sizes checked),
-  `settings/attendeeAccounts` (`requireSignUp`, admins), and server-only with
-  no rule: `attendeeSecrets`, `attendeeEmails` (one per email, key = SHA-256),
-  `authLimits` (has `expireAt`: add a Firestore TTL policy on it if you like).
-- **My Festival sync** (`apps/pwa/app/lib/planSync.ts`): the phone's copy
-  (`lib/store.ts`) stays what screens use; changes are written to
-  `attendeePlans/{uid}` 1.5 s after the last tap (queued offline by the SDK);
-  a live listener brings other phones' changes. Last agreed version is
-  remembered, so a one-sided change wins (removals stick) and two-sided
-  changes are merged (`mergePlans`). Logging in adds the phone's existing picks.
-  Log out clears the plan from that phone (warns first if unsent changes).
-- **Never a lockout**: `/auth` offers "Continue for now" (this visit only,
-  sessionStorage) when the status call fails, a send can't reach the server,
-  or accounts aren't set up; "Skip for now" when an admin turns **Require
-  sign-up** off (console → Attendees; reaches phones within ~1 min).
-- **Brevo**: only people who tick "Yes, AFRIFF can email me festival news and
-  updates" go to the **"App subscribers"** list (optionally via Brevo double
-  opt-in); the full **"App users"** list stays in Firestore (console →
-  Attendees, CSV). Brevo down or not set up → their record says `pending` /
-  `failed` and **Send to Brevo** on the Attendees page catches up. The PIN code
-  email is a transactional email (goes to anyone who asks).
-- **Console**: `/admin/attendees` (admins only): Require sign-up switch, what's
-  set up on the server, the list with search, CSV of all users / subscribers
-  (formula-safe), delete account (also removes its plan, sign-in and Brevo
-  contact), Send to Brevo. Reports → **Sign-ups**: per Lagos day and opted-in,
-  counted with Firestore aggregation queries (≈1 read per day shown).
-- **Local testing**: `npm run dev:admin` with `NUXT_ATTENDEE_PIN_SECRET` set and
-  no Brevo key prints Forgot PIN codes in its terminal. Careful: it uses the
-  **live** database with your service-account key.
+- **Firebase does the sign-in itself**, straight from the phone, like DP
+  Fitness: `createUserWithEmailAndPassword`, `signInWithEmailAndPassword`,
+  `sendPasswordResetEmail` (Firebase's own reset email with a link; its "back
+  to the app" link needs the attendee domain in Authentication → Settings →
+  Authorized domains, else it's sent without one), Firebase's own protection
+  against guessing (`auth/too-many-requests`). `apps/pwa/app/lib/firebase/account.ts`
+  (`firebase/auth` via `initializeAuth`, lazy); plain-language errors and the
+  phone-side state in `lib/account.ts`. Passwords: 8+ characters (client
+  check; Firebase's own minimum is 6). The staff app's server takes **no**
+  part in signing in. (A 4-digit PIN checked by our own server was built on
+  26 Oct and replaced the next day.)
+- **One login pool with the team**: attendees and staff are both Firebase
+  email/password users. Rights come only from `users/{uid}.role`; attendee
+  records only from `attendees/{uid}`. A team member can also have an attendee
+  record. A login with no attendee record (a staff login, or a sign-up whose
+  record didn't save) gets a "One more step: your name" form (`finishDetails`).
+  Deleting from the app keeps the Firebase user if `users/{uid}` exists.
+  An attendee can log into the staff app too, but only reaches "No access yet".
+- **Browsing never needs an account.** Saving does: `useFestival().toggleScheduled`
+  / `toggleWatched` (`lib/store.ts`) call the guard set with `guardSaves()` in
+  `plugins/account.client.ts`. With no account and `canSaveNow()` false, the
+  intent is kept in sessionStorage and the phone goes to
+  **`/auth?redirect=<page>&why=plan|seen`** ("Not now" closes it). Signing up
+  or logging in applies the intent (`applySave`) and goes back. `canSaveNow()`
+  is true when signed in, or when `settings/attendeeAccounts.requireSignUp` is
+  false (console switch, read once at start). Offline with no account: nothing
+  is saved; `notify()` (`lib/notice.ts`, `AppNotice.vue`) says "You're offline ·
+  Connect to the internet to sign in and add “<title>” to My Festival." Signed-in
+  people save offline as usual (queued for the account). `/privacy` is open to
+  everyone.
+- **Offline status (27 Oct, user request)**: `components/app/ConnectionStatus.vue`,
+  rendered once in `app.vue` so it's on every page: a 28 px bar fixed to the top
+  ("No internet connection · You can still browse", then "Back online" for
+  2.4 s). It sets `--offline-bar` on `<html>`; `.app`, `.with-status` (sign-up,
+  privacy) and the sticky `.header` move down by it, so nothing is covered.
+  The attendee app no longer uses the shared `AppOfflineBanner` (the staff app
+  still does). On `/auth` offline, the submit buttons wait for a connection.
+- **Records** (all written by the phone, all checked in `firestore.rules`):
+  `attendees/{uid}` (the "App users" list: names, email, `marketing`,
+  `optInAtSignUp` 0/1, `consentText`, times, `createdDay` (Lagos), `brevo`
+  status; the person may only change their emails choice, which sets
+  `brevo: 'pending'`); `attendeePlans/{uid}` (My Festival; owner only, while
+  the record exists); `brevoRemovals/{uid}` (left by "Delete my account" for
+  anyone who may be on Brevo); `settings/attendeeAccounts` (readable by all).
+  Admins read `attendees`; editors and volunteers can't.
+- **My Festival sync** (`lib/planSync.ts`): the phone's copy (`lib/store.ts`)
+  stays what screens use; changes are written to `attendeePlans/{uid}` 1.5 s
+  after the last tap (queued offline by the SDK); a live listener brings other
+  phones' changes. One-sided changes win (removals stick), two-sided ones are
+  merged (`mergePlans`); logging in adds the phone's existing picks. Log out
+  clears the plan from that phone (warns first if changes haven't reached the
+  account). "Delete my account" asks for the password again (Firebase requires
+  a recent sign-in) and deletes the records, then the login.
+- **Staff app's server: admins only**, two jobs that need keys a browser can't
+  hold (`apps/admin/server/accounts/`, routes `server/api/attendees/*`):
+  `delete` (records + Brevo contact + Firebase login, kept for team members;
+  needs `NUXT_FIREBASE_SERVICE_ACCOUNT`) and `brevo` ("Send to Brevo": adds
+  `marketing` people to the "App subscribers" list, takes off those who
+  unticked, deletes contacts listed in `brevoRemovals`; needs
+  `NUXT_BREVO_API_KEY` + `NUXT_BREVO_LIST_ID`, optional double opt-in). `setup`
+  tells the console what's set up. Brevo is never automatic: an admin presses
+  the button (or downloads the "App subscribers" spreadsheet). Tests:
+  `npm run test:accounts`.
+- **Console**: `/admin/attendees` (admins only): the "Require an account to
+  save to My Festival" switch, what's set up, the list with search, CSV of all
+  users / subscribers (formula-safe), delete account, Send to Brevo. Reports →
+  **Sign-ups**: per Lagos day and opted-in, counted with Firestore aggregation
+  queries (≈1 read per day shown).
+- **iPhone install-first** (27 Oct, as in DP Fitness's `access-code.vue`):
+  `components/app/InstallFirst.vue`, shown by `layouts/default.vue` when
+  `useInstallApp().method === 'ios'` (iPhone/iPad, not standalone) until
+  "Continue on the web" (localStorage `afriff-ios-web`, also snoozes the install
+  toast). Welcome cards wait for it. `?install=ios` forces it for testing.
+- **Known**: the layout re-keys `<main>` when newer published data arrives
+  (`dataVersion`), which closes an open bottom sheet (e.g. the delete
+  confirmation) if a publish lands while it's open. Pre-existing; rare.
 
 ### afriff.com film sync (Cloud Function, 26 Oct 2026)
 `functions/` holds one scheduled function, `syncFromAfriff` (every 15 min,
@@ -415,7 +433,7 @@ Two Vercel projects from this one repo, one per app:
 | Vercel project | Root Directory | Settings |
 |---|---|---|
 | `afriff-app` (existing, attendee) | `apps/pwa` | env `NUXT_PUBLIC_ADMIN_URL` = the console's address; `NUXT_PUBLIC_FIREBASE_VAPID_KEY` (push, public); `NUXT_PUBLIC_PRIVACY_EMAIL` (accounts, public) |
-| staff console (new, e.g. `afriff-staff`) | `apps/admin` | env `NUXT_PUBLIC_ATTENDEE_URL` (optional); `NUXT_FIREBASE_SERVICE_ACCOUNT` (push + accounts, **secret**: mark Sensitive); `NUXT_ATTENDEE_PIN_SECRET` (accounts, **secret**, never change it); `NUXT_BREVO_API_KEY` (**secret**), `NUXT_BREVO_SENDER_EMAIL`, `NUXT_BREVO_SENDER_NAME`, `NUXT_BREVO_LIST_ID`, optional `NUXT_BREVO_DOI_TEMPLATE_ID` / `NUXT_BREVO_DOI_REDIRECT_URL` |
+| staff console (new, e.g. `afriff-staff`) | `apps/admin` | env `NUXT_PUBLIC_ATTENDEE_URL` (optional); `NUXT_FIREBASE_SERVICE_ACCOUNT` (push + deleting attendee accounts, **secret**: mark Sensitive); `NUXT_BREVO_API_KEY` (**secret**), `NUXT_BREVO_LIST_ID`, optional `NUXT_BREVO_DOI_TEMPLATE_ID` / `NUXT_BREVO_DOI_REDIRECT_URL` (Send to Brevo) |
 
 The six `NUXT_PUBLIC_FIREBASE_*` variables are the same for both apps: add
 them once as Vercel **Shared Environment Variables** (Team Settings →
@@ -437,8 +455,8 @@ npx.cmd vercel deploy --prod   # deploys the currently linked project
 npx.cmd vercel link            # switch to the other project, then deploy again
 ```
 The attendee app has no server functions (the host only serves files); the
-staff app has the three push routes (`/api/push/*`) and the attendee-account
-routes (`/api/account/*`, `/api/attendees/*`). After a deploy,
+staff app has the three push routes (`/api/push/*`) and the admin-only
+attendee routes (`/api/attendees/*`). After a deploy,
 check `/`, `/film/lady` and `/admin` (should forward to the console) on the
 attendee app, `/` (should go to `/login`), `/admin` and `/door` on the console, and that `/sw.js` comes
 back with `Cache-Control: no-cache` on both. Add the console's domain to
