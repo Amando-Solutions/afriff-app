@@ -15,6 +15,9 @@ AFRIFF festival companion (Africa International Film Festival, Lagos,
 that opens from a QR code on any phone. No App Store, no sign-up for
 attendees. Must work on cheap Android phones and slow data. People
 should be able to add it to their home screen.
+CHANGED 26 Oct 2026 (user request, PENDING AFRIFF'S WRITTEN APPROVAL):
+attendees now sign up (or log in) on the first screen. See "Attendee
+accounts" under Progress.
 
 ## Reference screenshots (in the `reference` folder)
 - `reference/afriff-prototype/` (home.jpg, programme.jpg): use for
@@ -146,6 +149,8 @@ user decision). Home's top banner depends on the Lagos date:
 - Second section "Watched": films marked "Seen it", with an "Export to
   Letterboxd" button (downloads a CSV Letterboxd accepts).
 - Small note at the bottom: "Kept on this phone. No account needed."
+  (CHANGED 26 Oct with attendee accounts: "Kept on this phone and in your
+  account.", plus an account card: emails switch, Log out, Delete my account.)
 
 ## Queues
 Today's screenings with an open queue, sorted by start time: film,
@@ -228,7 +233,10 @@ Read this first; the dated sections below are the detailed history.
   extras, simplified Home, daily highlight, admin reports, home-screen
   install + offline (Michael), afriff.com film sync every 15 minutes
   (26 Oct; built and tested, NOT deployed: needs Blaze; see "afriff.com
-  film sync").
+  film sync"), attendee accounts with sign-up first (26 Oct; built and
+  tested with a pretend database on branch `feature/attendee-accounts`, NOT
+  committed or deployed; pending AFRIFF's written approval; see "Attendee
+  accounts").
 - Branch `claude/daily-highlights-filmstrip` (filmstrip + "Daily
   highlights" headline) MERGED INTO main 23 Oct (pull request #3). The
   monorepo split (branch dev) is rebased on top of it; dev → main still
@@ -243,7 +251,9 @@ Read this first; the dated sections below are the detailed history.
   anyone can use "Forgot password?" and read the reset email, and the
   admin's password is in GitHub history (commit 7d49371). User decision
   25 Oct: keep them for the demo, then move them to private addresses or
-  delete them before 1 Nov. (6) Push notifications stay switched off until
+  delete them before 1 Nov. With attendee accounts this becomes URGENT:
+  an admin login can see and download every attendee's name and email.
+  (6) Push notifications stay switched off until
   their two Firebase keys are added on Vercel (see "Push notifications for
   announcements"); not yet tried on a real phone.
 - Deploy commands (25 Oct, Firebase CLI, all to afriff-app): `npm run
@@ -358,7 +368,7 @@ in this order, showing each group before the next:
    language; screening tag; "How to attend" text sections.
 32. Bottom sheets slide up, rounded top, close X.
 33. Every tap changes state instantly; smooth on cheap Android.
-DO NOT BUILD: sign-in/accounts, other festivals, My season, rankings
+DO NOT BUILD (sign-in/accounts: CHANGED 26 Oct, see "Attendee accounts"): sign-in/accounts, other festivals, My season, rankings
 or voting, colour themes, Wrapped video, notification settings.
 
 Status: CHANGE REQUEST 1 COMPLETE (18 Oct 2026), all items built and
@@ -1128,6 +1138,85 @@ heavy libraries) apply everywhere.
   on Vercel. NOT TESTED: a real notification to a real phone (needs the two
   keys), and the Publish page with a real admin login.
 
+### Attendee accounts: sign up before using the app (26 Oct 2026, user request)
+- STATUS: built and tested on branch `feature/attendee-accounts` (not yet
+  committed, not deployed). PENDING AFRIFF'S WRITTEN APPROVAL: it reverses
+  the brief's "no sign-up for attendees".
+- WHAT ATTENDEES SEE: the first screen is now "Sign up | Log in"
+  (`/auth`), with the festival posters and opening-night countdown behind
+  it. A QR code to a film page goes to the sign-up page first, then to the
+  film. Sign up = first name, last name, email, 4-digit PIN twice, an
+  UNTICKED "Yes, AFRIFF can email me festival news and updates." box
+  (optional), a short privacy note and a link to the full privacy page
+  (`/privacy`, readable without an account). Welcome cards now come AFTER
+  sign-up. Remembered on the phone until they log out.
+- LOG IN ON ANOTHER PHONE: email + PIN; My Festival (plans, Seen it, stars,
+  queues checked) comes with them and stays in step between phones within
+  seconds. Picks made before signing up are added to the account.
+- FORGOT PIN (user decision 26 Oct): a 6-digit CODE by email, typed in the
+  app, not a link (on iPhone a link opens Safari, not the Home Screen app).
+  Works 15 minutes, 5 tries, at most 3 emails an hour.
+- PIN SAFETY (user agreed 26 Oct): easy PINs refused (1234, 0000, runs,
+  years…); 5 wrong in a row → 15-minute pause; 10 → only a new PIN by
+  emailed code unlocks it; each network gets at most 50 wrong tries per 15
+  minutes across all accounts. PINs stored scrambled with a secret key that
+  lives only on the server (never in the database).
+- NEVER A LOCKOUT: if there's no signal, the server can't be reached or
+  accounts aren't set up yet, the sign-up page shows "Continue for now" at
+  the top (this visit only; asked again next time).
+- "REQUIRE SIGN-UP" SWITCH (console → Attendees, admins): ON by default
+  (what AFRIFF asked: nobody uses the app without an account). OFF = the
+  sign-up page still shows first, but with a "Skip for now" button. Reaches
+  phones within about a minute, no new app version needed. A safety valve
+  if sign-up causes problems on opening night.
+- MY FESTIVAL: account card (name, email, "Saved to your account"),
+  "Festival emails from AFRIFF" switch (joins / leaves the Brevo list), Log
+  out (clears the plan from that phone; it stays in the account; warns if
+  changes made offline haven't reached the account yet), Delete my account
+  (deletes everything, also from Brevo).
+- WHO SEES WHAT: only Admins see attendee details (console → Attendees:
+  list, search, spreadsheets of all "App users" or only "App subscribers",
+  delete someone's account on request). Editors and door volunteers can't
+  (checked by the database rules, not just hidden). Reports → "Sign-ups":
+  sign-ups per day and how many said yes to emails.
+- CONTACT GROUPS: "App users" = everyone, kept in our database (not in
+  Brevo, so nobody can be emailed a campaign by mistake). "App subscribers"
+  = only people who ticked the box, synced to a Brevo list (optionally
+  with Brevo's double opt-in: they confirm by email first). If Brevo isn't
+  set up or fails, they wait and "Send to Brevo" (Attendees page) catches up.
+- TESTED (26 Oct, by Claude): 25 automatic tests of the account rules
+  (`npm run test:accounts`); 37 checks in a phone-sized browser against a
+  pretend server running the real account logic (sign-up, refusing 1234,
+  QR deep link, pick syncing between two phones, emails switch on/off,
+  wrong-PIN countdown and pause, Forgot PIN code, log out / back in,
+  same email twice, Skip for now, Continue for now when the server is down
+  or not set up, delete account signing the other phone out); typecheck and
+  both builds; database rules compile. NOT TESTED: the real database and
+  Firebase sign-in, real Brevo emails, real phones, the console's Attendees
+  page with a real admin login.
+- SETUP BEFORE IT WORKS (until then the app lets everyone in):
+  1. Staff Vercel project: `NUXT_ATTENDEE_PIN_SECRET` (long random text,
+     Sensitive, NEVER change it later) and `NUXT_FIREBASE_SERVICE_ACCOUNT`
+     (same key push notifications need).
+  2. Brevo account OWNED BY AFRIFF: verify afriff.com as a sender domain
+     (whoever runs afriff.com's DNS adds Brevo's records), create the list
+     "App subscribers", then on the staff project: `NUXT_BREVO_API_KEY`
+     (Sensitive), `NUXT_BREVO_SENDER_EMAIL`, `NUXT_BREVO_LIST_ID`
+     (optional double opt-in: `NUXT_BREVO_DOI_TEMPLATE_ID`).
+  3. Attendee Vercel project: `NUXT_PUBLIC_PRIVACY_EMAIL` (AFRIFF's privacy
+     contact); redeploy.
+  4. `npm run deploy:rules` (new attendee rules).
+  5. Remove the yopmail admin logins first (OPEN RISKS 5).
+- NEEDED FROM AFRIFF: written approval; their lawyer to approve the privacy
+  text (`apps/pwa/app/pages/privacy.vue`; Nigeria Data Protection Act 2023;
+  data stored in London) incl. how long accounts are kept; the privacy
+  contact email; who owns the Brevo account.
+- COST: Brevo's free plan sends 300 emails a day (enough for PIN codes;
+  marketing campaigns to a big list need a paid Brevo plan, AFRIFF's
+  cost). Firebase: a few database reads and writes per person per day;
+  another reason for Blaze. Collecting marketing contacts is commercial
+  use: another reason for Vercel Pro.
+
 ### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
 - WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
   afriff.com every 15 minutes and brings the FILMS in the database up to
@@ -1268,3 +1357,6 @@ heavy libraries) apply everywhere.
 7. afriff.com film sync: once on Blaze, deploy rules + functions (see
    "afriff.com film sync"), then check the card on Festival data after
    15 minutes.
+8. Attendee accounts: get AFRIFF's written approval, then do "SETUP BEFORE
+   IT WORKS" in "Attendee accounts", test sign-up / Forgot PIN / two phones
+   on real phones, and delete the test accounts (console → Attendees).

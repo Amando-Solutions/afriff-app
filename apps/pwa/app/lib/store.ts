@@ -1,11 +1,13 @@
 import { effectScope, reactive, watch } from 'vue';
 import { lagosDate } from '@afriff/core/utils/now';
+import type { PlanData } from '@afriff/core/accounts/plans';
 import { getSharing, queueUsageReport, setSharing as saveSharing } from './usage';
 
 // "My Festival": picks (screenings and events), "Seen it" films with date and
 // star rating, and which live queues you've looked at.
-// SAVED ON THIS PHONE (browser storage), so it survives closing the app.
-// No account: if someone clears their browser data, it starts empty again.
+// SAVED ON THIS PHONE (browser storage), so it survives closing the app and
+// works with no signal. For people who are signed in, a copy is also kept in
+// their account (lib/planSync.ts), so it follows them to another phone.
 const KEY = 'afriff-my-v1';
 
 export interface Watched {
@@ -46,6 +48,33 @@ const state = reactive({
   sharing: typeof window === 'undefined' ? true : getSharing(),
 });
 
+function persist() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      scheduled: [...state.scheduled], watched: [...state.watched], queuesChecked: [...state.queuesChecked],
+    }));
+  } catch {
+    /* storage full or blocked: keeps working for this visit */
+  }
+}
+
+/** My Festival as it's saved in an account (lib/planSync.ts). */
+export function currentPlan(): PlanData {
+  return {
+    scheduled: [...state.scheduled],
+    watched: Object.fromEntries(state.watched),
+    queuesChecked: [...state.queuesChecked],
+  };
+}
+
+/** Replace what this phone holds with the account's copy (or empty it, on log out). */
+export function replacePlan(p: PlanData) {
+  state.scheduled = new Set(p.scheduled);
+  state.watched = new Map(Object.entries(p.watched));
+  state.queuesChecked = new Set(p.queuesChecked);
+  persist();
+}
+
 let started = false;
 function start() {
   if (started || typeof window === 'undefined') return;
@@ -56,18 +85,7 @@ function start() {
   effectScope(true).run(() => {
     const ratings = () => [...state.watched].map(([k, v]) => `${k}:${v.rating}`).join();
     // save on the phone whenever something changes
-    watch(
-      () => [[...state.scheduled].join(), ratings(), state.queuesChecked.size],
-      () => {
-        try {
-          localStorage.setItem(KEY, JSON.stringify({
-            scheduled: [...state.scheduled], watched: [...state.watched], queuesChecked: [...state.queuesChecked],
-          }));
-        } catch {
-          /* storage full or blocked: keeps working for this visit */
-        }
-      },
-    );
+    watch(() => [[...state.scheduled].join(), ratings(), state.queuesChecked.size], persist);
     // anonymous counts for AFRIFF's reports (only if sharing is on; sent in batches)
     watch(
       () => [state.sharing, [...state.scheduled].join(), ratings()],

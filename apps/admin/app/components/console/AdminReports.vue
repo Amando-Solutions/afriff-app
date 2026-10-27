@@ -1,25 +1,41 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { ChartColumnIcon, DownloadIcon, RefreshCwIcon } from 'lucide-vue-next'
+import { ChartColumnIcon, DownloadIcon, RefreshCwIcon, UserPlusIcon } from 'lucide-vue-next'
 import { FESTIVAL } from '@afriff/core/data/programme'
 import { dayLabel, timeLabel } from '@afriff/core/utils/format'
 import { lagosDate } from '@afriff/core/utils/now'
 import { SELL_OUT_SHARE, csvDownload, loadReport, type Report } from '~/lib/reports'
+import { loadSignUpReport, type SignUpReport } from '~/lib/attendees'
 import { errMsg } from '~/lib/util'
 
-// Admins: anonymous counts from attendees' phones (only phones with sharing on).
-const state = reactive({ busy: false, report: null as Report | null, error: '' })
+// Admins: sign-ups to attendee accounts (counted by the database, no names),
+// then anonymous counts from attendees' phones (only phones with sharing on).
+const state = reactive({ busy: false, report: null as Report | null, error: '', signups: null as SignUpReport | null, signupError: '' })
 const day = ref('all')
 const today = lagosDate()
 
 async function run() {
-  Object.assign(state, { busy: true, error: '' })
+  Object.assign(state, { busy: true, error: '', signupError: '' })
+  // sign-ups load on their own, so a problem there doesn't hide the rest
+  const signups = loadSignUpReport(today).then(
+    (r) => { state.signups = r },
+    (e) => { state.signupError = errMsg(e) },
+  )
   try {
-    Object.assign(state, { busy: false, report: await loadReport() })
+    Object.assign(state, { report: await loadReport() })
   } catch (e) {
-    Object.assign(state, { busy: false, error: errMsg(e) })
+    state.error = errMsg(e)
   }
+  await signups
+  state.busy = false
 }
+
+const signupPeak = computed(() => Math.max(1, ...(state.signups?.days ?? []).map((d) => d.signups)))
+const optInShare = computed(() => (state.signups?.total ? Math.round((state.signups.optedInNow / state.signups.total) * 100) : 0))
+const downloadSignups = () => csvDownload('afriff-sign-ups.csv', [
+  ['Day (Lagos)', 'Sign-ups', 'Ticked festival emails when signing up'],
+  ...[...(state.signups?.days ?? [])].reverse().map((d) => [d.day, d.signups, d.optedIn]),
+])
 
 const r = computed(() => state.report)
 const plannedShown = computed(() => (r.value ? r.value.plannedRows.filter((p) => day.value === 'all' || p.date === day.value).slice(0, 25) : []))
@@ -48,12 +64,37 @@ const downloadUsage = () => csvDownload('afriff-app-usage.csv', [
   <div>
     <h1 class="font-display text-h1 font-semibold">Reports</h1>
     <p class="mt-1 text-muted">
-      Anonymous counts from attendees' phones that have sharing switched on (it's on unless they turn it off in My Festival).
-      No names or contact details. Real numbers are higher, because not every phone shares.
+      Sign-ups to the app, then anonymous counts from attendees' phones that have sharing switched on (it's on unless they turn it off in My Festival).
+      No names or contact details here (those are on the Attendees page). Real usage is higher, because not every phone shares.
     </p>
     <UiButton size="sm" class="mt-4" :disabled="state.busy" @click="run"><RefreshCwIcon /> {{ state.busy ? 'Loading…' : r ? 'Refresh reports' : 'Load reports' }}</UiButton>
     <p class="mt-2 text-meta text-muted">Each load reads one record per phone, so load when you need it rather than leaving it open all day.</p>
     <p v-if="state.error" class="mt-2 text-meta text-danger">Couldn't load: {{ state.error }}</p>
+
+    <section v-if="state.signups || state.signupError" class="mt-8">
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <h2 class="flex items-center gap-2 font-display text-h2 font-semibold"><UserPlusIcon class="size-5 text-muted" /> Sign-ups</h2>
+        <UiButton v-if="state.signups" size="sm" variant="secondary" :disabled="!state.signups.days.length" @click="downloadSignups"><DownloadIcon /> Spreadsheet</UiButton>
+      </div>
+      <p v-if="state.signupError" class="text-meta text-danger">Couldn't load sign-ups: {{ state.signupError }}</p>
+      <template v-else-if="state.signups">
+        <div class="grid grid-cols-3 gap-2">
+          <div v-for="tile in [[state.signups.total, 'signed up'], [state.signups.optedInNow, 'say yes to emails'], [`${optInShare}%`, 'opted in']]" :key="tile[1]" class="card flex flex-col p-3">
+            <span class="font-display text-h1 font-semibold tabular-nums">{{ tile[0] }}</span>
+            <span class="text-label text-muted">{{ tile[1] }}</span>
+          </div>
+        </div>
+        <p class="mt-3 text-meta text-muted">Per day (Lagos time), newest first. "Said yes" = ticked the festival emails box when signing up.</p>
+        <p v-if="!state.signups.days.length" class="mt-2 text-muted">Nobody has signed up yet.</p>
+        <div class="mt-2 flex flex-col gap-2">
+          <div v-for="d in state.signups.days" :key="d.day" class="flex items-center gap-3 text-meta">
+            <span class="w-24 shrink-0 text-muted">{{ dayLabel(d.day) }}</span>
+            <span class="h-2.5 flex-1 overflow-hidden rounded-full bg-raised"><span class="block h-full rounded-full bg-accent" :style="{ width: `${(d.signups / signupPeak) * 100}%` }" /></span>
+            <span class="w-28 shrink-0 text-right tabular-nums">{{ d.signups }} · {{ d.optedIn }} said yes</span>
+          </div>
+        </div>
+      </template>
+    </section>
 
     <template v-if="r">
       <p v-if="!r.published" class="mt-3 rounded-tile bg-raised px-3 py-2 text-meta text-muted">Nothing has been published yet, so names may be missing. Press Publish to app first.</p>

@@ -1,7 +1,8 @@
 // Firebase with full rights, for the staff app's server only (never shipped to
-// a browser). Used to send push notifications: Google only accepts a send
+// a browser). Used to send push notifications (Google only accepts a send
 // signed with the project's private service-account key, which is why sending
-// lives on a server at all.
+// lives on a server at all) and for attendee accounts (server/accounts/: the
+// PIN check, and the sign-in token phones get after it).
 //
 // THE KEY. Firebase console → Project settings → Service accounts → Generate
 // new private key downloads a .json file. Paste its whole contents into the
@@ -37,7 +38,7 @@ function adminApp(): App {
   const config = useRuntimeConfig()
   const key = serviceAccount(config.firebaseServiceAccount)
   if (!key && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    throw createError({ statusCode: 503, statusMessage: 'Push notifications aren\'t set up yet: the staff app has no NUXT_FIREBASE_SERVICE_ACCOUNT key.' })
+    throw createError({ statusCode: 503, statusMessage: 'The staff app\'s server isn\'t set up yet: it has no NUXT_FIREBASE_SERVICE_ACCOUNT key (needed for push notifications and attendee accounts).' })
   }
   const projectId = (config.public.firebase as { projectId?: string } | undefined)?.projectId || undefined
   app = getApps()[0] ?? initializeApp({ credential: key ? cert(key) : applicationDefault(), projectId })
@@ -46,9 +47,13 @@ function adminApp(): App {
 
 export const adminDb = () => getFirestore(adminApp())
 export const adminMessaging = () => getMessaging(adminApp())
+export const adminAuth = () => getAuth(adminApp())
+
+/** Whether the service-account key is there (without failing when it isn't). */
+export const hasServiceAccount = () => Boolean(useRuntimeConfig().firebaseServiceAccount || process.env.GOOGLE_APPLICATION_CREDENTIALS)
 
 /** The signed-in staff member making this request, who must be an admin. Returns their uid. */
-export async function requireAdmin(event: H3Event): Promise<string> {
+export async function requireAdmin(event: H3Event, toDo = 'send push notifications'): Promise<string> {
   const header = getHeader(event, 'authorization') || ''
   const idToken = header.startsWith('Bearer ') ? header.slice(7) : ''
   if (!idToken) throw createError({ statusCode: 401, statusMessage: 'Sign in to the console first.' })
@@ -60,6 +65,6 @@ export async function requireAdmin(event: H3Event): Promise<string> {
     throw createError({ statusCode: 401, statusMessage: 'Your sign-in has expired. Reload the console and try again.' })
   }
   const profile = await adminDb().doc(`users/${uid}`).get()
-  if (profile.get('role') !== 'admin') throw createError({ statusCode: 403, statusMessage: 'Only admins can send push notifications.' })
+  if (profile.get('role') !== 'admin') throw createError({ statusCode: 403, statusMessage: `Only admins can ${toDo}.` })
   return uid
 }

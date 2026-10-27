@@ -6,9 +6,12 @@ import { dateParts, timeLabel } from '@afriff/core/utils/format'
 import { statusTag } from '~/lib/alerts'
 import { planItems, planWhere, type PlanItem } from '~/lib/plan'
 import { useFestival } from '~/lib/store'
+import { account } from '~/lib/account'
 
 // MY FESTIVAL ("My Schedule"): your plan by day, Share my day, your watched
-// list with stars and the Letterboxd export. Kept on this phone.
+// list with stars and the Letterboxd export. Kept on this phone, and in the
+// person's account when they're signed in (lib/planSync.ts), with the account
+// card (emails switch, log out, delete) at the bottom.
 useHead({ title: 'My Festival' })
 const { state, toggleScheduled, rateWatched, setSharing } = useFestival()
 const diary = useTemplateRef<HTMLElement>('diary')
@@ -162,7 +165,8 @@ const rate = (filmId: string, current: number, n: number) => rateWatched(filmId,
       </div>
     </section>
 
-    <p class="mt-6 text-center text-label text-subtle">Kept on this phone. No account needed.</p>
+    <p class="mt-6 text-center text-label text-subtle">{{ account.profile ? 'Kept on this phone and in your account.' : 'Kept on this phone. Sign up to keep it on any phone.' }}</p>
+    <AccountCard class="mt-4" />
     <AlertsSwitch class="mt-4" />
     <label class="card mt-4 flex cursor-pointer items-center gap-4 p-4">
       <span class="flex flex-1 flex-col gap-1">

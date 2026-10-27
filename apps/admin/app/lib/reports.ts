@@ -7,7 +7,10 @@ import type { PublishedSnapshot } from '@afriff/core/types/festival';
 export const SELL_OUT_SHARE = 0.8; // flag when planned ≥ 80% of seats
 
 export function csvDownload(name: string, rows: (string | number)[][]) {
-  const esc = (v: string | number | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  // text starting with = + - @ would run as a formula in Excel / Google Sheets
+  // (attendees type their own names), so it gets a leading ' to stay plain text
+  const safe = (v: string | number | null | undefined) => (typeof v === 'string' && /^[=+\-@\t\r]/.test(v) ? `'${v}` : String(v ?? ''));
+  const esc = (v: string | number | null | undefined) => `"${safe(v).replace(/"/g, '""')}"`;
   const blob = new Blob([rows.map((r) => r.map(esc).join(',')).join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

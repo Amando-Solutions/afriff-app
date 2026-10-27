@@ -17,6 +17,7 @@
     "preview:pwa": "npm run preview -w afriff-pwa",
     "preview:admin": "npm run preview -w afriff-admin -- --port 3001",
     "typecheck": "npm run typecheck -w afriff-pwa && npm run typecheck -w afriff-admin",
+    "test:accounts": "npm run test -w afriff-admin",
     "deploy:rules": "firebase deploy --only firestore:rules --project afriff-app",
     "deploy:functions": "firebase deploy --only functions --project afriff-app",
     "functions:install": "npm --prefix functions install",

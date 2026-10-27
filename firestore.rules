@@ -9,6 +9,11 @@ rules_version = '2';
 //   admin     – everything, approves editors' changes, manages the team
 //   editor    – proposes changes (they wait in "changes" for approval)
 //   volunteer – updates queue counts for their own venue only
+//
+// ATTENDEES (people using the festival app) are a separate kind of sign-in:
+// their Firebase sign-in carries `attendee: true` (set by the staff app's
+// server after it checks their PIN, apps/admin/server/accounts/). They never
+// have a team role, can't create one, and can only touch their own My Festival.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -21,12 +26,13 @@ service cloud.firestore {
     function isAdmin() { return role() == 'admin'; }
     function isEditor() { return role() == 'editor'; }
     function myVenue() { return get(profilePath()).data.venue; }
+    function isAttendee() { return signedIn() && request.auth.token.get('attendee', false) == true; }
 
     // ---------- Team members ----------
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       // New sign-ups create their own profile, always with no access.
-      allow create: if signedIn() && request.auth.uid == uid
+      allow create: if signedIn() && !isAttendee() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['email', 'name', 'role', 'venue', 'createdAt'])
         && request.resource.data.role == 'pending'
         && request.resource.data.venue == null;
@@ -87,6 +93,37 @@ service cloud.firestore {
         && request.resource.data.seen is map && request.resource.data.seen.size() <= 300
         && request.resource.data.days is list && request.resource.data.days.size() <= 60;
     }
+
+    // ---------- Attendee accounts ----------
+    // attendees/{uid}: the "App users" list (name, email, whether they said yes
+    // to festival emails). Only ADMINS can read it (console → Attendees); each
+    // person can read their own. Editors and door volunteers can't. Written only
+    // by the staff app's server.
+    match /attendees/{uid} {
+      allow read: if isAdmin() || (isAttendee() && request.auth.uid == uid);
+      allow write: if false;
+    }
+    // attendeePlans/{uid}: someone's My Festival, so it follows them to another
+    // phone. Only they can read or write it, only while their account exists,
+    // only these fields, within these sizes (packages/core/src/accounts/plans.ts).
+    match /attendeePlans/{uid} {
+      allow read: if isAttendee() && request.auth.uid == uid;
+      allow create, update: if isAttendee() && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/attendees/$(uid))
+        && request.resource.data.keys().hasOnly(['v', 'updatedAt', 'scheduled', 'watched', 'queuesChecked'])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.scheduled is list && request.resource.data.scheduled.size() <= 500
+        && request.resource.data.watched is map && request.resource.data.watched.size() <= 400
+        && request.resource.data.queuesChecked is list && request.resource.data.queuesChecked.size() <= 2000;
+      allow delete: if false;
+    }
+    // settings/attendeeAccounts: the console's "Require sign-up" switch (admins).
+    // The staff app's server reads it and tells phones.
+    match /settings/{id} { allow read, write: if isAdmin(); }
+    // attendeeSecrets (scrambled PINs, emailed codes, wrong-PIN counts),
+    // attendeeEmails (one entry per email) and authLimits (wrong tries per
+    // network) have NO rule on purpose: no app can read or write them, only the
+    // staff app's server (Admin SDK).
 
     // ---------- Live queue counts ----------
     // One record per venue per festival day: queueDays/{date}/venues/{venueId},

@@ -1,7 +1,8 @@
 // AFRIFF attendee app (apps/pwa): the festival companion attendees open from a
 // QR code. Nuxt PWA in SPA mode (ssr: false): everything runs in the browser,
 // so the app opens instantly from the phone's saved copy and keeps working
-// offline. No server routes: phones read and write Firestore directly.
+// offline. No server routes: phones read and write Firestore directly, and
+// sign-up / log-in go to the staff app's server (adminUrl, lib/account.ts).
 //
 // Shared with the staff console (apps/admin), from packages/:
 //   @afriff/theme  design system: tokens, fonts, UI + brand components, icons
@@ -39,6 +40,10 @@ export default defineNuxtConfig({
       // secret. Without it the alerts switch stays hidden. Phones join the
       // alerts list through the staff app's server (adminUrl above).
       firebaseVapidKey: process.env.NUXT_PUBLIC_FIREBASE_VAPID_KEY || '',
+      // Attendee accounts: where people write to have their account deleted or
+      // ask what's kept about them (sign-up page and /privacy). AFRIFF to
+      // confirm the address. Empty: those pages point to afriff.com instead.
+      privacyEmail: process.env.NUXT_PUBLIC_PRIVACY_EMAIL || '',
     },
   },
 
@@ -51,7 +56,7 @@ export default defineNuxtConfig({
     // the Firestore SDK chunk (~170 KB gzipped) is loaded after first paint on purpose
     build: { chunkSizeWarningLimit: 700 },
     // pre-bundle these for `npm run dev`, so the first page load doesn't reload itself
-    optimizeDeps: { include: ['lucide-vue-next', 'firebase/app', 'firebase/firestore', 'firebase/messaging'] },
+    optimizeDeps: { include: ['lucide-vue-next', 'firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/messaging'] },
   },
 
   app: {
