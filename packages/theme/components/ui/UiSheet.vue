@@ -42,7 +42,7 @@ function onBackdropClick(event: MouseEvent) {
   <dialog
     ref="dialog"
     :aria-labelledby="titleId"
-    class="ui-sheet m-0 mx-auto mt-auto max-h-[88dvh] w-full max-w-xl overflow-hidden rounded-t-[1.5rem] border border-b-0 border-line bg-surface p-0 text-ink shadow-pop"
+    class="ui-sheet m-0 mx-auto mt-auto max-h-[88dvh] w-full max-w-xl overflow-hidden rounded-t-3xl border border-b-0 border-line bg-surface p-0 text-ink shadow-pop"
     @close="open = false"
     @click="onBackdropClick"
   >

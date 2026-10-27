@@ -40,7 +40,7 @@ const shown = computed(() => {
           <span class="truncate font-semibold">{{ c.label(it, refs) }}</span>
           <span class="truncate text-meta text-muted">{{ c.sub(it, refs) }}</span>
         </span>
-        <ChevronRightIcon class="size-[1.125rem] shrink-0 text-muted" />
+        <ChevronRightIcon class="size-4.5 shrink-0 text-muted" />
       </NuxtLink>
     </div>
     <p v-if="state.items" class="mt-2 text-meta text-muted">{{ shown.length }} of {{ state.items.length }}</p>

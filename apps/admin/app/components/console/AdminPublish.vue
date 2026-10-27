@@ -141,7 +141,7 @@ const countsText = (c?: Record<string, number>) => Object.entries(c || {}).map((
           <template v-if="changes.length > MAX_PUSHES_PER_PUBLISH"> That's a lot at once (a new timetable?), so none are ticked: tick the ones attendees must hear about. At most {{ MAX_PUSHES_PER_PUBLISH }} go as push notifications per publish; the rest still show in News.</template>
         </p>
         <label v-for="a in changes" :key="a.itemId" class="flex items-start gap-2.5">
-          <input v-model="ticked[a.itemId]" type="checkbox" class="mt-1 size-4 shrink-0 accent-[var(--c-accent)]" />
+          <input v-model="ticked[a.itemId]" type="checkbox" class="mt-1 size-4 shrink-0 accent-accent" />
           <span><span class="font-semibold text-ink">{{ a.title }}</span><span class="block text-muted">{{ a.body }}</span></span>
         </label>
       </div>

@@ -96,7 +96,7 @@ async function clearAll() {
       <span class="flex items-center gap-1">
         <NuxtLink v-if="isAdmin" to="/admin" class="rounded-full px-3 py-2 text-meta font-medium text-muted hover:bg-hover hover:text-ink">Console</NuxtLink>
         <button type="button" class="pressable grid size-9 place-items-center rounded-full text-muted hover:bg-hover hover:text-ink" aria-label="Log out" @click="signOut(auth)">
-          <LogOutIcon class="size-[1.125rem]" />
+          <LogOutIcon class="size-4.5" />
         </button>
       </span>
     </div>
@@ -158,7 +158,7 @@ async function clearAll() {
           :class="r.state === 'done' && 'opacity-50'"
           @click="openId = r.s.id"
         >
-          <span class="w-[5.25rem] shrink-0 font-display text-h3 font-semibold whitespace-nowrap tabular-nums">{{ timeLabel(r.s.time) }}</span>
+          <span class="w-21 shrink-0 font-display text-h3 font-semibold whitespace-nowrap tabular-nums">{{ timeLabel(r.s.time) }}</span>
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
             <span class="truncate font-semibold">{{ filmTitle(r.s) }}</span>
             <span class="text-meta text-muted tabular-nums">
