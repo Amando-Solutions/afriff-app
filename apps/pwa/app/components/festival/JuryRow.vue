@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { JuryMember } from '@afriff/core/types/festival'
 import { ref } from 'vue'
+import { ChevronRightIcon } from 'lucide-vue-next'
 import { JURY } from '@afriff/core/data/jury'
 
 // "Meet the jury" row of faces (the Globe Awards page).
-// Tapping a face opens their bio; "See all" opens the Jury page.
+// Tapping a face opens their bio (members with no bio yet aren't tappable);
+// "See all" opens the Jury page.
 withDefaults(defineProps<{ title?: string; intro?: string }>(), { title: 'Meet the jury', intro: '' })
 const member = ref<JuryMember | null>(null)
 const open = ref(false)
@@ -15,14 +17,17 @@ function show(m: JuryMember) {
 </script>
 
 <template>
-  <section v-if="JURY.length" class="mt-8">
-    <UiSectionHeader :title="title" to="/jury" />
-    <p v-if="intro" class="-mt-1 mb-3 text-meta text-muted">{{ intro }}</p>
-    <div class="scroll-row gap-3.5 pt-0.5 pb-1">
-      <component :is="m.bio ? 'button' : 'div'" v-for="m in JURY" :key="m.id" :type="m.bio ? 'button' : undefined" class="flex w-[4.5rem] shrink-0 snap-start flex-col items-center gap-1" :class="m.bio && 'pressable'" @click="m.bio && show(m)">
-        <JuryAvatar :member="m" :size="60" ring />
-        <span class="mt-1 max-w-[4.5rem] truncate text-label font-semibold">{{ m.name.replace(/^Dr\.?\s+/, '').split(' ')[0] }}</span>
-        <span class="max-w-[4.5rem] truncate text-micro text-muted">{{ m.country.split(' / ')[0] }}</span>
+  <section v-if="JURY.length" class="section">
+    <div class="section-head">
+      <h2 class="section-title">{{ title }}</h2>
+      <NuxtLink to="/jury" class="link">See all <ChevronRightIcon :size="18" /></NuxtLink>
+    </div>
+    <p v-if="intro" class="muted small jury-intro">{{ intro }}</p>
+    <div class="jury-row">
+      <component :is="m.bio ? 'button' : 'div'" v-for="m in JURY" :key="m.id" :type="m.bio ? 'button' : undefined" class="jury-face" @click="m.bio && show(m)">
+        <JuryAvatar :member="m" :size="60" />
+        <span class="jury-face-name">{{ m.name.replace(/^Dr\.?\s+/, '').split(' ')[0] }}</span>
+        <span class="jury-face-country">{{ m.country.split(' / ')[0] }}</span>
       </component>
     </div>
     <JurySheet v-model:open="open" :member="member" />

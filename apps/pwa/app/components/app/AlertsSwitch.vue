@@ -24,22 +24,20 @@ async function toggle(event: Event) {
 </script>
 
 <template>
-  <div v-if="mode === 'install-first'" class="card flex flex-col gap-1 p-4">
-    <span class="text-body font-semibold">Alerts on your iPhone</span>
-    <span class="text-meta text-muted">Add AFRIFF to your Home Screen first (tap Share, then Add to Home Screen). Open it from there and turn alerts on here.</span>
-  </div>
-  <label v-else-if="mode === 'switch'" class="card flex cursor-pointer items-center gap-4 p-4">
-    <span class="flex flex-1 flex-col gap-1">
-      <span class="text-body font-semibold">Alerts on this phone</span>
-      <span class="text-meta text-muted">A notification when a screening moves, is cancelled or sells out, and for big festival news.</span>
-      <span v-if="pushState.busy" class="text-meta text-muted" role="status">One moment…</span>
-      <span v-else-if="pushState.permission === 'denied'" class="text-meta text-danger">Notifications are blocked for AFRIFF. Allow them in your phone's settings, then turn this on.</span>
-      <span v-else-if="pushState.error" class="text-meta text-danger" role="alert">{{ pushState.error }}</span>
+  <div v-if="mode === 'install-first'" class="share-row">
+    <span class="share-text">
+      <span class="share-title">Alerts on your iPhone</span>
+      <span class="muted small">Add AFRIFF to your Home Screen first (tap Share, then Add to Home Screen). Open it from there and turn alerts on here.</span>
     </span>
-    <input type="checkbox" role="switch" class="peer sr-only" :checked="pushState.on" :disabled="pushState.busy" @change="toggle" />
-    <span
-      class="relative h-7 w-12 shrink-0 rounded-full bg-raised transition-colors peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-ink after:shadow after:transition-transform after:content-[''] peer-checked:after:translate-x-5 peer-checked:after:bg-on-accent"
-      aria-hidden="true"
-    />
+  </div>
+  <label v-else-if="mode === 'switch'" class="share-row">
+    <span class="share-text">
+      <span class="share-title">Alerts on this phone</span>
+      <span class="muted small">A notification when a screening moves, is cancelled or sells out, and for big festival news.</span>
+      <span v-if="pushState.busy" class="muted small" role="status">One moment…</span>
+      <span v-else-if="pushState.permission === 'denied'" class="small tone-alert">Notifications are blocked for AFRIFF. Allow them in your phone's settings, then turn this on.</span>
+      <span v-else-if="pushState.error" class="small tone-alert" role="alert">{{ pushState.error }}</span>
+    </span>
+    <input type="checkbox" role="switch" class="switch" :checked="pushState.on" :disabled="pushState.busy" @change="toggle" />
   </label>
 </template>

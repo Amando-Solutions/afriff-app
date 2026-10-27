@@ -3,8 +3,9 @@ import { onMounted } from 'vue'
 import { dataVersion } from '@afriff/core/published'
 import { testSwitch } from '@afriff/core/utils/now'
 
-// The attendee app's frame: sponsor ribbon, header, offline banner, the page,
-// the bottom bar, and the install / update toasts.
+// The attendee app's frame, laid out like the original React app: sponsor
+// ribbon, header, offline banner, the page, the bottom bar, and the install /
+// update toasts. Pages put their content in <div class="page">.
 const welcomeOpen = useState('welcome-open', () => false)
 onMounted(() => {
   try {
@@ -16,7 +17,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-dvh">
+  <div class="app">
     <a href="#main" class="sr-only z-[60] rounded-full bg-accent px-4 py-2 font-semibold text-on-accent focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
       Skip to content
     </a>
@@ -25,7 +26,7 @@ onMounted(() => {
       <SponsorMarquee variant="ribbon" />
       <AppHeader />
       <AppOfflineBanner message="You’re offline. The programme and your plan still work." />
-      <main id="main" class="mx-auto w-full max-w-xl px-4 pt-5 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]">
+      <main id="main" class="main">
         <slot />
       </main>
     </div>

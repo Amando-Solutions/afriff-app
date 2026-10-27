@@ -66,88 +66,91 @@ const rate = (filmId: string, current: number, n: number) => rateWatched(filmId,
 </script>
 
 <template>
-  <div>
-    <PageTitle title="My Schedule" :icon="ListChecksIcon" :description="summary" />
+  <div class="page">
+    <PageTitle title="My Schedule" :icon="ListChecksIcon" />
+    <p class="muted">{{ summary }}</p>
 
-    <div v-if="changed.length" role="status" class="mt-4 flex flex-col gap-1.5 rounded-tile border border-danger/35 bg-danger-soft p-3">
-      <strong class="text-meta font-semibold text-danger">{{ changed.length }} of your plans changed</strong>
-      <NuxtLink v-for="i in changed" :key="i.id" :to="i.href" class="flex items-center gap-2 text-meta">
+    <div v-if="changed.length" class="plan-changed" role="status">
+      <strong>{{ changed.length }} of your plans changed</strong>
+      <NuxtLink v-for="i in changed" :key="i.id" :to="i.href" class="plan-changed-row">
         <StatusTag :status="i.status" /> {{ i.title }}
       </NuxtLink>
     </div>
 
-    <!-- Three numbers: one quiet panel, so the plan below stays the focus -->
-    <div class="card mt-4 grid grid-cols-3 divide-x divide-line overflow-hidden">
-      <button type="button" class="row-interactive flex flex-col items-start px-3.5 py-3 text-left" @click="diary?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
-        <span class="font-display text-h2 font-semibold tabular-nums">{{ state.watched.size }}</span>
-        <span class="text-label text-muted">{{ state.watched.size === 1 ? 'film' : 'films' }} seen</span>
+    <div class="stat-tiles">
+      <button type="button" class="stat-tile" @click="diary?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
+        <span class="stat-n">{{ state.watched.size }}</span>
+        <span class="stat-l">{{ state.watched.size === 1 ? 'film' : 'films' }} seen</span>
       </button>
-      <div class="flex flex-col px-3.5 py-3">
-        <span class="font-display text-h2 font-semibold tabular-nums">{{ mine.length }}</span>
-        <span class="text-label text-muted">in your plan</span>
+      <div class="stat-tile">
+        <span class="stat-n">{{ mine.length }}</span>
+        <span class="stat-l">in your plan</span>
       </div>
-      <NuxtLink to="/queues" class="row-interactive flex flex-col px-3.5 py-3">
-        <span class="font-display text-h2 font-semibold tabular-nums">{{ state.queuesChecked.size }}</span>
-        <span class="text-label text-muted">queues checked</span>
+      <NuxtLink to="/queues" class="stat-tile">
+        <span class="stat-n">{{ state.queuesChecked.size }}</span>
+        <span class="stat-l">queues checked</span>
       </NuxtLink>
     </div>
 
-    <UiEmptyState v-if="mine.length === 0" :icon="ListChecksIcon" title="Nothing here yet" description="Tap + on any screening to add it.">
-      <UiButton to="/programme" variant="secondary">Browse the schedule</UiButton>
-    </UiEmptyState>
+    <div v-if="mine.length === 0" class="empty-block">
+      <p class="muted">Nothing here yet. Tap + on any screening to add it.</p>
+      <NuxtLink class="underline-link" to="/programme">Browse the schedule</NuxtLink>
+    </div>
 
-    <!-- Plan, by day -->
-    <section v-for="date in days" :key="date" class="mt-7">
-      <div class="mb-1 flex items-center justify-between gap-3">
-        <h2 class="font-display text-h2 font-semibold">{{ dateParts(date).day }} {{ dateParts(date).date }} {{ dateParts(date).month }}</h2>
-        <UiButton size="sm" variant="secondary" @click="shareDay(date)"><Share2Icon /> Share my day</UiButton>
+    <section v-for="date in days" :key="date" class="my-day">
+      <div class="my-day-head">
+        <h2 class="my-day-title">{{ dateParts(date).day }} {{ dateParts(date).month }} {{ dateParts(date).date }}</h2>
+        <button type="button" class="btn-pill" @click="shareDay(date)">
+          <Share2Icon :size="18" /> Share my day
+        </button>
       </div>
-      <div v-for="item in byDay[date]" :key="item.id" class="flex items-center gap-3 border-b border-line py-3">
-        <NuxtLink :to="item.href" class="flex min-w-0 flex-1 items-center gap-3">
-          <FilmPoster v-if="item.kind === 'screening'" :film="item.film" class="aspect-[2/3] w-12 rounded-thumb" />
-          <EventThumb v-else :event="item.event" class="aspect-[2/3] w-12 rounded-thumb" />
-          <span class="flex min-w-0 flex-col gap-0.5">
-            <span class="text-meta font-medium text-ink/80 tabular-nums">{{ timeLabel(item.time) }} – {{ timeLabel(item.end) }}<span v-if="item.kind === 'event'" class="text-muted"> · {{ item.typeLabel }}</span></span>
-            <span class="line-clamp-2 text-body font-semibold" :class="item.status === 'cancelled' && 'text-muted line-through'">{{ item.title }}</span>
+      <div v-for="item in byDay[date]" :key="item.id" class="my-row">
+        <NuxtLink :to="item.href" class="my-row-link">
+          <FilmPoster v-if="item.kind === 'screening'" :film="item.film" class="poster-thumb" />
+          <EventThumb v-else :event="item.event" class="poster-thumb" />
+          <span class="my-row-body">
+            <span class="muted small">{{ timeLabel(item.time) }} – {{ timeLabel(item.end) }}{{ item.kind === 'event' ? ` · ${item.typeLabel}` : '' }}</span>
+            <span class="my-row-title" :class="{ struck: item.status === 'cancelled' }">{{ item.title }}</span>
             <StatusTag :status="item.status" />
-            <VenueLine :venue-id="item.venue" :place="item.venueName" :screen="item.room" />
+            <span class="venue-line"><VenueDot v-if="item.venue" :venue-id="item.venue" /> {{ planWhere(item) }}</span>
           </span>
         </NuxtLink>
-        <AddButton added :title="item.title" @toggle="toggleScheduled(item.id)" />
+        <button type="button" class="round-btn added big" :aria-label="`Remove ${item.title} from My Festival`" @click="toggleScheduled(item.id)">
+          <CheckIcon :size="22" :stroke-width="2.4" />
+        </button>
       </div>
     </section>
 
     <!-- Watched -->
-    <section ref="diary" class="mt-9 scroll-mt-20">
-      <h2 class="font-display text-h2 font-semibold">Watched</h2>
-      <p class="mt-0.5 text-muted"><strong class="font-semibold text-ink tabular-nums">{{ entries.length }}</strong> film{{ entries.length === 1 ? '' : 's' }} logged</p>
+    <section ref="diary" class="section">
+      <h2 class="section-title">Watched</h2>
+      <p class="muted"><strong class="diary-count">{{ entries.length }}</strong> film{{ entries.length === 1 ? '' : 's' }} logged</p>
 
-      <div class="mt-3 flex flex-wrap gap-2">
-        <UiButton size="sm" :disabled="entries.length === 0" @click="exportLetterboxd"><DownloadIcon /> Export to Letterboxd</UiButton>
-        <UiButton size="sm" variant="secondary" :href="LETTERBOXD_IMPORT"><ArrowUpRightIcon /> Letterboxd import</UiButton>
+      <div class="diary-actions">
+        <button type="button" class="btn btn-gold btn-small" :disabled="entries.length === 0" @click="exportLetterboxd">
+          <DownloadIcon :size="16" /> Export to Letterboxd
+        </button>
+        <a class="btn btn-outline btn-small" :href="LETTERBOXD_IMPORT" target="_blank" rel="noopener noreferrer">
+          <ArrowUpRightIcon :size="16" /> Letterboxd import
+        </a>
       </div>
 
-      <ol class="mt-4 flex flex-col gap-2.5">
-        <li v-for="(step, n) in [
-          ['Tap ', 'Seen it', ' on any film page, or the eye on the All films list.'],
-          ['Give it a star rating if you like.', '', ''],
-          ['Tap ', 'Export', ', then upload the file at letterboxd.com/import. Each film becomes a diary entry tagged afriff2026, and you can check the matches before anything is saved.'],
-        ]" :key="n" class="flex items-start gap-3 text-meta text-muted">
-          <span class="grid size-6 shrink-0 place-items-center rounded-full bg-raised text-label font-semibold text-accent-ink">{{ n + 1 }}</span>
-          <span class="pt-0.5">{{ step[0] }}<strong v-if="step[1]" class="font-semibold text-ink">{{ step[1] }}</strong>{{ step[2] }}</span>
-        </li>
+      <ol class="steps">
+        <li><span>Tap <strong>Seen it</strong> on any film page, or the eye on the All films list.</span></li>
+        <li><span>Give it a star rating if you like.</span></li>
+        <li><span>Tap <strong>Export</strong>, then upload the file at letterboxd.com/import. Each film becomes a diary entry tagged afriff2026, and you can check the matches before anything is saved.</span></li>
       </ol>
 
-      <p v-if="entries.length === 0" class="mt-4 text-muted">Nothing logged yet. Tap Seen it on a film after the screening.</p>
-      <div v-for="{ film, rating } in entries" :key="film.id" class="border-b border-line py-3">
-        <NuxtLink :to="`/film/${film.id}`" class="flex min-w-0 items-center gap-3">
-          <FilmPoster :film="film" class="aspect-[2/3] w-12 rounded-thumb" />
-          <span class="flex min-w-0 flex-col">
-            <span class="truncate text-body font-semibold">{{ film.title }}</span>
-            <span class="truncate text-meta text-muted">{{ film.director }} · {{ film.country || film.section }}</span>
+      <p v-if="entries.length === 0" class="muted">Nothing logged yet. Tap Seen it on a film after the screening.</p>
+      <div v-for="{ film, rating } in entries" :key="film.id" class="diary-row">
+        <NuxtLink :to="`/film/${film.id}`" class="my-row-link">
+          <FilmPoster :film="film" class="poster-thumb" />
+          <span class="my-row-body">
+            <span class="my-row-title">{{ film.title }}</span>
+            <span class="muted small">{{ film.director }} · {{ film.country || film.section }}</span>
           </span>
         </NuxtLink>
-        <div class="mt-1 ml-[3.75rem] flex gap-0.5" role="radiogroup" :aria-label="`Your rating for ${film.title}`">
+        <div class="stars" role="radiogroup" :aria-label="`Your rating for ${film.title}`">
           <button
             v-for="n in 5"
             :key="n"
@@ -155,29 +158,24 @@ const rate = (filmId: string, current: number, n: number) => rateWatched(filmId,
             role="radio"
             :aria-checked="rating === n"
             :aria-label="`${n} star${n > 1 ? 's' : ''}`"
-            class="pressable grid size-9 place-items-center"
-            :class="n <= rating ? 'text-accent-ink' : 'text-subtle'"
+            :class="{ on: n <= rating }"
             @click="rate(film.id, rating, n)"
           >
-            <StarIcon class="size-5" :fill="n <= rating ? 'currentColor' : 'none'" :stroke-width="1.75" />
+            <StarIcon :size="20" :fill="n <= rating ? 'currentColor' : 'none'" :stroke-width="1.8" />
           </button>
         </div>
       </div>
     </section>
 
-    <p class="mt-6 text-center text-label text-subtle">{{ account.profile ? 'Kept on this phone and in your account.' : 'Kept on this phone. Sign up to keep it on any phone.' }}</p>
-    <AccountCard class="mt-4" />
-    <AlertsSwitch class="mt-4" />
-    <label class="card mt-4 flex cursor-pointer items-center gap-4 p-4">
-      <span class="flex flex-1 flex-col gap-1">
-        <span class="text-body font-semibold">Share anonymous counts with AFRIFF</span>
-        <span class="text-meta text-muted">No names or contact details: just which screenings are planned and how films are rated, to help plan the festival.</span>
+    <p class="footnote">{{ account.profile ? 'Kept on this phone and in your account.' : 'Kept on this phone. No account needed.' }}</p>
+    <AccountCard />
+    <AlertsSwitch />
+    <label class="share-row">
+      <span class="share-text">
+        <span class="share-title">Share anonymous counts with AFRIFF</span>
+        <span class="muted small">No names or contact details: just which screenings are planned and how films are rated, to help plan the festival.</span>
       </span>
-      <input type="checkbox" role="switch" class="peer sr-only" :checked="state.sharing" @change="setSharing(($event.target as HTMLInputElement).checked)" />
-      <span
-        class="relative h-7 w-12 shrink-0 rounded-full bg-raised transition-colors peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-ink after:shadow after:transition-transform after:content-[''] peer-checked:after:translate-x-5 peer-checked:after:bg-on-accent"
-        aria-hidden="true"
-      />
+      <input type="checkbox" role="switch" class="switch" :checked="state.sharing" @change="setSharing(($event.target as HTMLInputElement).checked)" />
     </label>
   </div>
 </template>

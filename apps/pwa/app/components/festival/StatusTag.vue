@@ -8,5 +8,5 @@ const tag = computed(() => statusTag(props.status))
 </script>
 
 <template>
-  <UiBadge v-if="tag" :tone="tag.tone === 'alert' ? 'danger' : 'accent'">{{ tag.text }}</UiBadge>
+  <span v-if="tag" class="status-tag" :class="`tone-${tag.tone}`">{{ tag.text }}</span>
 </template>

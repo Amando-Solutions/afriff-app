@@ -29,7 +29,7 @@ const info = computed(() => {
     p,
     venue: e.venue ? venueById(e.venue) ?? null : null,
     duration: h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`,
-    dayLine: multi && e.endDate ? `– ${String(dateParts(e.endDate).date).padStart(2, '0')} ${p.monthUpper}` : `${p.month} ${p.day}`,
+    dayLine: multi && e.endDate ? `– ${String(dateParts(e.endDate).date).padStart(2, '0')} ${p.monthUpper}` : `${p.monthUpper} ${p.day.toUpperCase()}`,
   }
 })
 
@@ -40,82 +40,85 @@ function back() {
 </script>
 
 <template>
-  <div v-if="!event">
-    <UiEmptyState title="We couldn't find that event" description="It may have been removed from the programme.">
-      <UiButton to="/programme/events" variant="secondary">Back to events</UiButton>
-    </UiEmptyState>
+  <div v-if="!event" class="page">
+    <p class="empty">We couldn't find that event. <NuxtLink class="link" to="/programme/events">Back to events</NuxtLink></p>
   </div>
 
-  <article v-else-if="info" :key="event.id">
-    <div class="mb-4 flex items-center justify-between gap-2">
-      <button type="button" class="pressable -ml-2 inline-flex h-9 items-center gap-1 rounded-full pr-3 pl-1.5 text-meta font-medium text-muted hover:bg-hover hover:text-ink" @click="back">
-        <ChevronLeftIcon class="size-5" /> Back
-      </button>
-      <span class="flex gap-1.5">
-        <UiBadge>{{ info.type.label }}</UiBadge>
-        <UiBadge><ClockIcon /> {{ info.duration }}</UiBadge>
-      </span>
+  <div v-else-if="info" :key="event.id" class="page film-page">
+    <div class="film-topbar">
+      <a href="/programme/events" class="pill-btn" @click.prevent="back"><ChevronLeftIcon :size="20" /> Back</a>
+      <div class="film-topbar-right">
+        <span class="pill-btn static">{{ info.type.label }}</span>
+        <span class="pill-btn static"><ClockIcon :size="15" /> {{ info.duration }}</span>
+      </div>
     </div>
 
     <!-- the whole graphic, never cropped (same frame as film posters) -->
-    <div v-if="event.image" class="relative mx-auto w-[min(64%,17rem)] overflow-hidden rounded-card bg-raised shadow-card outline -outline-offset-1 outline-white/10">
-      <img :src="event.image" :alt="event.title" decoding="async" class="block h-auto w-full" />
+    <div v-if="event.image" class="hero-poster has-image">
+      <img :src="event.image" :alt="event.title" decoding="async" />
     </div>
-    <div v-else class="grain relative flex aspect-[16/9] items-center justify-center gap-3 overflow-hidden rounded-card border border-line bg-surface">
-      <EventThumb :event="event" icon-size="size-10" class="size-20 rounded-card" />
-    </div>
-
-    <p class="mt-5 eyebrow text-accent-ink">{{ info.type.label }}</p>
-    <h1 class="mt-1 font-display text-h1 font-semibold" :class="event.status === 'cancelled' && 'text-muted line-through'">{{ event.title }}</h1>
-    <div class="mt-2 flex flex-wrap items-center gap-2 text-meta text-muted">
-      <StatusTag :status="event.status" />
-      <span v-if="event.access" class="inline-flex items-center gap-1.5"><TicketIcon class="size-4 text-accent-ink" /> {{ event.access }}</span>
+    <div v-else class="event-hero">
+      <EventThumb :event="event" class="event-hero-art" :size="56" />
+      <span class="event-hero-type">{{ info.type.label }}</span>
     </div>
 
-    <UiButton v-if="event.link?.url" :href="event.link.url" block class="mt-4">
-      {{ event.link.label || 'More on afriff.com' }} <ArrowUpRightIcon />
-    </UiButton>
+    <h1 class="film-title" :class="{ struck: event.status === 'cancelled' }">{{ event.title }}</h1>
+    <StatusTag :status="event.status" />
+    <p v-if="event.access" class="muted small"><TicketIcon :size="14" style="vertical-align: -2px" /> {{ event.access }}</p>
 
-    <section v-if="event.about" class="mt-8">
-      <h2 class="mb-2 font-display text-h2 font-semibold">About</h2>
-      <p class="text-prose text-ink/90">{{ event.about }}</p>
+    <a v-if="event.link?.url" class="btn btn-gold event-cta" :href="event.link.url" target="_blank" rel="noopener noreferrer">
+      {{ event.link.label || 'More on afriff.com' }} <ArrowUpRightIcon :size="18" />
+    </a>
+
+    <section v-if="event.about" class="section">
+      <h2 class="section-title">About</h2>
+      <p class="event-about">{{ event.about }}</p>
     </section>
 
     <!-- awards: show who decides the winners -->
     <JuryRow v-if="event.type === 'awards'" title="The jury" intro="These are the people choosing this year's Globe Award winners. Tap a face to read about them." />
 
-    <section class="mt-8">
-      <h2 class="mb-3 font-display text-h2 font-semibold">When &amp; where</h2>
-      <div class="card flex flex-col gap-1 p-4">
-        <div class="flex items-baseline gap-2">
-          <span class="font-display text-h1 leading-none font-semibold tabular-nums">{{ String(info.p.date).padStart(2, '0') }}</span>
-          <span class="eyebrow text-muted">{{ info.dayLine }}</span>
+    <section class="section">
+      <h2 class="section-title">When &amp; where</h2>
+      <div class="showtime event-when">
+        <div class="showtime-card">
+          <div class="showtime-date">
+            <span class="big-num">{{ String(info.p.date).padStart(2, '0') }}</span>
+            <span class="showtime-mon">{{ info.dayLine }}</span>
+          </div>
+          <span class="showtime-time">{{ info.multi ? 'Evenings from ' : '' }}{{ timeLabel(event.time) }} – {{ timeLabel(event.end) }}</span>
+          <span class="venue-line"><VenueDot v-if="info.venue" :venue-id="info.venue.id" /> {{ info.venue ? info.venue.name : event.place }}</span>
+          <span v-if="info.venue && event.place" class="muted small">{{ event.place }}</span>
+          <span v-if="event.tag === 'Industry'" class="pill pill-alt">Industry</span>
         </div>
-        <span class="mt-1 text-body font-semibold tabular-nums">{{ info.multi ? 'Evenings from ' : '' }}{{ timeLabel(event.time) }} – {{ timeLabel(event.end) }}</span>
-        <VenueLine v-if="event.venue || event.place" :venue-id="event.venue" :place="event.place" />
-        <span v-if="info.venue && event.place" class="text-label text-muted">{{ event.place }}</span>
-        <UiBadge v-if="event.tag === 'Industry'" tone="info" class="mt-1">Industry</UiBadge>
+        <button
+          v-if="!info.multi"
+          type="button"
+          class="btn-schedule"
+          :class="{ added: isScheduled(event.id) }"
+          :aria-pressed="isScheduled(event.id)"
+          @click="toggleScheduled(event.id)"
+        >
+          <template v-if="isScheduled(event.id)"><CheckIcon :size="18" /> Scheduled</template>
+          <template v-else><PlusIcon :size="18" /> Schedule</template>
+        </button>
+        <a v-if="info.venue" class="btn-schedule" :href="directionsUrl(info.venue.address)" target="_blank" rel="noopener noreferrer">
+          <NavigationIcon :size="16" /> Directions
+        </a>
       </div>
-      <div class="mt-2.5 flex flex-wrap gap-2">
-        <UiButton v-if="!info.multi" :variant="isScheduled(event.id) ? 'primary' : 'secondary'" :aria-pressed="isScheduled(event.id)" @click="toggleScheduled(event.id)">
-          <template v-if="isScheduled(event.id)"><CheckIcon /> Scheduled</template>
-          <template v-else><PlusIcon /> Schedule</template>
-        </UiButton>
-        <UiButton v-if="info.venue" variant="secondary" :href="directionsUrl(info.venue.address)"><NavigationIcon /> Directions</UiButton>
-      </div>
-      <p class="mt-2.5 text-label text-subtle">Times and rooms are samples until AFRIFF publishes the schedule.</p>
+      <p class="muted small" style="margin-top: 10px">Times and rooms are samples until AFRIFF publishes the schedule.</p>
     </section>
 
-    <section v-if="event.speaker" class="mt-8">
-      <h2 class="mb-3 font-display text-h2 font-semibold">With</h2>
-      <div class="flex items-start gap-3">
-        <div class="grid size-12 shrink-0 place-items-center rounded-tile border border-line bg-raised font-display text-h3 font-semibold text-muted">{{ initials(event.speaker.replace(/\(.*\)/, '')) }}</div>
-        <div class="flex min-w-0 flex-col gap-0.5">
-          <span class="text-body font-semibold">{{ event.speaker }}</span>
-          <span v-if="event.speakerRole" class="text-meta text-muted">{{ event.speakerRole }}</span>
-          <p v-if="event.bio" class="mt-2 text-prose text-ink/90">{{ event.bio }}</p>
+    <section v-if="event.speaker" class="section">
+      <h2 class="section-title">With</h2>
+      <div class="speaker">
+        <div class="initials-tile">{{ initials(event.speaker.replace(/\(.*\)/, '')) }}</div>
+        <div class="speaker-text">
+          <span class="director-name">{{ event.speaker }}</span>
+          <span v-if="event.speakerRole" class="muted small">{{ event.speakerRole }}</span>
+          <p v-if="event.bio" class="speaker-bio">{{ event.bio }}</p>
         </div>
       </div>
     </section>
-  </article>
+  </div>
 </template>

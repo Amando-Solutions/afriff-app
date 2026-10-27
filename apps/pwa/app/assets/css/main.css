@@ -13,3 +13,6 @@
 @source "../../../../../packages/pwa/app";
 
 @import "@afriff/theme/styles/theme.css";
+
+/* The React app's look (unlayered, so it wins over Tailwind's layers). */
+@import "./classic.css";

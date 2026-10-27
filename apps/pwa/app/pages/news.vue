@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import type { Tone } from '@afriff/core/types/festival'
-import type { BadgeTone } from '@afriff/theme/components/ui/UiBadge.vue'
-import { ArrowRightIcon, ArrowUpRightIcon, BellIcon } from 'lucide-vue-next'
+import { ArrowRightIcon, BellIcon } from 'lucide-vue-next'
 import { NEWS } from '@afriff/core/data/programme'
 import { NEWS_TAGS, markAllNewsSeen, newsLink } from '~/lib/alerts'
 
@@ -18,7 +16,6 @@ const when = (iso: string) => {
     return ''
   }
 }
-const TONE: Record<Tone, BadgeTone> = { alert: 'danger', gold: 'accent', good: 'success', muted: 'neutral' }
 
 // each item with its tag and "View" link worked out once
 const items = computed(() => NEWS.map((n) => {
@@ -28,24 +25,22 @@ const items = computed(() => NEWS.map((n) => {
 </script>
 
 <template>
-  <div>
-    <PageTitle title="News & alerts" :icon="BellIcon" description="Changes to screenings and events, and festival news. Newest first." />
-    <AlertsSwitch class="mt-4" />
-    <UiEmptyState v-if="NEWS.length === 0" :icon="BellIcon" title="No news yet" description="Changes to the programme will appear here." />
-    <div class="mt-5 flex flex-col gap-3">
-      <article v-for="{ n, tag, link, alert } in items" :key="n.id" class="card flex flex-col gap-1 p-4" :class="alert && 'border-danger/40'">
-        <!-- tag and date on one quiet line, then the headline leads -->
-        <div class="flex items-center gap-2">
-          <UiBadge v-if="tag" :tone="TONE[tag.tone]">{{ tag.text }}</UiBadge>
-          <UiBadge v-else-if="n.urgent" tone="danger">Urgent</UiBadge>
-          <span class="text-label text-subtle">{{ when(n.time) }}</span>
+  <div class="page">
+    <PageTitle title="News & alerts" :icon="BellIcon" />
+    <p class="muted">Changes to screenings and events, and festival news. Newest first.</p>
+    <AlertsSwitch />
+    <p v-if="NEWS.length === 0" class="empty">No news yet. Changes to the programme will appear here.</p>
+    <div class="stack" style="margin-top: 16px">
+      <article v-for="{ n, tag, link, alert } in items" :key="n.id" class="news-card" :class="{ urgent: alert }">
+        <div class="news-tags">
+          <span v-if="tag" class="label" :class="`tone-${tag.tone}`">{{ tag.text }}</span>
+          <span v-else-if="n.urgent" class="label tone-alert">Urgent</span>
         </div>
-        <h2 class="mt-1 text-h3 font-semibold">{{ n.title }}</h2>
-        <p class="text-muted">{{ n.body }}</p>
-        <div v-if="link || n.url" class="mt-2 flex flex-wrap items-center gap-3">
-          <UiButton v-if="link" size="sm" variant="secondary" :to="link.href">{{ link.label }} <ArrowRightIcon /></UiButton>
-          <a v-if="n.url" :href="n.url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-0.5 text-meta font-medium text-accent-ink">Read more on afriff.com <ArrowUpRightIcon class="size-4" /></a>
-        </div>
+        <h2 class="row-title news-title">{{ n.title }}</h2>
+        <p class="muted">{{ n.body }}</p>
+        <span class="muted small">{{ when(n.time) }}</span>
+        <NuxtLink v-if="link" class="btn btn-outline btn-small" :to="link.href">{{ link.label }} <ArrowRightIcon :size="16" /></NuxtLink>
+        <a v-if="n.url" class="link" :href="n.url" target="_blank" rel="noopener noreferrer">Read more on afriff.com →</a>
       </article>
     </div>
   </div>

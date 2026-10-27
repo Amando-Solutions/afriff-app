@@ -13,10 +13,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <UiEmptyState
-    title="The staff console has moved"
-    :description="target ? 'Taking you there now…' : 'Ask the AFRIFF team for the new address.'"
-  >
-    <UiButton v-if="target" :href="target">Open the staff console</UiButton>
-  </UiEmptyState>
+  <div class="page">
+    <div class="empty-block">
+      <h1 class="section-title">The staff console has moved</h1>
+      <p class="muted">{{ target ? 'Taking you there now…' : 'Ask the AFRIFF team for the new address.' }}</p>
+      <a v-if="target" class="btn btn-gold btn-small" :href="target">Open the staff console</a>
+    </div>
+  </div>
 </template>

@@ -29,7 +29,7 @@ const grid = computed(() => {
   for (let m = from; m < to; m += 60) hours.push(m)
   const x = (mins: number) => ((mins - from) / 60) * PX
   // one group per cinema, plus "Other places" for events away from the cinemas
-  const places = [...VENUES.map((v) => ({ id: v.id, name: v.name, color: v.color })), { id: null, name: 'Other places', color: '#D9A441' }]
+  const places = [...VENUES.map((v) => ({ id: v.id, name: v.name, color: v.color })), { id: null, name: 'Other places', color: '#DBA440' }]
   const groups = places
     .map((p) => {
       const here = items.filter((i) => (i.venue || null) === p.id)
@@ -51,30 +51,22 @@ watch(() => props.day, scrollToNow, { flush: 'post' })
 </script>
 
 <template>
-  <div ref="scroller" class="-mx-4 overflow-x-auto pt-3.5 pb-1.5">
-    <div class="relative" :style="{ width: `${LABEL + grid.trackWidth + 16}px`, '--px': `${PX}px` }">
-      <div class="relative h-6 border-b border-line" :style="{ marginLeft: `${LABEL}px` }">
-        <span
-          v-for="m in grid.hours"
-          :key="m"
-          class="absolute top-0 h-6 border-l border-line-strong pl-1.5 text-label whitespace-nowrap text-muted"
-          :style="{ left: `${grid.x(m)}px` }"
-        >{{ hourLabel(m) }}</span>
+  <div ref="scroller" class="tl">
+    <div class="tl-grid" :style="{ width: `${LABEL + grid.trackWidth + 16}px`, '--px': `${PX}px` }">
+      <div class="tl-hours" :style="{ marginLeft: `${LABEL}px` }">
+        <span v-for="m in grid.hours" :key="m" class="tl-hour" :style="{ left: `${grid.x(m)}px` }">{{ hourLabel(m) }}</span>
       </div>
-      <div v-for="g in grid.groups" :key="g.place.id || 'other'" class="mt-3.5">
-        <div class="sticky left-0 inline-block px-4 pb-1.5 eyebrow" :style="{ color: g.place.color }">{{ g.place.name }}</div>
-        <div v-for="lane in g.lanes" :key="lane" class="flex h-[4.375rem]">
-          <div
-            class="sticky left-0 z-2 flex shrink-0 items-center border-l-[3px] bg-canvas pl-3 text-meta text-ink"
-            :style="{ width: `${LABEL}px`, borderLeftColor: g.place.color }"
-          >{{ lane }}</div>
-          <div class="tl-track relative shrink-0" :style="{ width: `${grid.trackWidth}px` }">
+      <div v-for="g in grid.groups" :key="g.place.id || 'other'" class="tl-group">
+        <div class="tl-group-name" :style="{ color: g.place.color }">{{ g.place.name }}</div>
+        <div v-for="lane in g.lanes" :key="lane" class="tl-lane">
+          <div class="tl-label" :style="{ width: `${LABEL}px`, borderLeftColor: g.place.color }">{{ lane }}</div>
+          <div class="tl-track" :style="{ width: `${grid.trackWidth}px` }">
             <NuxtLink
               v-for="i in g.here.filter((it) => it.lane === lane)"
               :key="i.id"
               :to="i.href"
-              class="absolute top-1.5 bottom-1.5 flex flex-col gap-0.5 overflow-hidden rounded-thumb border px-2 py-1.5"
-              :class="[i.kind === 'event' && 'border-dashed', i.status === 'cancelled' && 'opacity-45', isScheduled(i.id) && 'shadow-[inset_0_0_0_1.5px_var(--c-accent)]']"
+              class="tl-block"
+              :class="{ mine: isScheduled(i.id), event: i.kind === 'event', cancelled: i.status === 'cancelled' }"
               :style="{
                 left: `${grid.x(i.start)}px`,
                 width: `${Math.max(64, grid.x(i.end) - grid.x(i.start) - 4)}px`,
@@ -82,20 +74,13 @@ watch(() => props.day, scrollToNow, { flush: 'post' })
                 borderColor: `${g.place.color}66`,
               }"
             >
-              <span class="flex items-center gap-1 truncate text-meta font-semibold">
-                <CheckIcon v-if="isScheduled(i.id)" class="size-3.5 shrink-0 text-accent-ink" :stroke-width="3" />{{ i.title }}
-              </span>
-              <span class="truncate text-micro text-muted">{{ i.kind === 'event' ? `${EVENT_TYPES[i.event.type].label} · ` : '' }}{{ timeLabel(i.time) }} – {{ endLabel(i) }}</span>
+              <span class="tl-block-title"><CheckIcon v-if="isScheduled(i.id)" :size="13" :stroke-width="3" /> {{ i.title }}</span>
+              <span class="tl-block-time">{{ i.kind === 'event' ? `${EVENT_TYPES[i.event.type].label} · ` : '' }}{{ timeLabel(i.time) }} – {{ endLabel(i) }}</span>
             </NuxtLink>
           </div>
         </div>
       </div>
-      <div
-        v-if="grid.nowMin !== null"
-        class="pointer-events-none absolute top-0 bottom-0 z-3 w-0.5 bg-danger before:absolute before:-top-1 before:-left-1 before:size-2.5 before:rounded-full before:bg-danger before:content-['']"
-        :style="{ left: `${LABEL + grid.x(grid.nowMin)}px` }"
-        aria-label="Now"
-      />
+      <div v-if="grid.nowMin !== null" class="tl-now" :style="{ left: `${LABEL + grid.x(grid.nowMin)}px` }" aria-label="Now" />
     </div>
   </div>
 </template>

@@ -16,10 +16,20 @@ function toggle(vid: string) {
 </script>
 
 <template>
-  <div role="group" aria-label="Venues" class="scroll-row gap-1.5">
-    <UiChip :on="selected.length === 0" @click="selected = []">All venues</UiChip>
-    <UiChip v-for="v in VENUES" :key="v.id" :on="selected.includes(v.id)" @click="toggle(v.id)">
-      <VenueDot :venue-id="v.id" /> {{ v.name }} <span class="text-subtle tabular-nums">{{ count(v.id) }}</span>
-    </UiChip>
+  <div class="chips" role="group" aria-label="Venues">
+    <button type="button" :aria-pressed="selected.length === 0" class="chip" :class="{ on: selected.length === 0 }" @click="selected = []">
+      All venues
+    </button>
+    <button
+      v-for="v in VENUES"
+      :key="v.id"
+      type="button"
+      :aria-pressed="selected.includes(v.id)"
+      class="chip"
+      :class="{ on: selected.includes(v.id) }"
+      @click="toggle(v.id)"
+    >
+      <VenueDot :venue-id="v.id" /> {{ v.name }} <span class="chip-count">{{ count(v.id) }}</span>
+    </button>
   </div>
 </template>

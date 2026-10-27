@@ -2,32 +2,37 @@
 import { computed } from 'vue'
 import type { FestivalEvent } from '@afriff/core/types/festival'
 import { EVENT_TYPES, isMultiDay } from '@afriff/core/data/events'
+import { time12, timeLabel } from '@afriff/core/utils/format'
+import { eventWhere } from '~/lib/eventLook'
 import { useFestival } from '~/lib/store'
 
-// An event in a schedule list: same layout and type roles as a screening row.
+// An event in a schedule list: same layout as a screening row.
 const props = defineProps<{ event: FestivalEvent }>()
 const { isScheduled, toggleScheduled } = useFestival()
 const multi = computed(() => isMultiDay(props.event))
-const free = computed(() => Boolean(props.event.access?.startsWith('Free')))
-const cancelled = computed(() => props.event.status === 'cancelled')
+const t = computed(() => time12(props.event.time))
 </script>
 
 <template>
-  <div class="flex items-center gap-3 border-b border-line py-3.5">
-    <NuxtLink :to="`/event/${event.id}`" class="flex min-w-0 flex-1 items-start gap-3" :class="cancelled && 'opacity-60'">
-      <RowTime :time="event.time" :label="multi ? 'Nightly' : undefined" />
-      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span class="line-clamp-2 text-body font-semibold" :class="cancelled && 'line-through'">{{ event.title }}</span>
-        <span v-if="event.speaker" class="truncate text-meta text-ink/80">with {{ event.speaker }}</span>
-        <VenueLine :venue-id="event.venue" :place="event.place"><StatusTag :status="event.status" /></VenueLine>
-        <span class="mt-1 flex items-center gap-1.5">
-          <span class="eyebrow text-subtle">{{ EVENT_TYPES[event.type].label }}</span>
-          <UiBadge v-if="free" tone="success">Free</UiBadge>
-        </span>
+  <div class="row">
+    <NuxtLink :to="`/event/${event.id}`" class="row-link">
+      <div class="row-time">
+        <template v-if="multi">
+          <span class="row-time-n small">Nightly</span><span class="row-time-ampm">{{ timeLabel(event.time) }}</span>
+        </template>
+        <template v-else>
+          <span class="row-time-n">{{ t.time }}</span><span class="row-time-ampm">{{ t.ampm }}</span>
+        </template>
       </div>
-      <EventThumb :event="event" class="aspect-[4/5] w-12 rounded-thumb" />
+      <div class="row-body">
+        <span class="row-title" :class="{ struck: event.status === 'cancelled' }">{{ event.title }}</span>
+        <span v-if="event.speaker" class="event-speaker">with {{ event.speaker }}</span>
+        <span class="venue-line"><VenueDot v-if="event.venue" :venue-id="event.venue" /> {{ eventWhere(event) }} <StatusTag :status="event.status" /></span>
+        <span class="row-cat gold">{{ EVENT_TYPES[event.type].label }}{{ event.access?.startsWith('Free') ? ' · Free' : '' }}</span>
+      </div>
+      <EventThumb :event="event" class="poster-thumb" />
     </NuxtLink>
-    <span v-if="multi" class="size-9 shrink-0" />
+    <span v-if="multi" class="row-spacer" />
     <AddButton v-else :added="isScheduled(event.id)" :title="event.title" @toggle="toggleScheduled(event.id)" />
   </div>
 </template>

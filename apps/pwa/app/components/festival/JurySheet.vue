@@ -6,12 +6,12 @@ const open = defineModel<boolean>('open', { default: false })
 </script>
 
 <template>
-  <UiSheet v-model:open="open" :title="member?.jury || 'Jury'">
-    <div v-if="member" class="flex flex-col items-center gap-2 text-center">
-      <JuryAvatar :member="member" :size="96" ring />
-      <h3 class="mt-2 font-display text-h2 font-semibold">{{ member.name }}</h3>
-      <p class="text-meta text-muted">{{ [member.roles, member.country].filter(Boolean).join(' · ') }}</p>
-      <p v-if="member.bio" class="mt-2 text-left text-prose text-ink/90">{{ member.bio }}</p>
+  <BottomSheet v-model:open="open" :title="member?.jury || 'Jury'">
+    <div v-if="member" class="jury-sheet">
+      <JuryAvatar :member="member" :size="96" />
+      <h3 class="jury-sheet-name">{{ member.name }}</h3>
+      <p class="muted small">{{ [member.roles, member.country].filter(Boolean).join(' · ') }}</p>
+      <p v-if="member.bio" class="jury-sheet-bio">{{ member.bio }}</p>
     </div>
-  </UiSheet>
+  </BottomSheet>
 </template>
