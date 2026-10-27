@@ -30,14 +30,9 @@ export default defineNuxtConfig({
     // file) used to send push notifications (server/utils/firebaseAdmin.ts).
     // Set NUXT_FIREBASE_SERVICE_ACCOUNT on the staff project; read at run time.
     firebaseServiceAccount: '',
-    // SERVER ONLY, secret: attendee accounts (server/utils/accounts.ts).
-    // NUXT_ATTENDEE_PIN_SECRET: the key PINs are mixed with (16+ characters,
-    // never change it once people have signed up). NUXT_BREVO_*: the PIN-code
-    // email and the "App subscribers" list (server/accounts/brevo.ts).
-    attendeePinSecret: '',
+    // SERVER ONLY, secret: the console's "Send to Brevo" for attendees who
+    // ticked the festival emails box (server/accounts/brevo.ts).
     brevoApiKey: '',
-    brevoSenderEmail: '',
-    brevoSenderName: 'AFRIFF',
     brevoListId: 0,
     brevoDoiTemplateId: 0,
     brevoDoiRedirectUrl: '',
@@ -53,8 +48,8 @@ export default defineNuxtConfig({
   // server/api/push/*: sends announcements as push notifications (admins,
   // from the console) and adds attendee phones to the "news" topic (from the
   // attendee app, a different address: see server/utils/pushTopic.ts).
-  // server/api/account/*: attendee sign-up, log-in and Forgot PIN (from the
-  // attendee app); server/api/attendees/*: admins managing those accounts.
+  // server/api/attendees/*: admins deleting attendee accounts and sending
+  // opted-in attendees to Brevo (attendees sign in with Firebase directly).
 
   vite: {
     server: { allowedHosts: true },

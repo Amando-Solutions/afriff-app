@@ -95,6 +95,29 @@ function start() {
   });
 }
 
+// ---------- Saving needs an account (unless it doesn't) ----------
+// Adding to My Festival (+ on a screening or event, "Seen it" on a film) asks
+// this first. lib/account.ts sets it (plugins/account.client.ts): with no
+// account it sends the person to sign up and saves it afterwards, and it lets
+// the save straight through when they're signed in, or when sign-up can't or
+// needn't be used. Removing never asks.
+export interface SaveIntent {
+  kind: 'plan' | 'seen';
+  /** screening / event ID ('plan') or film ID ('seen') */
+  id: string;
+}
+let allowSave: (intent: SaveIntent) => boolean = () => true;
+export function guardSaves(check: (intent: SaveIntent) => boolean) {
+  allowSave = check;
+}
+
+/** Save it without asking (what they tapped before signing up). */
+export function applySave({ kind, id }: SaveIntent) {
+  start();
+  if (kind === 'plan') state.scheduled.add(id);
+  else if (!state.watched.has(id)) state.watched.set(id, { date: lagosDate(), rating: 0 });
+}
+
 export function useFestival() {
   start();
   return {
@@ -103,11 +126,11 @@ export function useFestival() {
     isWatched: (filmId: string) => state.watched.has(filmId),
     toggleScheduled: (id: string) => {
       if (state.scheduled.has(id)) state.scheduled.delete(id);
-      else state.scheduled.add(id);
+      else if (allowSave({ kind: 'plan', id })) state.scheduled.add(id);
     },
     toggleWatched: (filmId: string) => {
       if (state.watched.has(filmId)) state.watched.delete(filmId);
-      else state.watched.set(filmId, { date: lagosDate(), rating: 0 });
+      else if (allowSave({ kind: 'seen', id: filmId })) state.watched.set(filmId, { date: lagosDate(), rating: 0 });
     },
     rateWatched: (filmId: string, rating: number) => {
       const w = state.watched.get(filmId);

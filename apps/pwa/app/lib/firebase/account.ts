@@ -1,27 +1,38 @@
-// The attendee's Firebase sign-in, and their My Festival in the database.
+// Attendee accounts, straight to Firebase from the phone (no server of ours):
+// Firebase's own email + password sign-in, its own "reset your password"
+// email, and the person's records in the database:
+//   attendees/{uid}       name, email, festival-emails choice ("App users").
+//                         Created by the phone at sign-up; only the person and
+//                         admins can read it (firestore.rules check every field).
+//   attendeePlans/{uid}   their My Festival (lib/planSync.ts).
+//   brevoRemovals/{uid}   left behind when someone deletes their account, so
+//                         the console's "Send to Brevo" also takes them off Brevo.
+//   settings/attendeeAccounts  the console's "Require an account" switch.
+// Firebase keeps the phone signed in (IndexedDB), with no signal too.
 //
-// The PIN is checked by the staff app's server (it can count wrong tries and
-// pause the account, which Firebase's own sign-in can't), which answers with a
-// one-time token; this file signs the phone in to Firebase with it. Firebase
-// then keeps the phone signed in (IndexedDB), with no signal too, and the
-// database knows who's asking, so firestore.rules let each person reach only
-// their own attendeePlans/{uid}.
-//
-// Loaded with import() only when someone signs in, or after the first screen
-// for people already signed in, so it never slows down first paint.
+// Loaded with import() only when needed, so it never slows down first paint.
 import {
+  EmailAuthProvider,
   browserLocalPersistence,
+  createUserWithEmailAndPassword,
+  deleteUser,
   indexedDBLocalPersistence,
   inMemoryPersistence,
   initializeAuth,
   onAuthStateChanged,
-  signInWithCustomToken,
+  reauthenticateWithCredential,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
   signOut,
+  updateProfile,
   type Auth,
   type User,
 } from 'firebase/auth'
-import { doc, onSnapshot, serverTimestamp, setDoc, type Unsubscribe } from 'firebase/firestore'
+import {
+  deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc, type Unsubscribe,
+} from 'firebase/firestore'
 import { firebaseApp, firebaseDb } from '@afriff/core/firebase/app'
+import { MARKETING_CONSENT, cleanName, lagosDay, normaliseEmail } from '@afriff/core/accounts/rules'
 import type { PlanData } from '@afriff/core/accounts/plans'
 
 let auth: Auth | null = null
@@ -33,10 +44,130 @@ function attendeeAuth(): Auth {
   return auth
 }
 
-export async function signInWithToken(token: string): Promise<string> {
-  firebaseDb() // the database first, so it picks up the sign-in straight away
-  const { user } = await signInWithCustomToken(attendeeAuth(), token)
-  return user.uid
+export interface Profile {
+  uid: string
+  firstName: string
+  lastName: string
+  email: string
+  marketing: boolean
+}
+
+export interface Details {
+  firstName: string
+  lastName: string
+  marketing: boolean
+}
+
+const db = () => firebaseDb()
+const attendeeDoc = (uid: string) => doc(db(), 'attendees', uid)
+
+/** Their attendees/{uid} record, as the sign-up page fills it in (firestore.rules check each field). */
+async function createRecord(user: User, d: Details): Promise<Profile> {
+  const firstName = cleanName(d.firstName)
+  const lastName = cleanName(d.lastName)
+  const email = user.email ?? ''
+  await setDoc(attendeeDoc(user.uid), {
+    firstName,
+    lastName,
+    email,
+    emailLower: normaliseEmail(email),
+    marketing: d.marketing,
+    optInAtSignUp: d.marketing ? 1 : 0,
+    consentText: d.marketing ? MARKETING_CONSENT : '',
+    marketingChangedAt: serverTimestamp(),
+    createdAt: serverTimestamp(),
+    createdDay: lagosDay(Date.now()),
+    lastLoginAt: serverTimestamp(),
+    // the console's "Send to Brevo" adds ticked people to the "App subscribers" list
+    brevo: d.marketing ? 'pending' : 'off',
+    brevoError: '',
+  })
+  return { uid: user.uid, firstName, lastName, email, marketing: d.marketing }
+}
+
+export async function signUp(email: string, password: string, d: Details): Promise<Profile> {
+  db() // the database first, so it picks up the sign-in straight away
+  const { user } = await createUserWithEmailAndPassword(attendeeAuth(), email.trim(), password)
+  void updateProfile(user, { displayName: `${cleanName(d.firstName)} ${cleanName(d.lastName)}` }).catch(() => {})
+  return createRecord(user, d)
+}
+
+/**
+ * Logs in. Returns their profile, or null when the sign-in has no attendee
+ * record yet (a staff login, or a sign-up whose details didn't save): the
+ * sign-up page then asks for their name with finishDetails().
+ */
+export async function logIn(email: string, password: string): Promise<Profile | null> {
+  db()
+  const { user } = await signInWithEmailAndPassword(attendeeAuth(), email.trim(), password)
+  const snap = await getDoc(attendeeDoc(user.uid))
+  if (!snap.exists()) return null
+  void updateDoc(attendeeDoc(user.uid), { lastLoginAt: serverTimestamp() }).catch(() => {})
+  const a = snap.data()
+  return { uid: user.uid, firstName: String(a.firstName ?? ''), lastName: String(a.lastName ?? ''), email: String(a.email ?? user.email ?? ''), marketing: a.marketing === true }
+}
+
+export async function finishDetails(d: Details): Promise<Profile> {
+  const user = await signedInUser()
+  if (!user) throw Object.assign(new Error('signed-out'), { code: 'auth/user-token-expired' })
+  return createRecord(user, d)
+}
+
+/**
+ * Firebase's "reset your password" email: a link to Firebase's own page for
+ * choosing a new password, which then offers a way back to the app.
+ */
+export async function sendReset(email: string) {
+  const a = attendeeAuth()
+  try {
+    await sendPasswordResetEmail(a, email.trim(), { url: `${window.location.origin}/auth?mode=login` })
+  } catch (e) {
+    // this address isn't in Firebase's Authorized domains: send it without the way back
+    if ((e as { code?: string }).code === 'auth/unauthorized-continue-uri') await sendPasswordResetEmail(a, email.trim())
+    else throw e
+  }
+}
+
+/** The "Festival emails from AFRIFF" switch. */
+export async function setMarketing(uid: string, on: boolean) {
+  await updateDoc(attendeeDoc(uid), {
+    marketing: on,
+    consentText: on ? MARKETING_CONSENT : '',
+    marketingChangedAt: serverTimestamp(),
+    brevo: 'pending', // the console's "Send to Brevo" adds or removes them
+    brevoError: '',
+  })
+}
+
+/**
+ * "Delete my account": their records, then their sign-in. Firebase asks for
+ * the password again before deleting a sign-in, so the person types it.
+ * Someone who is also on the AFRIFF team keeps their sign-in (it's their
+ * staff login too); only their attendee records go.
+ */
+export async function deleteAccount(password: string) {
+  const user = await signedInUser()
+  if (!user?.email) throw Object.assign(new Error('signed-out'), { code: 'auth/user-token-expired' })
+  await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password))
+  const record = await getDoc(attendeeDoc(user.uid))
+  if (record.exists() && record.get('brevo') !== 'off') {
+    await setDoc(doc(db(), 'brevoRemovals', user.uid), { email: user.email, at: serverTimestamp() })
+  }
+  await deleteDoc(doc(db(), 'attendeePlans', user.uid))
+  await deleteDoc(attendeeDoc(user.uid))
+  const staff = await getDoc(doc(db(), 'users', user.uid)).then((s) => s.exists(), () => false)
+  if (staff) await signOut(attendeeAuth())
+  else await deleteUser(user)
+}
+
+/** The console's "Require an account to save to My Festival" switch; null = couldn't find out. */
+export async function requireAccountSetting(): Promise<boolean | null> {
+  try {
+    const snap = await getDoc(doc(db(), 'settings', 'attendeeAccounts'))
+    return snap.get('requireSignUp') !== false
+  } catch {
+    return null
+  }
 }
 
 /** Who's signed in on this phone (after Firebase has read its saved sign-in; works offline). */
@@ -53,13 +184,6 @@ export function onSignedOut(cb: () => void): Unsubscribe {
     if (user) seen = true
     else if (seen) cb()
   })
-}
-
-/** Proof of who this is, for the staff app's server (emails switch, delete account). */
-export async function idToken(): Promise<string> {
-  const user = await signedInUser()
-  if (!user) throw new Error('signed-out')
-  return user.getIdToken()
 }
 
 export async function signOutHere() {
@@ -79,7 +203,7 @@ export interface RemotePlan {
 
 export function watchPlan(uid: string, onPlan: (p: RemotePlan) => void, onError: (e: Error) => void): Unsubscribe {
   return onSnapshot(
-    doc(firebaseDb(), 'attendeePlans', uid),
+    doc(db(), 'attendeePlans', uid),
     { includeMetadataChanges: true },
     (snap) => onPlan({ data: snap.exists() ? snap.data() : null, pending: snap.metadata.hasPendingWrites, fromCache: snap.metadata.fromCache }),
     onError,
@@ -92,5 +216,5 @@ export function watchPlan(uid: string, onPlan: (p: RemotePlan) => void, onError:
  * resolves when the database has it.
  */
 export function writePlan(uid: string, plan: PlanData): Promise<void> {
-  return setDoc(doc(firebaseDb(), 'attendeePlans', uid), { v: 1, updatedAt: serverTimestamp(), ...plan })
+  return setDoc(doc(db(), 'attendeePlans', uid), { v: 1, updatedAt: serverTimestamp(), ...plan })
 }

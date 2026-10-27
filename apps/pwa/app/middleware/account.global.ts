@@ -1,20 +1,10 @@
-import { account, mayUseApp, safeRedirect } from '~/lib/account'
+import { account, safeRedirect } from '~/lib/account'
 
-// The sign-up page comes first: anyone not signed in (and not let in for this
-// visit with "Continue for now" / "Skip for now") is sent to /auth, which
-// remembers where they were going (a QR code to a film page, say) and takes
-// them there afterwards. The privacy notice is open to everyone.
-const OPEN = new Set(['/auth', '/privacy'])
-
+// Anyone can browse the whole app without an account. Sign-up is asked for
+// only when someone saves something to My Festival (+ on a screening or
+// event, "Seen it" on a film): lib/store.ts asks lib/account.ts first, which
+// sends them to /auth and saves it once they've signed up (plugins/account.client.ts).
+// Here: someone already signed in who opens /auth goes back where they were.
 export default defineNuxtRouteMiddleware((to) => {
-  // old #/ links: old-hash.global.ts forwards them first, then this runs again
-  if (to.hash?.startsWith('#/')) return
-  // staff links: forwarded to the staff app (StaffRedirect), no account needed
-  if (to.path.startsWith('/admin') || to.path.startsWith('/door')) return
-
-  if (!mayUseApp()) {
-    if (OPEN.has(to.path)) return
-    return navigateTo({ path: '/auth', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } }, { replace: true })
-  }
   if (to.path === '/auth' && account.profile) return navigateTo(safeRedirect(to.query.redirect) || '/', { replace: true })
 })

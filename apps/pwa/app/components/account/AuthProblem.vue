@@ -3,8 +3,8 @@ import { CircleAlertIcon } from 'lucide-vue-next'
 import type { AccountProblem } from '~/lib/account'
 
 // A problem on the sign-up page that isn't about one field (e.g. "Too many
-// wrong PINs"), with the next step as a button when there is one.
-type Target = 'signup' | 'login' | 'forgot' | 'code' | 'continue'
+// tries"), with the next step as a button when there is one.
+type Target = 'signup' | 'login' | 'forgot'
 defineProps<{ problem: AccountProblem | null; action: { label: string; to: Target } | null }>()
 const emit = defineEmits<{ action: [Target] }>()
 </script>

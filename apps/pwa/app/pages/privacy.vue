@@ -20,8 +20,8 @@ function back() {
 </script>
 
 <template>
-  <div class="min-h-dvh bg-canvas">
-    <header class="pt-safe sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-xl">
+  <div class="with-status min-h-dvh bg-canvas">
+    <header class="pt-safe sticky top-[var(--offline-bar,0px)] z-40 border-b border-line bg-chrome backdrop-blur-xl">
       <div class="mx-auto flex h-14 w-full max-w-xl items-center gap-3 px-4">
         <button type="button" class="pressable -ml-2 grid size-10 place-items-center rounded-full text-ink hover:bg-hover" aria-label="Back" @click="back">
           <ArrowLeftIcon class="size-5" />
@@ -44,7 +44,7 @@ function back() {
           <h2>What we collect when you sign up</h2>
           <ul>
             <li>Your first name, last name and email.</li>
-            <li>Your 4-digit PIN, stored scrambled with a secret key, so nobody (AFRIFF included) can read it.</li>
+            <li>Your password, stored scrambled by Google Firebase (the login service), so nobody (AFRIFF included) can read it.</li>
             <li>Your festival plan: the screenings and events you add, the films you mark "Seen it", your star ratings and the queues you've checked.</li>
             <li>When you signed up and last logged in, and whether you said yes to festival emails (with the exact wording you agreed to).</li>
           </ul>
@@ -55,7 +55,7 @@ function back() {
           <h2>Why</h2>
           <ul>
             <li>To keep your festival plan in your account, so you can log in on any phone and find it there.</li>
-            <li>To email you a code if you forget your PIN.</li>
+            <li>To email you a link to choose a new password if you forget yours.</li>
             <li>Only if you tick "Yes, AFRIFF can email me festival news and updates": to send you festival news and updates.</li>
           </ul>
         </section>
@@ -68,7 +68,7 @@ function back() {
         <section>
           <h2>Who can see it</h2>
           <p>Only AFRIFF admins can see or export attendee details. AFRIFF's editors and door volunteers can't.</p>
-          <p>These services run parts of the app for AFRIFF: Google Firebase (the database and log-in; data stored in London, UK), Vercel (hosts the app) and Brevo (sends the PIN-code email, and festival emails if you said yes). We don't sell your information.</p>
+          <p>These services run parts of the app for AFRIFF: Google Firebase (the database, log-in and password-reset emails; data stored in London, UK), Vercel (hosts the app) and Brevo (festival emails, only if you said yes). We don't sell your information.</p>
         </section>
 
         <section>
