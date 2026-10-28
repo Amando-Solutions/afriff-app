@@ -207,7 +207,7 @@ const SAVE_TEXT = { saved: 'Saved', dirty: 'Not saved yet', saving: 'Saving…',
       <span class="ml-auto text-label" :class="saving.state === 'error' ? 'text-danger' : 'text-muted'" role="status">{{ SAVE_TEXT[saving.state] }}<template v-if="saving.state === 'error'">: {{ saving.error }}</template></span>
     </div>
     <p class="mt-1 text-meta text-muted">
-      By email only. {{ isAdmin ? 'Check it, send yourself a test, then send or schedule it.' : 'Send yourself a test, then ask an admin to approve it: only admins can send.' }}
+      By email, plus a push notification for guests who use the AFRIFF app (logged in, alerts on). {{ isAdmin ? 'Check it, send yourself a test, then send or schedule it.' : 'Send yourself a test, then ask an admin to approve it: only admins can send.' }}
       Started by {{ invite.createdByName || 'someone' }}.
     </p>
     <p v-if="invite.reviewNote && invite.status === 'draft'" class="mt-3 rounded-tile border border-accent/40 bg-accent-soft px-3 py-2 text-meta"><strong>Sent back by an admin:</strong> {{ invite.reviewNote }}</p>

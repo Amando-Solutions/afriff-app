@@ -5,7 +5,7 @@ import type { Person } from '#shared/contacts'
 import { subjectOf } from '#shared/invites'
 import { loadPeople, watchGroups, type Group } from '~/lib/contacts'
 import {
-  countGuests, editable, inviteSetup, lagosText, sendInvite, shownStatus, watchInvite,
+  countGuests, editable, inviteSetup, lagosText, scheduledPushesRunning, sendInvite, shownStatus, watchInvite, watchScheduledPushes,
   type Count, type InviteDoc, type InviteSetup, type SendProgress,
 } from '~/lib/invites'
 import { useAdminAuth } from '~/lib/useAdminAuth'
@@ -24,10 +24,14 @@ const loadError = ref('')
 const people = ref<Person[] | null>(null)
 const groups = ref<Group[]>([])
 const setup = ref<InviteSetup | null | undefined>(undefined)
+/** scheduled invites get push notifications too: the Cloud Function that sends them is running (admins) */
+const pushCheckedAt = ref(0)
+const scheduledPushes = computed(() => scheduledPushesRunning(pushCheckedAt.value))
 
 const stops = [
   watchInvite(props.id, (c) => { invite.value = c }, (e) => { loadError.value = errMsg(e) }),
   watchGroups((g) => { groups.value = g }, (e) => { loadError.value = errMsg(e) }),
+  ...(isAdmin.value ? [watchScheduledPushes((ms) => { pushCheckedAt.value = ms })] : []),
 ]
 onBeforeUnmount(() => stops.forEach((s) => s()))
 const reloadPeople = () => loadPeople().then((p) => { people.value = p }, (e) => { loadError.value = errMsg(e) })
@@ -67,7 +71,11 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString
 
 function finished(p: SendProgress) {
   const pushed = p.pushed ? ` ${plural(p.pushed, 'guest')} also got a push notification on their phone.` : ''
-  if (p.status === 'scheduled') send.note = `Scheduled: Brevo sends it at ${lagosText(p.scheduledAt)} (Lagos time) to ${plural(p.sent, 'person', 'people')}, by email only (no push notifications for scheduled invites).`
+  if (p.status === 'scheduled') {
+    send.note = `Scheduled: Brevo sends it at ${lagosText(p.scheduledAt)} (Lagos time) to ${plural(p.sent, 'person', 'people')}. ${scheduledPushes.value
+      ? 'Guests who use the AFRIFF app (logged in, alerts on) get a push notification within a minute of it going out.'
+      : 'By email only for now: the Cloud Function that sends push notifications for scheduled invitations isn\'t running (see the Invitations page).'}`
+  }
   else if (p.status === 'sent') send.note = `Sent to ${plural(p.sent, 'person', 'people')}${p.failed ? `; ${plural(p.failed, 'address', 'addresses')} turned down (listed below)` : ''}.${pushed}`
   else if (p.status === 'paused') send.error = `Paused after ${plural(p.sent, 'email')}. ${p.error}`
   else send.note = `Sent ${plural(p.sent, 'email')} so far. Press Continue sending to carry on.`
@@ -135,6 +143,7 @@ const status = computed(() => (invite.value ? shownStatus(invite.value) : 'draft
         :subject="subjectOf(invite)"
         :when="confirm.scheduledAt ? lagosText(confirm.scheduledAt) : ''"
         :busy="send.busy"
+        :scheduled-pushes="scheduledPushes"
         @send="go({ mode: confirm.mode, scheduledAt: confirm.scheduledAt || undefined })"
         @cancel="confirm.open = false"
       />

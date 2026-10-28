@@ -35,7 +35,7 @@ function setup(opts: { clock?: () => number } = {}) {
 
 function draft(db: ReturnType<typeof memoryInvites>, id: string, content: InviteContent, audience: Partial<InviteRecord['audience']> = {}, extra: Partial<InviteRecord> = {}) {
   db.invites.set(id, {
-    ...content, id, audience: { groups: [], people: [], exclude: [], ...audience }, parentId: '', status: 'review', scheduledAt: 0, batchId: '',
+    ...content, id, audience: { groups: [], people: [], exclude: [], ...audience }, parentId: '', status: 'review', scheduledAt: 0, pushAt: 0, batchId: '',
     total: 0, sent: 0, failed: 0, failures: [], runs: 0, lockUntil: 0, error: '', linkBase: '', groupNames: [], unsubscribed: 0, pushed: 0,
     createdByName: 'Ed Editor', sentByName: '', sentAt: 0, finishedAt: 0, ...extra,
   })
@@ -403,15 +403,25 @@ describe('push notifications to guests’ phones', () => {
     assert.equal(p.pushed, 2)
   })
 
-  it('a scheduled invite goes by email only (nothing runs at that time to send a push)', async () => {
+  it('a scheduled invite pushes nothing now: it is marked for the Cloud Function to push at its time', async () => {
     const { db, brevo, phones, inv } = setup()
     threeGuests(db)
     phones.phone('u1')
     draft(db, 'inv-ps', INVITE, { groups: ['vip'] })
-    await sendAll(inv, 'inv-ps', 'all', NOW + 24 * 3_600_000)
+    const at = NOW + 24 * 3_600_000
+    await sendAll(inv, 'inv-ps', 'all', at)
     assert.equal(brevo.emails().length, 3)
     assert.equal(phones.pushes.length, 0)
     assert.equal(db.invites.get('inv-ps')!.pushed, 0)
+    assert.equal(db.invites.get('inv-ps')!.pushAt, at, 'pushScheduledInvites sends them then')
+  })
+
+  it('Send now marks nothing for the Cloud Function (its pushes went already)', async () => {
+    const { db, inv } = setup()
+    threeGuests(db)
+    draft(db, 'inv-pnow', INVITE, { groups: ['vip'] })
+    await sendAll(inv, 'inv-pnow')
+    assert.equal(db.invites.get('inv-pnow')!.pushAt, 0)
   })
 
   it('a push failing never stops the emails', async () => {
@@ -459,6 +469,7 @@ describe('scheduling (Lagos time picked in the console, held by Brevo)', () => {
     await inv.cancel('inv-x')
     assert.deepEqual(brevo.cancelled, ['batch-1'])
     assert.equal(db.invites.get('inv-x')!.status, 'review')
+    assert.equal(db.invites.get('inv-x')!.pushAt, 0, 'no pushes for a called-off invite')
     assert.equal(db.guests('inv-x').length, 0)
     // and it can be sent again afterwards
     assert.equal((await sendAll(inv, 'inv-x')).status, 'sent')

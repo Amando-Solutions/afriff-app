@@ -32,8 +32,9 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      // Where the staff console (apps/admin) is deployed. Old /admin and
-      // /door links (and #/admin, #/door QR codes) on this app are sent there.
+      // Where the staff console (apps/admin) is deployed: its server handles
+      // the push routes below. This app never sends people there; /admin and
+      // /door here are plain "page not found".
       // Set NUXT_PUBLIC_ADMIN_URL on the host BEFORE building (the value is
       // written into the app shell at build time).
       adminUrl: process.env.NUXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001'),

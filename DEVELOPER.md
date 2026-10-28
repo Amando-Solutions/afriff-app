@@ -6,8 +6,9 @@ Your job is to make sure it's technically solid for the festival
 
 - **Live app:** https://afriff-app-mu.vercel.app
 - **Staff console** (admin console + door view): its own app and address since
-  24 Oct (`apps/admin`). Old `/admin`, `/door`, `#/admin` and `#/door` links
-  on the attendee app forward there.
+  24 Oct (`apps/admin`). The two apps don't send people to each other:
+  `/admin` and `/door` on the attendee app are "page not found" (the old
+  forwarding was removed 28 Oct).
 - **Full decision log:** [CLAUDE.md](CLAUDE.md). It records why each thing
   is the way it is, so read it before changing behaviour. Keep it updated:
   the product owner and Claude Code both rely on it.
@@ -26,8 +27,8 @@ public kind, and access is controlled by `firestore.rules`. To point a build
 at another Firebase project, set the `NUXT_PUBLIC_FIREBASE_*` variables listed
 in `.env.example` (in `apps/pwa/.env` / `apps/admin/.env`, or on the host).
 The one setting you must give the attendee app in production is
-`NUXT_PUBLIC_ADMIN_URL` (the staff console's address), so old admin and door
-links forward there.
+`NUXT_PUBLIC_ADMIN_URL` (the staff console's address), so phones can join the
+push alerts list through the console's server.
 
 ## 2. Run it locally
 Requires Node 20.19+ (22 recommended). It's an npm-workspaces monorepo:
@@ -131,9 +132,9 @@ only its manifest.
 ```
 apps/pwa/app/
   pages/        index (Home), programme/[[tab]], film/[id], event/[id], my (My Festival),
-                profile (account + switches), queues, venues, news, jury; admin/[...path] + door only forward to the console
-  components/   app/ (header, bottom bar, install toast, welcome cards, sponsor marquee,
-                StaffRedirect), festival/ (posters, rows, jury, daily highlight),
+                profile (account + switches), queues, venues, news, jury
+  components/   app/ (header, bottom bar, install toast, welcome cards, sponsor marquee),
+                festival/ (posters, rows, jury, daily highlight),
                 programme/ (day picker, venue chips, timeline, My plan sheet, search)
   layouts/      default (attendee frame)
   lib/          store (phone storage), queues, alerts, usage, plan, today, dayItems,
@@ -325,6 +326,11 @@ it's published.
   (skipped when scheduled), `sendEach` per phone, gone tokens deleted;
   `recipients/{key}.pushedAt` + `invites/{id}.pushed`. Console deletion of an
   account deletes its `pushTokens` too.
+- **Scheduled invitations' pushes** (28 Oct): the staff app can't act at the
+  scheduled time, so `start()` saves `pushAt` (= `scheduledAt`, 0 for Send now)
+  on `invites/{id}` and `cancel()` clears it. The Cloud Function
+  `pushScheduledInvites` (`functions/src/invites/`, every minute) sends them;
+  see "Pushes for scheduled invitations" under the functions section.
 - **iPhone**: web push only works in the app added to the Home Screen
   (iOS 16.4+); in Safari the switch is replaced by that instruction.
 - **Testing locally**: no service worker in `npm run dev`, so the switch is
@@ -664,7 +670,9 @@ invites@afriff.app; empty = `NUXT_EMAIL_FROM_ADDRESS`), optional
 **Scheduling** is Brevo's own (max 72 h ahead, so the console allows 10 min to
 71 h). "New people only" on a still-scheduled invite joins the same `batchId`
 and time; "Call it off" deletes the batch at Brevo and the guest list, back to
-`review`.
+`review`. Push notifications for scheduled invites come from the Cloud
+Function `pushScheduledInvites` (see "Pushes for scheduled invitations" under
+the functions section).
 
 **Tests:** `npm run test:accounts` (all staff tests). UI was checked in a
 throwaway Nuxt build outside the repo with `firebase/*` aliased to in-memory
@@ -744,10 +752,18 @@ tithera14@gmail.com, and admins must never see the word in the console.
   Playwright checks with the in-memory Firebase fakes.
 
 ### afriff.com film sync (Cloud Function, 26 Oct 2026)
-`functions/` holds one scheduled function, `syncFromAfriff` (every 15 min,
-europe-west2, Node 22, 512 MiB, max 1 instance, no retries). It keeps
+`functions/` holds two scheduled functions: `syncFromAfriff` (every 15 min,
+europe-west2, Node 22, 512 MiB, max 1 instance, no retries), below, and
+`pushScheduledInvites` (every minute; see "Pushes for scheduled invitations"
+after this section). `syncFromAfriff` keeps
 `films/*` in step with afriff.com without overwriting the team's edits.
 Full behaviour and decisions: CLAUDE.md "afriff.com film sync".
+- **SWITCHED OFF (28 Oct 2026, user decision):** the `syncFromAfriff` export in
+  `src/index.ts` and its three imports are commented out (not deleted), so the
+  bundle and `npm run deploy:functions` carry only `pushScheduledInvites`. The
+  console's `<AdminSyncStatus />` card is commented out in `AdminDataHome.vue`.
+  The sync code and its tests stay and still run in `npm run functions:test`.
+  Switch back on: uncomment both, then deploy.
 - **Reading afriff.com** (`src/afriff/`): there's no feed. `site.ts` finds
   the film-list module (`film-selection-…js`, linked from `/program`; falls
   back to searching the other linked chunks). Vite fingerprints file names,
@@ -773,7 +789,7 @@ Full behaviour and decisions: CLAUDE.md "afriff.com film sync".
   `src/sync/store.ts` wraps Firestore (Admin SDK) and an in-memory twin for
   tests.
 - **Commands** (from the repo root): `npm run functions:install` once;
-  `npm run functions:test` (typecheck + 37 tests, no network);
+  `npm run functions:test` (typecheck + 48 tests, no network);
   `npm run functions:check` (dry run against live afriff.com and the public
   published copy; writes nothing); `npm run deploy:functions` (firebase.json
   predeploy runs typecheck, tests and the esbuild bundle → `functions/lib/`).
@@ -786,6 +802,38 @@ Full behaviour and decisions: CLAUDE.md "afriff.com film sync".
   sample screenings alone until the team decides).
 - To sync more fields, add them to `SYNCED_FIELDS` + `cleanFilm`: existing
   films learn the new field on the next check rather than being overwritten.
+
+### Pushes for scheduled invitations (Cloud Function, 28 Oct 2026)
+`pushScheduledInvites` (`functions/src/index.ts`; cron `* * * * *`,
+europe-west2, 256 MiB, 60 s, max 1 instance, no retries). Send now pushes stay
+in the staff app (`server/invites/logic.ts` `pushTo`); this does the same for
+scheduled invites at their time.
+- **What it does** (`src/invites/push.ts`, pure, tested with fakes):
+  `due` = `invites` where `0 < pushAt <= now` (single-field range, no composite
+  index; ~1 read a minute when nothing is due) → `claim` (transaction: still
+  due, `pushLockUntil` passed, the staff app's `lockUntil` passed → hold 2 min)
+  → guests `recipients where status == 'sent'` with a uid, no `pushedAt`, not
+  unsubscribed → their `pushTokens` (`uid in`, 30 at a time) → FCM `sendEach`,
+  the same `webpush` message as `server/utils/pushDevices.ts` → gone tokens
+  deleted → `finish` (`pushedAt` on each reached guest, `pushed` increment,
+  `pushAt: 0`, hold released). FCM failing outright leaves it due: retried
+  after the hold. Over 3 h late (deployed after the time) or called off: no
+  push, just cleared. Words: `invitePush` from `apps/admin/shared/push.ts`,
+  bundled in.
+- **Status**: `sync/invitePushes` `{ checkedAt, last }`, written on the first
+  run, every 10 min and whenever it pushed (admins read, existing `sync/{id}`
+  rule). The console (Invitations, the confirm sheet) shows "On" if
+  `checkedAt` is under 15 min old; a sent invite whose `pushAt` is over 5 min
+  past says the function isn't running (`pushesOverdue`, `app/lib/invites.ts`).
+- **Shared code**: `build.mjs` bundles `@afriff/core/*` (resolved to
+  `packages/core/src/*.ts`, as its `exports`) so the cloud needn't install it;
+  npm packages stay external. The functions typecheck follows the imports into
+  `apps/admin/shared/` and `packages/core/src/` (needs the root `npm install`
+  for the `@afriff/core` workspace link).
+- **Commands**: same as the sync (`npm run functions:test`: typecheck + 48
+  tests; `npm run deploy:functions` deploys both). Logs:
+  `npm --prefix functions run logs:invites`. Cost on Blaze: ~43,200 runs a
+  month (free allowance 2 million) and a second Cloud Scheduler job (3 free).
 
 ## 5. Deploying and hosting
 Two Vercel projects from this one repo, one per app:
@@ -817,8 +865,8 @@ npx.cmd vercel link            # switch to the other project, then deploy again
 The attendee app has no server functions (the host only serves files); the
 staff app has the three push routes (`/api/push/*`) and the admin-only
 attendee routes (`/api/attendees/*`). After a deploy,
-check `/`, `/film/lady` and `/admin` (should forward to the console) on the
-attendee app, `/` (should go to `/login`), `/admin` and `/door` on the console, and that `/sw.js` comes
+check `/`, `/film/lady` and `/door` (should say "We couldn't find that page")
+on the attendee app, `/` (should go to `/login`), `/admin` and `/door` on the console, and that `/sw.js` comes
 back with `Cache-Control: no-cache` on both. Add the console's domain to
 Firebase → Authentication → Settings → Authorized domains.
 `.vercelignore` keeps `reference/` (design screenshots, not in the repo)
