@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
-import { ChevronRightIcon, DownloadCloudIcon, SaveIcon } from 'lucide-vue-next'
+import { ChevronRightIcon, SaveIcon } from 'lucide-vue-next'
+// DownloadCloudIcon: only used by the commented-out "Add missing festival data" card below
 import { COLLECTIONS, COLLECTION_ORDER, isCollection, type CollectionName } from '~/lib/schema'
-import { downloadBackup, importAll, useCollection, type ImportResult } from '~/lib/data'
+import { downloadBackup, useCollection } from '~/lib/data'
+// importAll, ImportResult: see the commented-out "Add missing festival data" card below
 import type { Profile } from '~/lib/types'
 import { errMsg } from '~/lib/util'
 
@@ -18,18 +20,23 @@ const countText = (name: CollectionName) => {
   return items == null ? 'Loading…' : `${items.length} in the database`
 }
 
-const imp = reactive({ busy: false, done: null as ImportResult | null, error: '', progress: '' })
-async function runImport() {
-  Object.assign(imp, { busy: true, done: null, error: '', progress: 'Checking what\'s already there…' })
-  try {
-    const done = await importAll((n, total) => { imp.progress = `${n} of ${total} added…` })
-    Object.assign(imp, { busy: false, done, progress: '' })
-  } catch (e) {
-    Object.assign(imp, { busy: false, error: errMsg(e), progress: '' })
-  }
-}
-const importAdded = () => (imp.done ? listCounts(imp.done.added) : '')
-const importKept = () => (imp.done ? Object.values(imp.done.kept).reduce((a, b) => a + b, 0) : 0)
+// "Add missing festival data" is switched off (28 Oct 2026, Michael): AFRIFF's
+// schedule sheet (scripts/schedule/) is now the only source of truth, and this
+// import would bring back the 90 sample screenings (s1–s90) and other built-in
+// copies the sheet replaced. To switch it back on, uncomment this block, the
+// card in the template and the two imports above.
+// const imp = reactive({ busy: false, done: null as ImportResult | null, error: '', progress: '' })
+// async function runImport() {
+//   Object.assign(imp, { busy: true, done: null, error: '', progress: 'Checking what\'s already there…' })
+//   try {
+//     const done = await importAll((n, total) => { imp.progress = `${n} of ${total} added…` })
+//     Object.assign(imp, { busy: false, done, progress: '' })
+//   } catch (e) {
+//     Object.assign(imp, { busy: false, error: errMsg(e), progress: '' })
+//   }
+// }
+// const importAdded = () => (imp.done ? listCounts(imp.done.added) : '')
+// const importKept = () => (imp.done ? Object.values(imp.done.kept).reduce((a, b) => a + b, 0) : 0)
 
 const backup = reactive({ busy: false, done: null as Record<string, number> | null, error: '' })
 async function runBackup() {
@@ -52,8 +59,11 @@ async function runBackup() {
     </p>
 
     <template v-if="profile.role === 'admin'">
+      <!-- afriff.com sync card hidden (28 Oct 2026): the syncFromAfriff Cloud Function is switched off (functions/src/index.ts). Put it back with the function.
       <AdminSyncStatus />
+      -->
 
+      <!-- "Add missing festival data" switched off (28 Oct 2026): the schedule sheet is the only source of truth. See the note in the script above.
       <div class="card mt-3 flex flex-col gap-2.5 p-4">
         <h2 class="flex items-center gap-2 text-h3 font-semibold"><DownloadCloudIcon class="size-5 text-accent-ink" /> Festival data from afriff.com</h2>
         <p class="text-meta text-muted">
@@ -67,6 +77,7 @@ async function runBackup() {
         </p>
         <p v-if="imp.error" class="text-meta text-danger">Couldn't load: {{ imp.error }}</p>
       </div>
+      -->
 
       <div class="card mt-3 flex flex-col gap-2.5 p-4">
         <h2 class="flex items-center gap-2 text-h3 font-semibold"><SaveIcon class="size-5 text-accent-ink" /> Backup</h2>

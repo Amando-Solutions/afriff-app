@@ -6,7 +6,7 @@ import type { Count } from '~/lib/invites'
 
 // The last step before sending (admins): "Send to 87 people?", with who's left
 // out and why. Nothing goes until "Send" is pressed here.
-const props = defineProps<{ count: Count; mode: 'all' | 'new' | 'resend'; subject: string; when: string; busy: boolean }>()
+const props = defineProps<{ count: Count; mode: 'all' | 'new' | 'resend'; subject: string; when: string; busy: boolean; scheduledPushes: boolean }>()
 const emit = defineEmits<{ send: []; cancel: [] }>()
 
 const n = computed(() => (props.mode === 'new' ? props.count.newPeople : props.count.send))
@@ -23,7 +23,10 @@ const skipped = computed(() => Object.entries(props.count.skipped).filter(([, k]
     <p class="font-display text-h1 font-semibold">{{ headline }}</p>
     <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-meta">
       <dt class="text-muted">Subject</dt><dd>{{ subject }}</dd>
-      <dt class="text-muted">When</dt><dd>{{ when ? `${when} (Lagos time). Brevo holds it until then. By email only: push notifications go only with Send now.` : 'Now. Guests who use the AFRIFF app (logged in, alerts on) also get a push notification.' }}</dd>
+      <dt class="text-muted">When</dt>
+      <dd v-if="!when">Now. Guests who use the AFRIFF app (logged in, alerts on) also get a push notification.</dd>
+      <dd v-else-if="scheduledPushes">{{ when }} (Lagos time). Brevo holds it until then. Guests who use the AFRIFF app (logged in, alerts on) get a push notification within a minute of it going out.</dd>
+      <dd v-else>{{ when }} (Lagos time). Brevo holds it until then. By email only for now: the Cloud Function that sends push notifications for scheduled invitations isn't running (see the Invitations page).</dd>
       <template v-if="mode === 'new'">
         <dt class="text-muted">Already sent</dt><dd>{{ people(count.send - count.newPeople) }} (they don't get it again)</dd>
       </template>

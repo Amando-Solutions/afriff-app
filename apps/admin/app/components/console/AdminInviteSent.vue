@@ -5,7 +5,7 @@ import { MailPlusIcon, PlayIcon, PrinterIcon, RefreshCwIcon, RotateCwIcon, UserP
 import { cleanInvite, subjectOf } from '#shared/invites'
 import { canOpen } from '~/lib/access'
 import {
-  cancelSchedule, createInvite, fixAddress, lagosText, loadStats,
+  cancelSchedule, createInvite, fixAddress, lagosText, loadStats, pushesOverdue,
   type InviteDoc, type InviteStatus, type Stats,
 } from '~/lib/invites'
 import { useAdminAuth } from '~/lib/useAdminAuth'
@@ -149,6 +149,10 @@ const STATUS: Record<InviteStatus, { label: string; tone: 'success' | 'accent' |
       <p v-if="cancelState.error" class="text-danger" role="alert">{{ cancelState.error }}</p>
       <p v-if="!isAdmin && (c.status === 'paused' || canContinue)" class="text-muted">An admin can continue sending it.</p>
     </div>
+    <!-- a scheduled invite whose time has come, but the Cloud Function hasn't sent its pushes -->
+    <p v-if="pushesOverdue(c, now)" class="mt-4 rounded-tile border border-accent/40 bg-accent-soft px-3 py-2 text-meta" role="status">
+      <strong class="font-semibold">Push notifications not sent yet.</strong> The emails went at {{ lagosText(c.pushAt) }}, but the Firebase Cloud Function that sends the pushes for scheduled invitations isn't running. Ask the developer to deploy it (it needs Firebase's Blaze plan). Up to 3 hours after that time, it still sends them.
+    </p>
 
     <!-- ---------- The log ---------- -->
     <section class="mt-6">

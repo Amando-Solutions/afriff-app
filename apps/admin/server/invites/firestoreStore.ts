@@ -26,6 +26,7 @@ function inviteFrom(id: string, d: DocumentData): InviteRecord {
     parentId: s(d.parentId),
     status: STATUSES.includes(d.status) ? d.status : 'draft',
     scheduledAt: n(d.scheduledAt),
+    pushAt: n(d.pushAt),
     batchId: s(d.batchId),
     total: n(d.total), sent: n(d.sent), failed: n(d.failed),
     failures: Array.isArray(d.failures) ? d.failures : [],

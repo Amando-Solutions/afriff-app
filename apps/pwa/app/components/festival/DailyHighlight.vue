@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import { ClockIcon } from 'lucide-vue-next'
-import { DAY_THEMES, filmById } from '@afriff/core/data/programme'
-import { dateParts, timeLabel } from '@afriff/core/utils/format'
+import { DAY_THEMES, SCREENINGS, filmById } from '@afriff/core/data/programme'
+import { dateParts, screeningStart, timeLabel } from '@afriff/core/utils/format'
 import { dayInfo, venueShort } from '~/lib/today'
 import { openProgrammeDay } from '~/lib/programmeMemory'
 
 // HOME BANNER DURING THE FESTIVAL (1–7 Nov): changes every day.
-// Day N of 7 + theme, a collage of the day's films (team-picked first,
-// then automatic), what's on today, what's next, and "See today".
+// "Daily highlights" (the same headline every day), Day N of 7, a swipeable
+// filmstrip of the day's films (team-picked first, then automatic), what's
+// on today, what's next, and "See today".
 const props = defineProps<{ day: string; t: number }>()
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
@@ -20,19 +21,15 @@ const counts = computed(() => [
   d.value.counts.other && plural(d.value.counts.other, 'event'),
 ].filter(Boolean))
 
-// Collage: big poster on the left; the rest fill a 2 x 2 grid (or a column when fewer)
-const collage = computed(() => {
-  const films = d.value.films
-  if (films.length === 0) return null
-  const many = films.length > 5
-  const shown = many ? films.slice(0, 4) : films.slice(0, 5)
-  const n = shown.length + (many ? 1 : 0)
-  const style = n >= 5
-    ? { gridTemplateColumns: '2fr 1fr 1fr', gridTemplateRows: '1fr 1fr' }
-    : { gridTemplateColumns: n === 1 ? '1fr' : '2fr 1fr', gridTemplateRows: `repeat(${Math.max(1, n - 1)}, 1fr)` }
-  const [lead, ...rest] = shown
-  return { lead: lead!, rest, many, total: films.length, style }
-})
+// Filmstrip: every film showing today, with its next time today
+const strip = computed(() => d.value.films.map((film) => {
+  const upcoming = SCREENINGS.filter((s) => s.film === film.id && s.date === props.day && s.status !== 'cancelled')
+    .sort((a, b) => a.time.localeCompare(b.time))
+    .find((s) => screeningStart(s).getTime() > props.t)
+  return { film, when: upcoming ? timeLabel(upcoming.time) : 'Shown earlier' }
+}))
+// posters whose link broke fall back to the colour card
+const broken = reactive<Record<string, boolean>>({})
 
 const next = computed(() => {
   const n = d.value.upcoming[0]
@@ -53,23 +50,27 @@ const seeToday = () => openProgrammeDay(props.day)
       <span class="hero-eyebrow">Today · Day {{ d.index + 1 }} of {{ d.total }}</span>
       <span class="hl-date">{{ p.day }} {{ p.date }} {{ p.month }}</span>
     </div>
-    <h2 v-if="d.theme" class="hl-theme">{{ d.theme }}</h2>
+    <h2 class="hl-title">Daily highlights</h2>
 
-    <div v-if="collage" class="collage" :style="collage.style">
-      <NuxtLink :to="`/film/${collage.lead.id}`" class="collage-tile lead" style="grid-row: 1 / -1">
-        <FilmPoster :film="collage.lead" class="collage-poster" />
-        <span class="collage-lead-title">{{ collage.lead.title }}</span>
+    <!-- whole posters at one height (never cropped), swipe sideways -->
+    <div v-if="strip.length" class="filmstrip" role="list" aria-label="Films showing today">
+      <NuxtLink v-for="{ film, when } in strip" :key="film.id" :to="`/film/${film.id}`" role="listitem" class="strip-film">
+        <img
+          v-if="film.image && !broken[film.id]"
+          :src="film.image"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          class="strip-poster"
+          @error="broken[film.id] = true"
+        />
+        <FilmPoster v-else :film="{ ...film, image: '' }" class="strip-poster-art">
+          <span class="strip-poster-title">{{ film.title }}</span>
+        </FilmPoster>
+        <span class="strip-title">{{ film.title }}</span>
+        <span class="strip-when">{{ when }}</span>
       </NuxtLink>
-      <NuxtLink v-for="f in collage.rest" :key="f.id" :to="`/film/${f.id}`" class="collage-tile" :aria-label="f.title">
-        <FilmPoster :film="f" class="collage-poster" />
-      </NuxtLink>
-      <NuxtLink
-        v-if="collage.many"
-        to="/programme"
-        class="collage-tile collage-more"
-        :aria-label="`See all ${collage.total} films today`"
-        @click="seeToday"
-      >+{{ collage.total - 4 }}</NuxtLink>
+      <NuxtLink to="/programme" class="strip-more" @click="seeToday">See all<br />{{ strip.length }} films</NuxtLink>
     </div>
 
     <div v-if="counts.length" class="hl-counts">

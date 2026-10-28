@@ -171,6 +171,8 @@ async function saveEmails() {
               </label>
               <UiButton size="lg" block :loading="busy" :disabled="!wantsEmails || !online" @click="saveEmails">Save</UiButton>
             </template>
+            <!-- a push when the invitation is sent: only with the phone's OK (lib/push.ts) -->
+            <AlertsSwitch invite class="mt-0!" />
             <p v-if="problem" class="text-meta text-danger" role="alert">{{ problem }}</p>
             <UiButton size="lg" block variant="secondary" to="/">Open the AFRIFF app</UiButton>
           </template>

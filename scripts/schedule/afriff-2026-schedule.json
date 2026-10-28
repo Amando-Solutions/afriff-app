@@ -1,0 +1,1589 @@
+{
+ "source": "AFRIFF_2026_FILM_SCHEDULE.xlsx (received 28 Oct 2026)",
+ "venue": "landmark",
+ "notes": [
+  "2026-11-04 Screen 1 VARIATIONS ON A THEME: sheet says 14:20-15:50, but it sits between the 15:00-15:35 and 15:50 slots; loaded at 15:35",
+  "2026-11-04 Screen 4 DENTED: sheet says 14:20-15:50, but it sits between the 15:00-15:35 and 15:50 slots; loaded at 15:35",
+  "2026-11-04 Screen 3 VARIATIONS ON A THEME: sheet says 14:20-15:50, but it sits between the 15:00-15:35 and 15:50 slots; loaded at 15:35",
+  "2026-11-04 Screen 5 DENTED: sheet says 14:20-15:50, but it sits between the 15:00-15:35 and 15:50 slots; loaded at 15:35",
+  "Opening film: the sheet gives no screen, so it is 'Screen TBC'.",
+  "Wed 4 Nov, Screen 1, 13:00-15:00: 'Accelerate Day' (not a film) - left out."
+ ],
+ "screenings": [
+  {
+   "title": "LADY",
+   "date": "2026-11-01",
+   "screen": "Screen TBC",
+   "time": "20:30",
+   "slotEnd": "22:00",
+   "invitationOnly": true,
+   "row": 3
+  },
+  {
+   "title": "NOAH'S DAUGHTER",
+   "date": "2026-11-02",
+   "screen": "Screen 1",
+   "time": "13:00",
+   "slotEnd": "14:30",
+   "invitationOnly": false,
+   "row": 7
+  },
+  {
+   "title": "HOPE IS A WORD",
+   "date": "2026-11-02",
+   "screen": "Screen 4",
+   "time": "13:00",
+   "slotEnd": "14:30",
+   "invitationOnly": false,
+   "row": 7
+  },
+  {
+   "title": "WE ARE HAZDA",
+   "date": "2026-11-02",
+   "screen": "Screen 3",
+   "time": "13:00",
+   "slotEnd": "14:30",
+   "invitationOnly": false,
+   "row": 7
+  },
+  {
+   "title": "HOPE IS A WORD",
+   "date": "2026-11-02",
+   "screen": "Screen 5",
+   "time": "13:00",
+   "slotEnd": "14:30",
+   "invitationOnly": false,
+   "row": 7
+  },
+  {
+   "title": "NOLLYWOOD:THE UNTOLD STORY",
+   "date": "2026-11-02",
+   "screen": "Screen 1",
+   "time": "14:30",
+   "slotEnd": "16:20",
+   "invitationOnly": false,
+   "row": 8
+  },
+  {
+   "title": "THREE BLACK MEN",
+   "date": "2026-11-02",
+   "screen": "Screen 4",
+   "time": "14:30",
+   "slotEnd": "16:20",
+   "invitationOnly": false,
+   "row": 8
+  },
+  {
+   "title": "GUARDIAN OF THE FIELD",
+   "date": "2026-11-02",
+   "screen": "Screen 3",
+   "time": "14:30",
+   "slotEnd": "16:20",
+   "invitationOnly": false,
+   "row": 8
+  },
+  {
+   "title": "NOLLYWOOD:THE UNTOLD STORY",
+   "date": "2026-11-02",
+   "screen": "Screen 5",
+   "time": "14:30",
+   "slotEnd": "16:20",
+   "invitationOnly": false,
+   "row": 8
+  },
+  {
+   "title": "THE OTHER GAZE",
+   "date": "2026-11-02",
+   "screen": "Screen 1",
+   "time": "16:20",
+   "slotEnd": "17:15",
+   "invitationOnly": false,
+   "row": 9
+  },
+  {
+   "title": "THE TROPHY",
+   "date": "2026-11-02",
+   "screen": "Screen 4",
+   "time": "16:20",
+   "slotEnd": "17:15",
+   "invitationOnly": false,
+   "row": 9
+  },
+  {
+   "title": "HUMDRUM",
+   "date": "2026-11-02",
+   "screen": "Screen 3",
+   "time": "16:20",
+   "slotEnd": "17:15",
+   "invitationOnly": false,
+   "row": 9
+  },
+  {
+   "title": "RESTORATION",
+   "date": "2026-11-02",
+   "screen": "Screen 5",
+   "time": "16:20",
+   "slotEnd": "17:15",
+   "invitationOnly": false,
+   "row": 9
+  },
+  {
+   "title": "TWO",
+   "date": "2026-11-02",
+   "screen": "Screen 1",
+   "time": "17:15",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 10
+  },
+  {
+   "title": "SLUM BOMBER",
+   "date": "2026-11-02",
+   "screen": "Screen 4",
+   "time": "17:15",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 10
+  },
+  {
+   "title": "TWO",
+   "date": "2026-11-02",
+   "screen": "Screen 3",
+   "time": "17:15",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 10
+  },
+  {
+   "title": "SLUM BOMBER",
+   "date": "2026-11-02",
+   "screen": "Screen 5",
+   "time": "17:15",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 10
+  },
+  {
+   "title": "THE ONE WHO CRIES",
+   "date": "2026-11-02",
+   "screen": "Screen 1",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": false,
+   "row": 11
+  },
+  {
+   "title": "LOVE ZURI",
+   "date": "2026-11-02",
+   "screen": "Screen 4",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": false,
+   "row": 11
+  },
+  {
+   "title": "TOTALLY TORIE",
+   "date": "2026-11-02",
+   "screen": "Screen 3",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": false,
+   "row": 11
+  },
+  {
+   "title": "TILL DEATH",
+   "date": "2026-11-02",
+   "screen": "Screen 5",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": false,
+   "row": 11
+  },
+  {
+   "title": "ABENI",
+   "date": "2026-11-02",
+   "screen": "Screen 1",
+   "time": "20:00",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 12
+  },
+  {
+   "title": "BAD BLOOD",
+   "date": "2026-11-02",
+   "screen": "Screen 4",
+   "time": "20:00",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 12
+  },
+  {
+   "title": "ABENI",
+   "date": "2026-11-02",
+   "screen": "Screen 3",
+   "time": "20:00",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 12
+  },
+  {
+   "title": "BAD BLOOD",
+   "date": "2026-11-02",
+   "screen": "Screen 5",
+   "time": "20:00",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 12
+  },
+  {
+   "title": "WHERE THE SUN SHINES BRIGHT",
+   "date": "2026-11-03",
+   "screen": "Screen 1",
+   "time": "13:00",
+   "slotEnd": "14:20",
+   "invitationOnly": false,
+   "row": 14
+  },
+  {
+   "title": "HADDA",
+   "date": "2026-11-03",
+   "screen": "Screen 4",
+   "time": "13:00",
+   "slotEnd": "14:20",
+   "invitationOnly": false,
+   "row": 14
+  },
+  {
+   "title": "MUGABE & ME",
+   "date": "2026-11-03",
+   "screen": "Screen 1",
+   "time": "14:20",
+   "slotEnd": "15:40",
+   "invitationOnly": false,
+   "row": 15
+  },
+  {
+   "title": "DREAMING OF SERENADA",
+   "date": "2026-11-03",
+   "screen": "Screen 4",
+   "time": "14:20",
+   "slotEnd": "15:40",
+   "invitationOnly": false,
+   "row": 15
+  },
+  {
+   "title": "MUGABE & ME",
+   "date": "2026-11-03",
+   "screen": "Screen 3",
+   "time": "14:20",
+   "slotEnd": "15:40",
+   "invitationOnly": false,
+   "row": 15
+  },
+  {
+   "title": "DREAMING OF SERENADA",
+   "date": "2026-11-03",
+   "screen": "Screen 5",
+   "time": "14:20",
+   "slotEnd": "15:40",
+   "invitationOnly": false,
+   "row": 15
+  },
+  {
+   "title": "THE TRANSLATOR",
+   "date": "2026-11-03",
+   "screen": "Screen 1",
+   "time": "15:40",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 16
+  },
+  {
+   "title": "TOUCH",
+   "date": "2026-11-03",
+   "screen": "Screen 4",
+   "time": "15:40",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 16
+  },
+  {
+   "title": "WARDEN",
+   "date": "2026-11-03",
+   "screen": "Screen 3",
+   "time": "15:40",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 16
+  },
+  {
+   "title": "MI TAZI",
+   "date": "2026-11-03",
+   "screen": "Screen 5",
+   "time": "15:40",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 16
+  },
+  {
+   "title": "AMAZING GRACE YORUBA WORLDS",
+   "date": "2026-11-03",
+   "screen": "Screen 1",
+   "time": "16:00",
+   "slotEnd": "17:30",
+   "invitationOnly": false,
+   "row": 17
+  },
+  {
+   "title": "COLORS AND CURVES",
+   "date": "2026-11-03",
+   "screen": "Screen 4",
+   "time": "16:00",
+   "slotEnd": "17:30",
+   "invitationOnly": false,
+   "row": 17
+  },
+  {
+   "title": "AMAZING GRACE YORUBA WORLDS",
+   "date": "2026-11-03",
+   "screen": "Screen 3",
+   "time": "16:00",
+   "slotEnd": "17:30",
+   "invitationOnly": false,
+   "row": 17
+  },
+  {
+   "title": "COLORS AND CURVES",
+   "date": "2026-11-03",
+   "screen": "Screen 5",
+   "time": "16:00",
+   "slotEnd": "17:30",
+   "invitationOnly": false,
+   "row": 17
+  },
+  {
+   "title": "NOLLYBABES",
+   "date": "2026-11-03",
+   "screen": "Screen 1",
+   "time": "17:30",
+   "slotEnd": "17:45",
+   "invitationOnly": false,
+   "row": 18
+  },
+  {
+   "title": "TASTE OF THE LAND",
+   "date": "2026-11-03",
+   "screen": "Screen 4",
+   "time": "17:30",
+   "slotEnd": "17:45",
+   "invitationOnly": false,
+   "row": 18
+  },
+  {
+   "title": "BLACK BEYOND BORDERS",
+   "date": "2026-11-03",
+   "screen": "Screen 3",
+   "time": "17:30",
+   "slotEnd": "17:45",
+   "invitationOnly": false,
+   "row": 18
+  },
+  {
+   "title": "THE CIRCLE",
+   "date": "2026-11-03",
+   "screen": "Screen 5",
+   "time": "17:30",
+   "slotEnd": "17:45",
+   "invitationOnly": false,
+   "row": 18
+  },
+  {
+   "title": "ADANNE",
+   "date": "2026-11-03",
+   "screen": "Screen 1",
+   "time": "17:45",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 19
+  },
+  {
+   "title": "THE TROPIC SUN AND HIS EYES",
+   "date": "2026-11-03",
+   "screen": "Screen 4",
+   "time": "17:45",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 19
+  },
+  {
+   "title": "ADANNE",
+   "date": "2026-11-03",
+   "screen": "Screen 3",
+   "time": "17:45",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 19
+  },
+  {
+   "title": "THE TROPIC SUN AND HIS EYES",
+   "date": "2026-11-03",
+   "screen": "Screen 5",
+   "time": "17:45",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 19
+  },
+  {
+   "title": "SANCTUARY",
+   "date": "2026-11-03",
+   "screen": "Screen 1",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": false,
+   "row": 20
+  },
+  {
+   "title": "NNEOMA",
+   "date": "2026-11-03",
+   "screen": "Screen 4",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": false,
+   "row": 20
+  },
+  {
+   "title": "ROOTED",
+   "date": "2026-11-03",
+   "screen": "Screen 3",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": false,
+   "row": 20
+  },
+  {
+   "title": "WAHM",
+   "date": "2026-11-03",
+   "screen": "Screen 5",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": false,
+   "row": 20
+  },
+  {
+   "title": "WHICH WAY",
+   "date": "2026-11-03",
+   "screen": "Screen 1",
+   "time": "20:00",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 21
+  },
+  {
+   "title": "RIVERSTONE",
+   "date": "2026-11-03",
+   "screen": "Screen 4",
+   "time": "20:00",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 21
+  },
+  {
+   "title": "WHICH WAY",
+   "date": "2026-11-03",
+   "screen": "Screen 3",
+   "time": "20:00",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 21
+  },
+  {
+   "title": "RIVERSTONE",
+   "date": "2026-11-03",
+   "screen": "Screen 5",
+   "time": "20:00",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 21
+  },
+  {
+   "title": "CTRL 4C",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "13:00",
+   "slotEnd": "13:10",
+   "invitationOnly": false,
+   "row": 23
+  },
+  {
+   "title": "ALEX SUD",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "13:00",
+   "slotEnd": "13:35",
+   "invitationOnly": false,
+   "row": 23
+  },
+  {
+   "title": "WHITE AGBADA",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "13:00",
+   "slotEnd": "13:35",
+   "invitationOnly": false,
+   "row": 23
+  },
+  {
+   "title": "RAIN",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "13:10",
+   "slotEnd": "13:20",
+   "invitationOnly": false,
+   "row": 24
+  },
+  {
+   "title": "THE LION OF GWOZA",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "13:20",
+   "slotEnd": "13:30",
+   "invitationOnly": false,
+   "row": 25
+  },
+  {
+   "title": "LICE N SHINE",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "13:30",
+   "slotEnd": "13:40",
+   "invitationOnly": false,
+   "row": 26
+  },
+  {
+   "title": "GODPOWER",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "13:35",
+   "slotEnd": "14:00",
+   "invitationOnly": false,
+   "row": 26
+  },
+  {
+   "title": "DAWAYER",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "13:35",
+   "slotEnd": "14:00",
+   "invitationOnly": false,
+   "row": 26
+  },
+  {
+   "title": "TRIALS OF THE SPEAR",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "13:40",
+   "slotEnd": "14:00",
+   "invitationOnly": false,
+   "row": 27
+  },
+  {
+   "title": "THE FAITHFUL CITY",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "14:00",
+   "slotEnd": "14:15",
+   "invitationOnly": false,
+   "row": 28
+  },
+  {
+   "title": "WASABI",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "14:00",
+   "slotEnd": "14:20",
+   "invitationOnly": false,
+   "row": 28
+  },
+  {
+   "title": "SINAI AMERICA",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "14:00",
+   "slotEnd": "14:20",
+   "invitationOnly": false,
+   "row": 28
+  },
+  {
+   "title": "CONCRETE MOVES",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "14:15",
+   "slotEnd": "14:30",
+   "invitationOnly": false,
+   "row": 29
+  },
+  {
+   "title": "IN THE SHADOWS 75",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "14:30",
+   "slotEnd": "15:00",
+   "invitationOnly": false,
+   "row": 30
+  },
+  {
+   "title": "RAGE",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "14:20",
+   "slotEnd": "15:00",
+   "invitationOnly": false,
+   "row": 30
+  },
+  {
+   "title": "THE HEIR",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "14:20",
+   "slotEnd": "15:00",
+   "invitationOnly": false,
+   "row": 30
+  },
+  {
+   "title": "SHARED SPACE",
+   "date": "2026-11-04",
+   "screen": "Screen 1",
+   "time": "15:00",
+   "slotEnd": "15:35",
+   "invitationOnly": false,
+   "row": 31
+  },
+  {
+   "title": "SERUBAWON",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "15:00",
+   "slotEnd": "15:35",
+   "invitationOnly": false,
+   "row": 31
+  },
+  {
+   "title": "SHARED SPACE",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "15:00",
+   "slotEnd": "15:35",
+   "invitationOnly": false,
+   "row": 31
+  },
+  {
+   "title": "SERUBAWON",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "15:00",
+   "slotEnd": "15:35",
+   "invitationOnly": false,
+   "row": 31
+  },
+  {
+   "title": "VARIATIONS ON A THEME",
+   "date": "2026-11-04",
+   "screen": "Screen 1",
+   "time": "15:35",
+   "slotEnd": "15:50",
+   "invitationOnly": false,
+   "row": 32
+  },
+  {
+   "title": "DENTED",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "15:35",
+   "slotEnd": "15:50",
+   "invitationOnly": false,
+   "row": 32
+  },
+  {
+   "title": "VARIATIONS ON A THEME",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "15:35",
+   "slotEnd": "15:50",
+   "invitationOnly": false,
+   "row": 32
+  },
+  {
+   "title": "DENTED",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "15:35",
+   "slotEnd": "15:50",
+   "invitationOnly": false,
+   "row": 32
+  },
+  {
+   "title": "LOVE AND BLOOD",
+   "date": "2026-11-04",
+   "screen": "Screen 1",
+   "time": "15:50",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 33
+  },
+  {
+   "title": "THE GARDEN OF HEALING",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "15:50",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 33
+  },
+  {
+   "title": "LOVE AND BLOOD",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "15:50",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 33
+  },
+  {
+   "title": "THE GARDEN OF HEALING",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "15:50",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 33
+  },
+  {
+   "title": "WAITING FOR MY SISTER",
+   "date": "2026-11-04",
+   "screen": "Screen 1",
+   "time": "16:30",
+   "slotEnd": "17:00",
+   "invitationOnly": false,
+   "row": 34
+  },
+  {
+   "title": "ASAKE'S SIN",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "16:30",
+   "slotEnd": "17:00",
+   "invitationOnly": false,
+   "row": 34
+  },
+  {
+   "title": "THE LETTER",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "16:30",
+   "slotEnd": "17:00",
+   "invitationOnly": false,
+   "row": 34
+  },
+  {
+   "title": "ON THE BACKBURNER",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "16:30",
+   "slotEnd": "17:00",
+   "invitationOnly": false,
+   "row": 34
+  },
+  {
+   "title": "HIS STORY",
+   "date": "2026-11-04",
+   "screen": "Screen 1",
+   "time": "17:00",
+   "slotEnd": "18:15",
+   "invitationOnly": false,
+   "row": 35
+  },
+  {
+   "title": "ESEUSEU",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "17:00",
+   "slotEnd": "18:15",
+   "invitationOnly": false,
+   "row": 35
+  },
+  {
+   "title": "HIS STORY",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "17:00",
+   "slotEnd": "18:15",
+   "invitationOnly": false,
+   "row": 35
+  },
+  {
+   "title": "ESEUSEU",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "17:00",
+   "slotEnd": "18:15",
+   "invitationOnly": false,
+   "row": 35
+  },
+  {
+   "title": "LALELA",
+   "date": "2026-11-04",
+   "screen": "Screen 1",
+   "time": "18:15",
+   "slotEnd": "19:00",
+   "invitationOnly": false,
+   "row": 36
+  },
+  {
+   "title": "AMERIKAN BOY",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "18:15",
+   "slotEnd": "19:00",
+   "invitationOnly": false,
+   "row": 36
+  },
+  {
+   "title": "BINTA IS OKAY",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "18:15",
+   "slotEnd": "19:00",
+   "invitationOnly": false,
+   "row": 36
+  },
+  {
+   "title": "JARABI",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "18:15",
+   "slotEnd": "19:00",
+   "invitationOnly": false,
+   "row": 36
+  },
+  {
+   "title": "THE SPECTACULAR DEATH OF PRISCA",
+   "date": "2026-11-04",
+   "screen": "Screen 1",
+   "time": "19:00",
+   "slotEnd": "19:45",
+   "invitationOnly": false,
+   "row": 37
+  },
+  {
+   "title": "THRONE OF WOOD",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "19:00",
+   "slotEnd": "19:45",
+   "invitationOnly": false,
+   "row": 37
+  },
+  {
+   "title": "THE SPECTACULAR DEATH OF PRISCA",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "19:00",
+   "slotEnd": "19:45",
+   "invitationOnly": false,
+   "row": 37
+  },
+  {
+   "title": "THRONE OF WOOD",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "19:00",
+   "slotEnd": "19:45",
+   "invitationOnly": false,
+   "row": 37
+  },
+  {
+   "title": "MABANDA",
+   "date": "2026-11-04",
+   "screen": "Screen 1",
+   "time": "19:45",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 38
+  },
+  {
+   "title": "SENTIMENTAL VALUES",
+   "date": "2026-11-04",
+   "screen": "Screen 4",
+   "time": "19:45",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 38
+  },
+  {
+   "title": "MABANDA",
+   "date": "2026-11-04",
+   "screen": "Screen 3",
+   "time": "19:45",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 38
+  },
+  {
+   "title": "A VERY ORDINARY LIFE",
+   "date": "2026-11-04",
+   "screen": "Screen 5",
+   "time": "19:45",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 38
+  },
+  {
+   "title": "LADY",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "13:00",
+   "slotEnd": "14:45",
+   "invitationOnly": false,
+   "row": 40
+  },
+  {
+   "title": "LADY",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "13:00",
+   "slotEnd": "14:45",
+   "invitationOnly": false,
+   "row": 40
+  },
+  {
+   "title": "KUBANA",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "13:00",
+   "slotEnd": "14:45",
+   "invitationOnly": false,
+   "row": 40
+  },
+  {
+   "title": "FOR LIFE",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "13:00",
+   "slotEnd": "14:45",
+   "invitationOnly": false,
+   "row": 40
+  },
+  {
+   "title": "SUYA - A SPICEY PIECE OF HOME",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "14:45",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 41
+  },
+  {
+   "title": "THE RED & THE GREY MATTER",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "14:45",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 41
+  },
+  {
+   "title": "SUYA - A SPICEY PIECE OF HOME",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "14:45",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 41
+  },
+  {
+   "title": "THE RED & THE GREY MATTER",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "14:45",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 41
+  },
+  {
+   "title": "RAMAT",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "16:00",
+   "slotEnd": "16:15",
+   "invitationOnly": false,
+   "row": 42
+  },
+  {
+   "title": "MILK AND ASH",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "16:00",
+   "slotEnd": "16:15",
+   "invitationOnly": false,
+   "row": 42
+  },
+  {
+   "title": "RAMAT",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "16:00",
+   "slotEnd": "16:15",
+   "invitationOnly": false,
+   "row": 42
+  },
+  {
+   "title": "MILK AND ASH",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "16:00",
+   "slotEnd": "16:15",
+   "invitationOnly": false,
+   "row": 42
+  },
+  {
+   "title": "STAY",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "16:15",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 43
+  },
+  {
+   "title": "LEOPARD OF CONGO",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "16:15",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 43
+  },
+  {
+   "title": "STAY",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "16:15",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 43
+  },
+  {
+   "title": "LEOPARD OF CONGO",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "16:15",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 43
+  },
+  {
+   "title": "OBE SOUP",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "16:30",
+   "slotEnd": "17:00",
+   "invitationOnly": false,
+   "row": 44
+  },
+  {
+   "title": "BIRDIE",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "16:30",
+   "slotEnd": "17:00",
+   "invitationOnly": false,
+   "row": 44
+  },
+  {
+   "title": "OBE SOUP",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "16:30",
+   "slotEnd": "17:00",
+   "invitationOnly": false,
+   "row": 44
+  },
+  {
+   "title": "YOU'RE THE BOSS",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "16:30",
+   "slotEnd": "17:00",
+   "invitationOnly": false,
+   "row": 44
+  },
+  {
+   "title": "THE HOSPITAL CHRONICLES",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "17:00",
+   "slotEnd": "19:15",
+   "invitationOnly": false,
+   "row": 45
+  },
+  {
+   "title": "MEANWHILE IN NAMIBIA",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "17:00",
+   "slotEnd": "19:15",
+   "invitationOnly": false,
+   "row": 45
+  },
+  {
+   "title": "THE HOSPITAL CHRONICLES",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "17:00",
+   "slotEnd": "19:15",
+   "invitationOnly": false,
+   "row": 45
+  },
+  {
+   "title": "MEANWHILE IN NAMIBIA",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "17:00",
+   "slotEnd": "19:15",
+   "invitationOnly": false,
+   "row": 45
+  },
+  {
+   "title": "LITTLE SOLDIER",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "19:15",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 46
+  },
+  {
+   "title": "AMERICAN DREAM",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "19:15",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 46
+  },
+  {
+   "title": "LITTLE SOLDIER",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "19:15",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 46
+  },
+  {
+   "title": "AMERICAN DREAM",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "19:15",
+   "slotEnd": "19:30",
+   "invitationOnly": false,
+   "row": 46
+  },
+  {
+   "title": "A TRAY OF LOCUST BEANS",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "19:30",
+   "slotEnd": "20:30",
+   "invitationOnly": false,
+   "row": 47
+  },
+  {
+   "title": "CHAINS AND DOUBTS",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "19:30",
+   "slotEnd": "20:30",
+   "invitationOnly": false,
+   "row": 47
+  },
+  {
+   "title": "A TRAY OF LOCUST BEANS",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "19:30",
+   "slotEnd": "20:30",
+   "invitationOnly": false,
+   "row": 47
+  },
+  {
+   "title": "CHAINS AND DOUBTS",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "19:30",
+   "slotEnd": "20:30",
+   "invitationOnly": false,
+   "row": 47
+  },
+  {
+   "title": "IF I GO THEY WILL MISS ME",
+   "date": "2026-11-05",
+   "screen": "Screen 1",
+   "time": "20:30",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 48
+  },
+  {
+   "title": "YELLOW SLIPPER",
+   "date": "2026-11-05",
+   "screen": "Screen 4",
+   "time": "20:30",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 48
+  },
+  {
+   "title": "THE TRAITOR",
+   "date": "2026-11-05",
+   "screen": "Screen 3",
+   "time": "20:30",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 48
+  },
+  {
+   "title": "MISS JOBSON",
+   "date": "2026-11-05",
+   "screen": "Screen 5",
+   "time": "20:30",
+   "slotEnd": "22:00",
+   "invitationOnly": false,
+   "row": 48
+  },
+  {
+   "title": "AN ISOLATED INCIDENT",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "13:00",
+   "slotEnd": "13:30",
+   "invitationOnly": false,
+   "row": 50
+  },
+  {
+   "title": "NEW AGE MATRIX",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "13:00",
+   "slotEnd": "13:30",
+   "invitationOnly": false,
+   "row": 50
+  },
+  {
+   "title": "BEYOND TAKWA BAY",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "13:00",
+   "slotEnd": "13:30",
+   "invitationOnly": false,
+   "row": 50
+  },
+  {
+   "title": "ANCHOR POINT",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "13:00",
+   "slotEnd": "13:30",
+   "invitationOnly": false,
+   "row": 50
+  },
+  {
+   "title": "PERCEPTION: THE NIGERIAN NARRATIVE",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "13:30",
+   "slotEnd": "14:45",
+   "invitationOnly": false,
+   "row": 51
+  },
+  {
+   "title": "DR MBOGENI NGEMA 'THIS IS MY STORY'",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "13:30",
+   "slotEnd": "14:45",
+   "invitationOnly": false,
+   "row": 51
+  },
+  {
+   "title": "DR MBOGENI NGEMA 'THIS IS MY STORY'",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "13:30",
+   "slotEnd": "14:45",
+   "invitationOnly": false,
+   "row": 51
+  },
+  {
+   "title": "BOYS WEAR PINK TOO",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "13:30",
+   "slotEnd": "14:45",
+   "invitationOnly": false,
+   "row": 51
+  },
+  {
+   "title": "IFE ATI IKU",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "14:45",
+   "slotEnd": "15:00",
+   "invitationOnly": false,
+   "row": 52
+  },
+  {
+   "title": "THE BED",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "14:45",
+   "slotEnd": "15:00",
+   "invitationOnly": false,
+   "row": 52
+  },
+  {
+   "title": "IFE ATI IKU",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "14:45",
+   "slotEnd": "15:00",
+   "invitationOnly": false,
+   "row": 52
+  },
+  {
+   "title": "MON TAXI",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "14:45",
+   "slotEnd": "15:00",
+   "invitationOnly": false,
+   "row": 52
+  },
+  {
+   "title": "ALABAARU",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "15:00",
+   "slotEnd": "15:30",
+   "invitationOnly": false,
+   "row": 53
+  },
+  {
+   "title": "NARMOOK",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "15:00",
+   "slotEnd": "15:30",
+   "invitationOnly": false,
+   "row": 53
+  },
+  {
+   "title": "ALABAARU",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "15:00",
+   "slotEnd": "15:30",
+   "invitationOnly": false,
+   "row": 53
+  },
+  {
+   "title": "NARMOOK",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "15:00",
+   "slotEnd": "15:30",
+   "invitationOnly": false,
+   "row": 53
+  },
+  {
+   "title": "ON OR BEFORE TWO WEEKS",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "15:30",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 54
+  },
+  {
+   "title": "THE MEMORY OF CLEO",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "15:30",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 54
+  },
+  {
+   "title": "ON OR BEFORE TWO WEEKS",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "15:30",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 54
+  },
+  {
+   "title": "VOLAT",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "15:30",
+   "slotEnd": "16:00",
+   "invitationOnly": false,
+   "row": 54
+  },
+  {
+   "title": "ANWULI",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "16:00",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 55
+  },
+  {
+   "title": "LOVE SONG",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "16:00",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 55
+  },
+  {
+   "title": "LIKE A HOOK INTO AN EYE",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "16:00",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 55
+  },
+  {
+   "title": "MAKTOUB",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "16:00",
+   "slotEnd": "16:30",
+   "invitationOnly": false,
+   "row": 55
+  },
+  {
+   "title": "ONE WOMAN, ONE BRA",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "16:30",
+   "slotEnd": "18:00",
+   "invitationOnly": false,
+   "row": 56
+  },
+  {
+   "title": "TRUCK MAMA",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "16:30",
+   "slotEnd": "18:00",
+   "invitationOnly": false,
+   "row": 56
+  },
+  {
+   "title": "ONE WOMAN, ONE BRA",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "16:30",
+   "slotEnd": "18:00",
+   "invitationOnly": false,
+   "row": 56
+  },
+  {
+   "title": "LEGO QUEEN",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "16:30",
+   "slotEnd": "18:00",
+   "invitationOnly": false,
+   "row": 56
+  },
+  {
+   "title": "CALABASH",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": true,
+   "row": 58
+  },
+  {
+   "title": "CALABASH",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": true,
+   "row": 58
+  },
+  {
+   "title": "CALABASH",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": true,
+   "row": 58
+  },
+  {
+   "title": "CALABASH",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "19:30",
+   "slotEnd": "20:00",
+   "invitationOnly": true,
+   "row": 58
+  },
+  {
+   "title": "IT'S THE BLACKNESS",
+   "date": "2026-11-06",
+   "screen": "Screen 1",
+   "time": "20:00",
+   "slotEnd": null,
+   "invitationOnly": true,
+   "row": 59
+  },
+  {
+   "title": "IT'S THE BLACKNESS",
+   "date": "2026-11-06",
+   "screen": "Screen 4",
+   "time": "20:00",
+   "slotEnd": null,
+   "invitationOnly": true,
+   "row": 59
+  },
+  {
+   "title": "IT'S THE BLACKNESS",
+   "date": "2026-11-06",
+   "screen": "Screen 3",
+   "time": "20:00",
+   "slotEnd": null,
+   "invitationOnly": true,
+   "row": 59
+  },
+  {
+   "title": "IT'S THE BLACKNESS",
+   "date": "2026-11-06",
+   "screen": "Screen 5",
+   "time": "20:00",
+   "slotEnd": null,
+   "invitationOnly": true,
+   "row": 59
+  }
+ ]
+}

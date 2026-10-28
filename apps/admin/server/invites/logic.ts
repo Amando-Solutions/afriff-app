@@ -22,8 +22,10 @@
 // PUSH NOTIFICATIONS: as each batch is handed to Brevo, the guests in it who
 // use the attendee app (signed in, alerts on) also get a push on their phones
 // ("You're invited: …", or "Change of plan: …"), once each (pushedAt). Not for
-// scheduled sends: nothing here runs at the scheduled time to send them, so
-// those go by email only. A push failing never stops the emails.
+// scheduled sends: nothing here runs at the scheduled time, so a scheduled
+// invite gets `pushAt` (its time) and the Cloud Function pushScheduledInvites
+// (functions/src/invites/) sends its pushes then, to the same people by the
+// same rule; calling it off clears it. A push failing never stops the emails.
 import { emailProblem } from '@afriff/core/accounts/rules'
 import { audienceKeys, contactKey, resolveAudience, type Person, type Resolved, type SkipReason } from '../../shared/contacts'
 import {
@@ -352,7 +354,7 @@ export function createInvites({ store, mailer, links, pusher, appUrl, now = Date
         if (!resolved.send.length) throw new AccountError(400, 'Nobody on this invite can be emailed. Check the groups and people chosen, and that they agreed to emails.')
         const run = 1
         taken(await store.begin(c.id, ['draft', 'review'], t, t + HOLD_MS, {
-          status: 'sending', scheduledAt: at, batchId: at ? newBatchId() : '', total: resolved.send.length, sent: 0, failed: 0, failures: [],
+          status: 'sending', scheduledAt: at, pushAt: at, batchId: at ? newBatchId() : '', total: resolved.send.length, sent: 0, failed: 0, failures: [],
           runs: run, error: '', linkBase, groupNames: c.audience.groups.map((g) => names[g]).filter((n): n is string => Boolean(n)),
           unsubscribed: 0, pushed: 0, sentByName: by.name, sentAt: t, finishedAt: 0,
         }))
@@ -405,7 +407,7 @@ export function createInvites({ store, mailer, links, pusher, appUrl, now = Date
       }
       await store.deleteRecipients(c.id)
       await store.update(c.id, {
-        status: 'review', scheduledAt: 0, batchId: '', total: 0, sent: 0, failed: 0, pushed: 0, failures: [], runs: 0, error: '',
+        status: 'review', scheduledAt: 0, pushAt: 0, batchId: '', total: 0, sent: 0, failed: 0, pushed: 0, failures: [], runs: 0, error: '',
         sentByName: '', sentAt: 0, finishedAt: 0, lockUntil: 0,
       })
       return { status: 'review' as const }

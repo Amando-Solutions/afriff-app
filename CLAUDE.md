@@ -104,6 +104,11 @@ user decision). Home's top banner depends on the Lagos date:
   `apps/pwa/app/lib/programmeMemory.ts`, even if another day was picked). The "Opening day"
   list becomes "Today": the next 4 films AND events still to start,
   with + buttons; "Nothing else starts today. See tomorrow" when done.
+  RESTORED 28 Oct (user request, from a screenshot of the 23 Oct build):
+  the classic-look revert (f24288c) had brought back the collage and the
+  day-theme headline. Filmstrip + "Daily highlights" are back in
+  DailyHighlight.vue, styled in `apps/pwa/app/assets/css/classic.css`
+  (`.filmstrip`, `.strip-*`), same sizes as before. NOT committed yet.
 - After 7 Nov: thank-you banner + "Your watched list"; no day list.
 - Filmstrip order (`apps/pwa/app/lib/today.ts`): films ticked "Feature on Home
   (daily highlight)" in the console (new film checkbox) → the Opening
@@ -257,8 +262,8 @@ Read this first; the dated sections below are the detailed history.
 - Extras built on request: masterclasses + events, jury page, film page
   extras, simplified Home, daily highlight, admin reports, home-screen
   install + offline (Michael), afriff.com film sync every 15 minutes
-  (26 Oct; built and tested, NOT deployed: needs Blaze; see "afriff.com
-  film sync"), attendee accounts (26–27 Oct; email + password by
+  (26 Oct; built and tested, NOT deployed: needs Blaze; SWITCHED OFF in the
+  code 28 Oct, user decision; see "afriff.com film sync"), attendee accounts (26–27 Oct; email + password by
   Firebase, asked for only when saving; branch `feature/attendee-accounts`,
   27 Oct changes NOT committed or deployed; pending AFRIFF's written
   approval; see "Attendee accounts"), Profile page + header avatar
@@ -269,7 +274,10 @@ Read this first; the dated sections below are the detailed history.
   Google"), VIP invitations + contacts + VIP sign-up links + guest lists
   (27 Oct, PM brief; NOT committed; Brevo + afriff.app domain to set up; see
   "VIP invitations, contacts and guest lists"), superadmin (27 Oct; NOT
-  committed; needs `npm run deploy:rules`; see "Superadmin").
+  committed; needs `npm run deploy:rules`; see "Superadmin"), pushes for
+  scheduled invitations by Cloud Function + alerts switch on the VIP page
+  (28 Oct; NOT committed; needs Blaze + `npm run deploy:functions`; see
+  "Invitation pushes for scheduled sends + alerts on the VIP page").
 - Branch `claude/daily-highlights-filmstrip` (filmstrip + "Daily
   highlights" headline) MERGED INTO main 23 Oct (pull request #3). The
   monorepo split (branch dev) is rebased on top of it; dev → main still
@@ -290,7 +298,7 @@ Read this first; the dated sections below are the detailed history.
   their two Firebase keys are added on Vercel (see "Push notifications for
   announcements"); not yet tried on a real phone.
 - Deploy commands (25 Oct, Firebase CLI, all to afriff-app): `npm run
-  deploy:rules`, `deploy:functions` (the afriff.com sync in `functions/`;
+  deploy:rules`, `deploy:functions` (the Cloud Functions in `functions/`;
   needs the paid Blaze plan). Pasting rules into
   the Firebase console still works.
 - NEEDED FROM AFRIFF: real schedule (times, rooms), premiere status per
@@ -1029,6 +1037,11 @@ heavy libraries) apply everywhere.
   Opening it sends volunteers straight to the door
   counter and everyone else to the console. Old links still work: /admin,
   /door, #/admin and #/door on the attendee app forward to the staff app.
+  CHANGED 28 Oct 2026 (Michael: "they are two different apps"): forwarding
+  REMOVED. /admin and /door on the attendee app now show "We couldn't find
+  that page". The old links only ever lived on afriff-app-mu.vercel.app,
+  never on the new addresses, so nobody loses a working link.
+  `NUXT_PUBLIC_ADMIN_URL` stays: push alerts still use the staff server.
 - WHY: same architecture as Michael's DP Fitness project. One folder
   ("monorepo") with two apps split by who uses them, and shared packages for
   everything both must agree on, so they can't drift apart:
@@ -1772,9 +1785,13 @@ heavy libraries) apply everywhere.
   of plan: …" + what changed). Once per guest. Hand-added guests (no app
   account) get the email only. The console shows "N got a push" on the
   invite. A push failing never stops the emails.
-  - SCHEDULED invites: email only (said in the console). Nothing runs at the
-    scheduled time to send a push; that needs a timer (Vercel Pro cron or
-    Firebase Blaze, both paid). Ask if wanted.
+  - SCHEDULED invites: CHANGED 28 Oct (user request: "when an invitation is
+    sent … those users' signed-in attendee apps should receive a push"; then
+    "I would prefer the cloud function approach"). They get their push too,
+    within a minute of their time, from a Firebase Cloud Function,
+    `pushScheduledInvites`. Needs Blaze and a deploy; until then the console
+    says scheduled ones go by email only. See "Invitation pushes for
+    scheduled sends + alerts on the VIP page".
   - HOW: a phone with alerts on sends proof of who's logged in when it joins
     the alerts list; the staff server links that phone to the account
     (`pushTokens`, server only). Logging out, alerts off or deleting the
@@ -1831,6 +1848,17 @@ heavy libraries) apply everywhere.
   all call the same sheet).
 
 ### afriff.com film sync, every 15 minutes (26 Oct 2026, user request)
+- SWITCHED OFF 28 Oct 2026 (user decision: "for now"; commented out, not
+  deleted). The `syncFromAfriff` block in `functions/src/index.ts` is
+  commented out, so `npm run deploy:functions` deploys only
+  `pushScheduledInvites`. The console's "afriff.com sync" card is hidden too
+  (commented out in `AdminDataHome.vue`). It had never been deployed (checked
+  28 Oct: the Cloud Functions service isn't even switched on in afriff-app),
+  so nothing runs anywhere. Films change only by hand in the console. TO
+  SWITCH BACK ON: uncomment the block and its three imports in index.ts and
+  the card in AdminDataHome.vue, then (on Blaze) `npm run deploy:functions`.
+  To stop it quickly once deployed: Google Cloud console → Cloud Scheduler →
+  firebase-schedule-syncFromAfriff-europe-west2 → Pause.
 - WHAT: a Cloud Function, `syncFromAfriff` (folder `functions/`), checks
   afriff.com every 15 minutes and brings the FILMS in the database up to
   date: title, synopsis, poster, director, cast, country, language, genre,
@@ -1905,6 +1933,116 @@ heavy libraries) apply everywhere.
   package.json and lockfile, outside the npm workspaces, so the apps'
   installs and Vercel builds don't change.
 
+### Push test undone + afriff.com re-check (28 Oct 2026, Michael's request)
+- Undid the 27 Oct push-notification tests in Firestore and published (28 Oct
+  ~00:50 Lagos, "Undo push test + afriff.com check (Claude, for Michael)"):
+  "moved" tag removed from s3 (It's the Blackness) and s24 (Three Black Men),
+  the "Three Black Men moved" alert deleted, and the Demo door volunteer's
+  test counts for Sun 1 Nov at Landmark (Lady, Hadda "Full") cleared. No push
+  went out for the undo. Nothing else had changed since the 25 Oct sync.
+- afriff.com re-checked: same 104 films, jury, partners and masterclasses.
+  Two newer details taken: One Woman One Bra's cast (afriff.com removed a
+  doubled name) and Shared Space's languages (Assamese added). The other
+  differences are our deliberate 25 Oct cleanups, kept. In the Shadows 75's
+  Vimeo trailer is still private (404), so it stays off.
+- Left alone (not festival data): test accounts, the "Test" group, its VIP
+  link and the test invitation.
+- Backups (outside the project, they hold attendee emails):
+  /Users/mac/Documents/afriff-backups/before-revert-2026-10-28.json.
+
+### Invitation pushes for scheduled sends + alerts on the VIP page (28 Oct 2026, user request)
+- STATUS: built and tested, NOT committed, NOT deployed. No rules change, no
+  new settings. Needs the Blaze plan for the Cloud Function (see COST).
+- WHY: the user's request: "when an invitation is sent to a vip or group, or
+  whichever user, those users' signed-in attendee apps should receive a push
+  notification". Checked in the live database: the one real invitation (27 Oct,
+  2 guests, both with app accounts) was SCHEDULED, so no push went (scheduled
+  ones were email only), and neither guest's phone had "Alerts on this phone"
+  switched on while logged in, so even Send now couldn't have reached them.
+- WHO GETS A PUSH (same rule for Send now and scheduled): every guest of the
+  invitation (from a group, picked by hand, or a VIP link sign-up) who has an
+  app account with the same email AND is logged in on a phone with "Alerts on
+  this phone" switched on. Once each. Phones only show notifications the
+  person has allowed (a browser rule nobody can get round), so a guest who
+  never turned alerts on gets the email only. Hand-added guests with no app
+  account: email only (if they later sign up with that email, later invites
+  reach their phone).
+- SCHEDULED (USER DECISION 28 Oct: a Cloud Function, chosen over a Brevo
+  webhook that was built first and then removed; the webhook needed no paid
+  plan, the function keeps it all in Firebase): when an admin schedules an
+  invitation, the staff app notes the time on it. A Cloud Function,
+  `pushScheduledInvites` (folder `functions/`, next to the afriff.com sync),
+  checks every minute and, once the time has come, sends the push to the same
+  people by the same rule, with the same words as Send now. Each guest once.
+  Calling the invite off cancels its pushes. If sending fails it tries again
+  a couple of minutes later; more than 3 hours late (e.g. deployed after the
+  time) it drops them, as the email has long arrived. Send now pushes still
+  go from the staff app straight away (they don't need Blaze).
+- CONSOLE: Invitations (admins) shows "Push notifications for scheduled
+  invitations: On" when the function has run in the last 15 minutes, else
+  "Off … needs Firebase's Blaze plan: ask the developer". The send
+  confirmation and the "Scheduled:" note say which applies. A sent invitation
+  whose time passed 5 minutes ago with its pushes not sent says so ("Push
+  notifications not sent yet…"). The invite form now says "By email, plus a
+  push notification for guests who use the AFRIFF app".
+- COST (Blaze needed: Firebase only runs scheduled functions on it, as for
+  the afriff.com sync): expected about $0. About 43,200 runs a month (free
+  allowance: 2 million), a second Cloud Scheduler job (3 free; the sync uses
+  1), about 1 database read a minute when nothing is due, and a status write
+  every 10 minutes. Set a budget alert anyway.
+- VIP LINK PAGE (attendee app): "You're on the guest list" now shows the
+  "Alerts on this phone" switch, worded "A notification on this phone when
+  your invitation is sent, as well as the email". iPhone in Safari: how to add
+  the app to the Home Screen, log in there and turn alerts on in Profile.
+- TESTED (28 Oct, by Claude): 11 new function tests with a pretend database
+  and pretend FCM (nothing before the time; at the time every guest signed
+  in with alerts on, all their phones, once; the same words as Send now;
+  "Change of plan" updates; already pushed / unsubscribed / never handed to
+  Brevo left out; gone phones unlinked; FCM down → retried after the hold;
+  one failing invite doesn't stop others; waits while the staff app is still
+  sending; over 3 hours late dropped; called off; the status note's timing);
+  48 function tests and 101 staff tests pass (2 new: scheduled sets the time,
+  Send now doesn't, calling off clears it); both apps and the functions
+  typecheck; the bundle builds with the shared code inside and needs no extra
+  packages in the cloud. NOT TESTED: the real deploy (needs Blaze), a real
+  scheduled invite reaching a real phone, the console screens with a real
+  admin login, the VIP page's switch on a real phone (hidden in `npm run
+  dev`).
+- TO DEPLOY AND TRY: switch Firebase to Blaze (with a budget alert), then
+  `npm run functions:install` and `npm run deploy:functions` (deploys this
+  only, since the afriff.com sync is switched off; see "afriff.com film sync"),
+  and deploy both apps from this branch. Within a few minutes Invitations
+  shows "On". On a phone: log in to the attendee app as a guest in the "Test"
+  group, Profile → "Alerts on this phone" on. Schedule a test invite to
+  "Test" 10 minutes ahead: at that time the email arrives, the phone buzzes
+  within a minute ("You're invited: …"), and the invite shows "1 by push
+  too". Logs: `npm --prefix functions run logs:invites`.
+
+### Official screening schedule loader (28 Oct 2026)
+- STATUS: script checked and fixed, NOT run with --write, NOT committed.
+  `scripts/schedule/` (load-schedule.mjs, plan.mjs, the sheet as JSON).
+  Dry run: `node scripts/schedule/load-schedule.mjs` (changes nothing). Load:
+  add `--write` (backup first; with `--add-missing` it also makes title-only
+  films). Never publishes: Publish to app afterwards.
+- DECISIONS (Claude's, easy to change, in plan.mjs): a film playing on several
+  screens at the same time (47 cases in the sheet, e.g. Screens 1 & 3) is ONE
+  screening ("Screens 1 & 3", seats added up, one + button, one door queue),
+  not one per screen. "Love and Blood" = SOYAYA da JINI (love and blood),
+  "The Memory of Cleo" = The Memory of Mother Cleo (CHECK with AFRIFF).
+  Films with no running time get their slot length (else their screenings end
+  as they start and vanish from the timeline). New films go in section "Also
+  screening" (added to SECTIONS so the console can save them). Invitation-only
+  rows (Lady 1 Nov, Calabash and It's the Blackness 6 Nov) are saved as
+  `invitationOnly` but the app doesn't show it yet.
+- SAFE TO RE-RUN: same IDs each time; a loaded screening only gets the sheet's
+  fields, so seats, Q&A and status set in the console stay. Deletes only the
+  sample timetable (s1…) and earlier loads (sch-…); screenings added in the
+  console are kept and listed. Titles that look like an existing film are
+  never auto-created (ALIASES / DIFFERENT_FILMS in plan.mjs).
+- "Add missing festival data" no longer adds the sample timetable back once
+  it's been replaced (apps/admin/app/lib/data.ts). Until the staff app is
+  redeployed with that, DON'T press it after loading the schedule.
+
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on
   HIS OWN Vercel account (new projects, one per app since the monorepo
@@ -1967,8 +2105,9 @@ heavy libraries) apply everywhere.
 6. Push notifications: add the two keys (see "Push notifications for
    announcements"), deploy rules, then on a real Android and iPhone turn
    alerts on, publish a ticked test item, check it arrives, then delete it.
-7. afriff.com film sync: once on Blaze, deploy rules + functions (see
-   "afriff.com film sync"), then check the card on Festival data after
+7. afriff.com film sync: SWITCHED OFF 28 Oct (user decision). Only if it's
+   wanted again: switch it back on (see "afriff.com film sync"), then on
+   Blaze deploy rules + functions and check the card on Festival data after
    15 minutes.
 8. Attendee accounts: get AFRIFF's written approval, then do "SETUP BEFORE
    IT WORKS" in "Attendee accounts", test sign-up / Forgot password / two
@@ -1993,3 +2132,6 @@ heavy libraries) apply everywhere.
 13. Superadmin: `npm run deploy:rules`; Michael and the owner each sign in to
    the staff app, open Team, and confirm their email if asked. Then check an
    ordinary admin can't remove an admin. See "Superadmin".
+14. Pushes for scheduled invitations: on Blaze, `npm run deploy:functions`
+   and deploy both apps, check Invitations says "On", then the test in
+   "Invitation pushes for scheduled sends + alerts on the VIP page".
