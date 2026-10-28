@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { BarChart3Icon, PlusIcon } from 'lucide-vue-next'
 import {
-  createInvite, inviteSetup, lagosText, loadStats, shownStatus, watchInvites,
+  createInvite, inviteSetup, lagosText, loadStats, scheduledPushesRunning, shownStatus, watchInvites, watchScheduledPushes,
   type InviteDoc, type InviteSetup, type InviteStatus, type Stats,
 } from '~/lib/invites'
 import { matchesSearch, searchWords } from '~/lib/search'
@@ -11,7 +11,8 @@ import { errMsg, whenLagos } from '~/lib/util'
 
 // Admins and editors: every invitation, newest first (the invite log). Editors
 // prepare and test; only admins send (AdminInvite.vue, checked on the server).
-// Invitations go by email only, never inside the app.
+// Invitations go by email, plus a push notification to guests who use the
+// attendee app (logged in, alerts on); never as a message inside the app.
 const auth = useAdminAuth()
 const isAdmin = computed(() => auth.profile?.role === 'admin')
 const router = useRouter()
@@ -19,6 +20,12 @@ const router = useRouter()
 const setup = ref<InviteSetup | null | undefined>(undefined)
 const setupError = ref('')
 onMounted(() => inviteSetup().then((s) => { setup.value = s }, (e) => { setup.value = null; setupError.value = errMsg(e) }))
+
+// Push notifications for SCHEDULED invites (admins): sent by the Cloud Function
+// pushScheduledInvites, which notes when it last ran.
+const pushCheckedAt = ref<number | null>(null)
+const stopPushWatch = isAdmin.value ? watchScheduledPushes((ms) => { pushCheckedAt.value = ms }) : () => {}
+onBeforeUnmount(stopPushWatch)
 
 const list = ref<InviteDoc[] | null>(null)
 const listError = ref('')
@@ -89,6 +96,14 @@ const shown = computed(() => {
         <UiBadge :tone="setup.ready ? 'success' : 'danger'">{{ setup.ready ? 'Ready' : 'Off' }}</UiBadge>
         <span v-if="setup.ready"><strong class="font-semibold">Sending from {{ setup.from }}</strong> through Brevo.</span>
         <span v-else><strong class="font-semibold">Sending isn't set up yet.</strong> The staff app still needs: {{ setup.missing.join('; ') }}.</span>
+      </p>
+      <p v-if="isAdmin && pushCheckedAt !== null" class="flex items-start gap-2">
+        <UiBadge :tone="scheduledPushesRunning(pushCheckedAt) ? 'success' : 'neutral'">{{ scheduledPushesRunning(pushCheckedAt) ? 'On' : 'Off' }}</UiBadge>
+        <span v-if="scheduledPushesRunning(pushCheckedAt)"><strong class="font-semibold">Push notifications for scheduled invitations.</strong> Guests who use the AFRIFF app (logged in, alerts on) get one within a minute of the invitation going out.</span>
+        <span v-else>
+          <strong class="font-semibold">Scheduled invitations go by email only for now.</strong>
+          Their push notifications come from a Firebase Cloud Function{{ pushCheckedAt ? `, which last ran ${lagosText(pushCheckedAt)}` : ' that isn\'t running yet (it needs Firebase\'s Blaze plan)' }}: ask the developer. Send now always sends them.
+        </span>
       </p>
       <p class="text-label text-muted">Test every invite with a small test group (3 people) before a real send. Brevo's free plan sends about 300 emails a day.</p>
     </section>

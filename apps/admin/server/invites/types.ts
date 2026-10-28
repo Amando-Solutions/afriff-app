@@ -27,6 +27,12 @@ export interface InviteRecord extends InviteContent {
   status: InviteStatus
   /** ms; 0 = send straight away */
   scheduledAt: number
+  /**
+   * ms: a scheduled invite's push notifications are due then (= scheduledAt).
+   * The Cloud Function pushScheduledInvites (functions/src/invites/) sends them
+   * and sets it back to 0; 0 = none due.
+   */
+  pushAt: number
   /** Brevo's handle on a scheduled send (to call it off) */
   batchId: string
   /** guests on it so far (every run), sent or not */

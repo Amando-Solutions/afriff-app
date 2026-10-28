@@ -144,11 +144,15 @@ export async function importAll(onProgress?: (done: number, total: number) => vo
   const writes: { col: string; id: string; data: Doc; merge: boolean }[] = [];
   for (const [col, rows] of Object.entries(seed) as [CollectionName, [string, Doc][]][]) {
     const existing = new Map<string, Doc>((await getDocs(collection(db, col))).docs.map((d) => [d.id, d.data()]));
+    // once AFRIFF's real timetable has replaced the sample one (scripts/schedule),
+    // none of the sample screenings are left: don't bring them back
+    const replaced = col === 'screenings' && existing.size > 0 && !rows.some(([id]) => existing.has(id));
     added[col] = 0;
     kept[col] = 0;
     for (const [id, data] of rows) {
       const current = existing.get(id);
       if (!current) {
+        if (replaced) continue;
         added[col] += 1;
         writes.push({ col, id, data, merge: false });
         continue;

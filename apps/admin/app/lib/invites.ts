@@ -35,6 +35,8 @@ export interface InviteDoc extends InviteContent {
   unsubscribed: number
   /** guests whose phones also got a push notification (signed in to the app, alerts on) */
   pushed: number
+  /** a scheduled invite's pushes are due then (ms); the Cloud Function sets it back to 0 once sent */
+  pushAt: number
   createdBy: string
   createdByName: string
   createdAt: Timestamp | null
@@ -63,6 +65,7 @@ function inviteFrom(id: string, d: Record<string, unknown>): InviteDoc {
     groupNames: Array.isArray(d.groupNames) ? (d.groupNames as string[]) : [],
     unsubscribed: num(d.unsubscribed),
     pushed: num(d.pushed),
+    pushAt: num(d.pushAt),
     createdBy: String(d.createdBy ?? ''), createdByName: String(d.createdByName ?? ''),
     createdAt: (d.createdAt as Timestamp | null) ?? null, updatedAt: (d.updatedAt as Timestamp | null) ?? null,
     updatedByName: String(d.updatedByName ?? ''),
@@ -138,6 +141,21 @@ export interface Stats {
 export interface SendProgress { id: string; status: InviteStatus; total: number; sent: number; failed: number; pushed: number; scheduledAt: number; more: boolean; error: string }
 
 export const inviteSetup = () => adminCall<InviteSetup>('/api/invites/setup')
+/**
+ * Push notifications for SCHEDULED invites come from the Cloud Function
+ * pushScheduledInvites (functions/src/invites/), which notes in
+ * sync/invitePushes when it last ran: at least every 10 minutes. Admins only
+ * (firestore.rules); 0 = never ran (not deployed yet, e.g. before Blaze).
+ */
+export function watchScheduledPushes(onCheckedAt: (ms: number) => void): Unsubscribe {
+  return onSnapshot(doc(db, 'sync', 'invitePushes'), (snap) => onCheckedAt(num(snap.data()?.checkedAt)), () => onCheckedAt(0))
+}
+
+/** it ran in the last 15 minutes */
+export const scheduledPushesRunning = (checkedAt: number, now = Date.now()) => checkedAt > 0 && now - checkedAt < 15 * 60_000
+
+/** A scheduled invite's pushes still not sent 5 minutes after its time: the Cloud Function isn't running. */
+export const pushesOverdue = (c: Pick<InviteDoc, 'pushAt'>, now = Date.now()) => c.pushAt > 0 && now - c.pushAt > 5 * 60_000
 export const countGuests = (id: string) => adminCall<Count>('/api/invites/count', { id })
 export const sendTest = (id: string, to: string) => adminCall<{ to: string[] }>('/api/invites/test', { id, to })
 export const loadStats = (id: string) => adminCall<Stats>('/api/invites/stats', { id })

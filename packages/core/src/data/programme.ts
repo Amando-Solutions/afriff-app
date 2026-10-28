@@ -36,7 +36,9 @@ export let VENUES: Venue[] = [
 ];
 
 // Programme sections, in the order they appear on the "All films" tab.
-export const SECTIONS = ['Opening Movie', 'Special Presentations', 'Features', 'Documentary', 'Jury Selection', 'Audience', 'Shorts', 'Out of Competition'];
+// 'Also screening': films in AFRIFF's schedule sheet that afriff.com doesn't list
+// (scripts/schedule), until the team picks their real section.
+export const SECTIONS = ['Opening Movie', 'Special Presentations', 'Features', 'Documentary', 'Jury Selection', 'Audience', 'Shorts', 'Out of Competition', 'Also screening'];
 const SECTION_CODES: Record<string, string> = { OPEN: 'Opening Movie', SP: 'Special Presentations', FEAT: 'Features', DOC: 'Documentary', JURY: 'Jury Selection', AUD: 'Audience', SHORTS: 'Shorts', OOC: 'Out of Competition' };
 
 // Posters, logos and jury photos are linked straight from afriff.com (the

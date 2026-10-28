@@ -2,7 +2,7 @@
   "name": "afriff-functions",
   "private": true,
   "type": "module",
-  "description": "AFRIFF Cloud Functions. syncFromAfriff: every 15 minutes, reads afriff.com's film list and brings the films in Firestore up to date, without overwriting what the team edited. Deployed with the Firebase CLI; not part of the npm workspaces (its own lockfile).",
+  "description": "AFRIFF Cloud Functions. syncFromAfriff: every 15 minutes, reads afriff.com's film list and brings the films in Firestore up to date, without overwriting what the team edited. pushScheduledInvites: every minute, sends the push notifications of scheduled invitations whose time has come. Deployed with the Firebase CLI; not part of the npm workspaces (its own lockfile).",
   "main": "lib/index.js",
   "engines": {
     "node": "22"
@@ -13,7 +13,8 @@
     "test": "node --import tsx --test test/*.test.ts",
     "check": "tsx src/check.ts",
     "deploy": "firebase deploy --only functions --project afriff-app",
-    "logs": "firebase functions:log --only syncFromAfriff --project afriff-app"
+    "logs": "firebase functions:log --only syncFromAfriff --project afriff-app",
+    "logs:invites": "firebase functions:log --only pushScheduledInvites --project afriff-app"
   },
   "dependencies": {
     "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
