@@ -57,6 +57,12 @@ live apps do.
 **Testing switches** go in the address, e.g. `/programme?now=2026-11-03T13:00`.
 They're remembered for that browser tab (so they survive moving between
 pages and reloading); close the tab to clear them.
+They only work where `NUXT_PUBLIC_TEST_SWITCHES=true` (both apps; put it in
+`apps/pwa/.env` and `apps/admin/.env`, then restart the dev server). Unset or
+anything else = the address is ignored: real clock, real queues. The live apps
+set it to `false` (`apps/*/apphosting.production.yaml`). It's baked into the
+prerendered app shell, so set it at build time too and rebuild after changing
+it. One gate for all of them: `testSwitch()` in `packages/core/src/utils/now.ts`.
 - `?now=2026-11-03T13:00` acts as if it's that Lagos time. Drives the
   countdown, the daily highlight on Home (1–7 Nov), the timeline's red line
   and queues. Try `?now=2026-10-25T10:00` (before), `?now=2026-11-03T13:00`
@@ -64,6 +70,7 @@ pages and reloading); close the tab to clear them.
 - `?queues=sample` shows pretend queues (use with `?now=` on a festival day).
 - `?welcome=1` shows the first-open welcome cards again.
 - `?share=1` lets the dev build send anonymous usage counts (it never sends otherwise).
+- `?install=ios` shows the iPhone "Install the app first" screen on any browser.
 
 ## 3. Stack and shape
 A monorepo, set up like the DP Fitness repo: split **by audience**, with
@@ -266,8 +273,11 @@ All of this lives in `packages/pwa` and applies to both apps.
   (sideways or down) closes it until the next full reload
   (`useInstallApp().dismissed`, in memory only; it also closes the iPhone screen).
 - **"Turn on alerts" card** (29 Oct): same spot, same component, one card at a
-  time: alerts first, then the install toast; a card that's showing stays until
-  closed. The card calls `turnOnAlerts()` (`lib/push.ts`, same as the Profile /
+  time: the install toast first (installing is what we want people to do
+  first), then alerts. The alerts card waits `ALERTS_WAIT_MS` (3 s) after start
+  so Chrome's late `beforeinstallprompt` usually lands first, and an untapped
+  alerts card still gives way to the install toast if the offer comes later;
+  after "Turn on" it stays until closed. The card calls `turnOnAlerts()` (`lib/push.ts`, same as the Profile /
   News switch) straight from the tap. Only where the switch works
   (`pushConfigured() && browserCanPush()`, not `method === 'ios'`, so not
   iPhone Safari) and only while `Notification.permission === 'default'`, so
@@ -905,6 +915,29 @@ scheduled invites at their time.
   (only the first-visit fallback) still points at afriff.com.
 
 ## 5. Deploying and hosting
+**Firebase App Hosting** (project `afriff-app`, us-central1; checked 29 Oct
+2026): four backends from this repo, each reading the yaml file that matches
+its Environment name (Settings → Environment). There's no shared
+`apphosting.yaml`, so each file is complete on its own.
+
+| Backend | Root | Environment | Reads | Address |
+|---|---|---|---|---|
+| `afriff-app` | `apps/pwa` | production | `apphosting.production.yaml` | afriff.app |
+| `afriff-backoffice` | `apps/admin` | production | `apphosting.production.yaml` | backoffice.afriff.app |
+| `staging-afriff-app` | `apps/pwa` | staging | `apphosting.staging.yaml` | staging-afriff-app--afriff-app.us-central1.hosted.app |
+| `staging-afriff-backoffice` | `apps/admin` | staging | `apphosting.staging.yaml` | staging-afriff-backoffice--afriff-app.us-central1.hosted.app |
+
+Staging differs only in size (max 2 instances, none kept warm), the testing
+switches (on) and pointing at each other (`NUXT_PUBLIC_ADMIN_URL` /
+`NUXT_PUBLIC_ATTENDEE_URL`). It uses the **same Firebase project** as the
+live apps: same database, logins and push list, so a publish, door count or
+send from the staging console is real. Its server secrets are commented out
+in `apps/admin/apphosting.staging.yaml` (how to add them is in the file);
+add both staging addresses to Firebase → Authentication → Authorized domains
+for sign-in there.
+
+The Vercel setup below is the earlier hosting.
+
 Two Vercel projects from this one repo, one per app:
 
 | Vercel project | Root Directory | Settings |

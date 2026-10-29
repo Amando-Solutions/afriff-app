@@ -1,6 +1,6 @@
 # App Hosting backend `afriff-backoffice`: the staff console and door view
-# (https://backoffice.afriff.app). Why the file has no ".production" in its
-# name, and the project's Cloud Run quota: see apps/pwa/apphosting.yaml.
+# (https://backoffice.afriff.app). Which file a backend reads, and the
+# project's Cloud Run quota: see apps/pwa/apphosting.production.yaml.
 #
 # Sizing: only the festival team opens this app, but its server does the heavy
 # work: firebase-admin, festival emails and invitations through Brevo, and
@@ -19,7 +19,7 @@ runConfig:
 
 # The Firebase web app's public settings (not secrets: firestore.rules protects
 # the data). packages/core/nuxt.config.ts defaults them to '', so without them
-# the console can't reach the database. Same values in apps/pwa/apphosting.yaml.
+# the console can't reach the database. Same values in apps/pwa/apphosting.production.yaml.
 # No `availability` given = available at build and at run time.
 env:
   - variable: NUXT_PUBLIC_FIREBASE_API_KEY
@@ -34,3 +34,7 @@ env:
     value: "396757035301"
   - variable: NUXT_PUBLIC_FIREBASE_APP_ID
     value: "1:396757035301:web:abf6a05cf9014ad3b412cc"
+  # Testing switches in the address (?now=, ?queues=sample…) stay OFF here.
+  # Only a test backend should ever set this to "true" (packages/core/nuxt.config.ts).
+  - variable: NUXT_PUBLIC_TEST_SWITCHES
+    value: "false"

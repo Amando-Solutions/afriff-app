@@ -1,0 +1,62 @@
+# App Hosting backend `staging-afriff-backoffice`: the staff console and door
+# view's STAGING copy
+# (https://staging-afriff-backoffice--afriff-app.us-central1.hosted.app).
+# Which file a backend reads, and the Cloud Run quota: see
+# apps/pwa/apphosting.staging.yaml.
+#
+# SAME FIREBASE PROJECT AS THE LIVE CONSOLE (afriff-app). Everything done here
+# is real: "Publish to app" reaches every attendee's phone, door counts show in
+# the live Queues, push notifications go to every phone with alerts on, and
+# festival emails and invitations go to real people. Use the staging console
+# for looking and for trying the screens, and the "Test" group for sends.
+#
+# Sizing: only the team opens it, so small and nothing kept warm.
+runConfig:
+  cpu: 1
+  memoryMiB: 1024
+  concurrency: 80
+  maxInstances: 2
+  minInstances: 0
+
+# The Firebase web app's public settings (not secrets: firestore.rules protects
+# the data). Same values as apphosting.production.yaml.
+# No `availability` given = available at build and at run time.
+env:
+  - variable: NUXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCPxdNaQyK6r4OU97-zBZBKLqHsHunGzYo
+  - variable: NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: afriff-app.firebaseapp.com
+  - variable: NUXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: afriff-app
+  - variable: NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: afriff-app.firebasestorage.app
+  - variable: NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "396757035301"
+  - variable: NUXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:396757035301:web:abf6a05cf9014ad3b412cc"
+  # Testing switches in the address (?now= for the door view's day) are ON
+  # here, OFF on the live console (packages/core/nuxt.config.ts).
+  - variable: NUXT_PUBLIC_TEST_SWITCHES
+    value: "true"
+  # The staging attendee app: "View the attendee app", VIP sign-up links and
+  # the links in test emails and invitations open it.
+  - variable: NUXT_PUBLIC_ATTENDEE_URL
+    value: https://staging-afriff-app--afriff-app.us-central1.hosted.app
+
+  # SECRETS (server only), kept in Cloud Secret Manager, never in this file.
+  # Without them the console works, but push notifications, festival emails,
+  # invitations and deleting attendee accounts say the server isn't set up.
+  # Left commented out on purpose: a `secret:` that doesn't exist yet stops the
+  # build. To switch one on (from the repo root, once per secret):
+  #   firebase apphosting:secrets:set <name> --project afriff-app
+  #   firebase apphosting:secrets:grantaccess <name> --backend staging-afriff-backoffice --project afriff-app
+  # then uncomment its lines and push. An existing secret the live console
+  # uses can be granted to this backend the same way, without setting it again.
+  # - variable: NUXT_FIREBASE_SERVICE_ACCOUNT
+  #   secret: firebase-service-account
+  # - variable: NUXT_BREVO_API_KEY
+  #   secret: brevo-api-key
+  # - variable: NUXT_EMAIL_FROM_ADDRESS
+  #   value: news@afriff.com
+  # - variable: NUXT_INVITE_FROM_ADDRESS
+  #   value: invites@afriff.app
