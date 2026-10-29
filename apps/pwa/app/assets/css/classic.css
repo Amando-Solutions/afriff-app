@@ -863,6 +863,8 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 /* ---------- Jury ---------- */
 .jury-avatar { border-radius: 50%; object-fit: cover; flex: none; display: block; background: var(--raised); border: 2px solid var(--border); }
 .jury-avatar.initials { display: grid; place-items: center; color: var(--gold-light); font-weight: 700; font-family: Georgia, 'Times New Roman', serif; font-style: italic; }
+/* jury photos in black and white, as on afriff.com (initials keep their gold) */
+img.jury-avatar, .jury-photo img { filter: grayscale(1); }
 .jury-intro { margin-top: -6px; margin-bottom: 12px; }
 .jury-row { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px 4px; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
 .jury-row::-webkit-scrollbar { display: none; }
