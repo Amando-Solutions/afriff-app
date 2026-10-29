@@ -259,8 +259,12 @@ All of this lives in `packages/pwa` and applies to both apps.
   false`): it force-reloads every open page on update and its "not now"
   hid the install offer for good.
 - **Install**: Chrome's offer is caught at start (`lib/installPrompt.ts`) and
-  shown as our toast; iPhone gets the Share → Add to Home Screen steps
-  (with a hint for in-app browsers). "Not now" snoozes for a week.
+  shown as our toast; iPhone gets the install-first screen's Share → Add to
+  Home Screen steps instead (below). The toast (`components/app/AppPwaPrompts.vue`)
+  is mounted in `app.vue`, so it stays across every page, layout or not, except
+  the sign-up page (`/auth`). ✕, "Not now", Cancel in Chrome's dialog or a swipe
+  (sideways or down) closes it until the next full reload
+  (`useInstallApp().dismissed`, in memory only; it also closes the iPhone screen).
 - **Offline banner** (`AppOfflineBanner.vue`): "You're offline…" while
   offline, "Back online" for a moment on return. Queues says when counts are
   the last ones received, and only shows "Live" when they are.
@@ -448,8 +452,9 @@ it's published.
 - **iPhone install-first** (27 Oct, as in DP Fitness's `access-code.vue`):
   `components/app/InstallFirst.vue`, shown by `layouts/default.vue` when
   `useInstallApp().method === 'ios'` (iPhone/iPad, not standalone) until
-  "Continue on the web" (localStorage `afriff-ios-web`, also snoozes the install
-  toast). Welcome cards wait for it. `?install=ios` forces it for testing.
+  "Continue on the web" (`useInstallApp().dismiss()`: closed until the next full
+  reload, then it shows again; nothing stored). iPhones get no install toast.
+  Welcome cards wait for it. `?install=ios` forces it for testing.
 - **Known**: the layout re-keys `<main>` when newer published data arrives
   (`dataVersion`), which closes an open bottom sheet (e.g. the delete
   confirmation) if a publish lands while it's open. Pre-existing; rare.
@@ -523,7 +528,13 @@ it's published.
      and support email Google shows.
   2. Authorized domains must list the attendee app's address (already needed for
      password resets). Without it: "Google sign-in doesn't work from this address yet".
-  3. **For the iPhone Home Screen app** (else the button is hidden there):
+  3. **Optional, for the iPhone Home Screen app.** Since 28 Oct the button shows
+     there and the whole page goes to Google and back through the usual
+     `afriff-app.firebaseapp.com` helper, exactly as DP Fitness does (its
+     `mustRedirect()`), so this step is no longer needed for it to work. Do it
+     if a real iPhone keeps saying "Google sign-in didn't finish" (Safari's
+     privacy rules losing the result on the way back), or to have Google's page
+     say the app's own address instead of firebaseapp.com:
      Google Cloud console → APIs & Services → Credentials → the OAuth client
      "Web client (auto created by Google Service)" → Authorized redirect URIs →
      add `https://<attendee address>/__/auth/handler`; then on the **attendee**

@@ -941,6 +941,7 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .sync-saving, .sync-waiting { background: var(--gold); }
 .sync-error { background: var(--alert); }
 .account-line { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider); cursor: pointer; }
+.account-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--divider); }
 .account-delete { display: inline-flex; align-items: center; gap: 6px; color: var(--alert); font-size: 14px; font-weight: 600; }
 .btn-danger { background: rgba(243, 123, 107, 0.14); color: var(--alert); border: 1px solid rgba(243, 123, 107, 0.45); }
 .switch:disabled { opacity: .5; cursor: default; }
@@ -964,6 +965,17 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .if-hint { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; }
 .if-note { margin-top: 14px; max-width: 340px; color: var(--muted); font-size: 13px; line-height: 1.45; }
 .if-already { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+
+/* Alerts card (components/app/AlertsSwitch.vue): iPhone "Show me how", Android Install */
+.alerts-how { width: 100%; text-align: left; }
+.alerts-how-cta { display: inline-flex; align-items: center; gap: 2px; margin-top: 4px; color: var(--gold-light); font-size: 14px; font-weight: 700; }
+.alerts-then { margin-top: 14px; font-size: 15px; line-height: 1.45; }
+.alerts-done { margin-top: 20px; width: 100%; }
+.alerts-card { flex-direction: column; align-items: stretch; }
+.alerts-line { display: flex; align-items: center; gap: 14px; cursor: pointer; }
+.alerts-install { display: flex; align-items: center; gap: 14px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.alerts-install span { flex: 1; }
+.alerts-install .btn { align-self: center; flex: none; }
 
 /* ---------- No internet connection (components/app/ConnectionStatus.vue) ---------- */
 .conn {
