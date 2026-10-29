@@ -30,7 +30,7 @@ watchEffect(() => {
 
 <template>
   <div class="app">
-    <a href="#main" class="sr-only z-[60] rounded-full bg-accent px-4 py-2 font-semibold text-on-accent focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+    <a href="#main" class="sr-only z-60 rounded-full bg-accent px-4 py-2 font-semibold text-on-accent focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
       Skip to content
     </a>
     <!-- key: when newly published festival data arrives, everything redraws with it -->
