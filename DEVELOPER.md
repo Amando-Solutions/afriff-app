@@ -265,6 +265,15 @@ All of this lives in `packages/pwa` and applies to both apps.
   the sign-up page (`/auth`). ✕, "Not now", Cancel in Chrome's dialog or a swipe
   (sideways or down) closes it until the next full reload
   (`useInstallApp().dismissed`, in memory only; it also closes the iPhone screen).
+- **"Turn on alerts" card** (29 Oct): same spot, same component, one card at a
+  time: alerts first, then the install toast; a card that's showing stays until
+  closed. The card calls `turnOnAlerts()` (`lib/push.ts`, same as the Profile /
+  News switch) straight from the tap. Only where the switch works
+  (`pushConfigured() && browserCanPush()`, not `method === 'ios'`, so not
+  iPhone Safari) and only while `Notification.permission === 'default'`, so
+  "Block" or switching alerts off in Profile means it never asks again. Closing
+  it lasts until a full reload (component state). Swipe / ✕ / enter-leave
+  animation for both cards: `components/app/SwipeCard.vue`.
 - **Offline banner** (`AppOfflineBanner.vue`): "You're offline…" while
   offline, "Back online" for a moment on return. Queues says when counts are
   the last ones received, and only shows "Live" when they are.

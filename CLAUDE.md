@@ -62,6 +62,9 @@ tell me which).
   the Profile page (see "Profile page + avatar").
 - Bottom nav (from prototype, 4 tabs): Home, Programme, Queues,
   My Festival. No Tickets tab: there's no ticketing in this version.
+- ADDED 29 Oct (user request): a "Turn on alerts" card above the bottom
+  bar on every page until alerts are on (see "Turn on alerts card on every
+  page").
 
 ## Home (SIMPLIFIED 20 Oct 2026, user decision; replaces the prototype copy)
 Rule: the bottom bar already reaches Programme, Queues and My Festival,
@@ -649,7 +652,8 @@ heavy libraries) apply everywhere.
 - Data `src/data/jury.js`: 10 International Jury members from
   afriff.com/festival/jury (name, roles, country, photo linked from
   AFRIFF's site, `jury` heading, order); bios rewritten short in our own
-  words. JURY_LINKS: press release + past juries (no past juries in app,
+  words (CHANGED 29 Oct: the database now holds afriff.com's official bios;
+  see "Jury updated from afriff.com"). JURY_LINKS: press release + past juries (no past juries in app,
   just the link). `replaceJury()` for published data; `juryGroups()`
   groups by `jury` name so new juries get their own heading.
 - Console: "Jury" collection (name, roles, country, which jury, bio,
@@ -2206,6 +2210,75 @@ heavy libraries) apply everywhere.
   a lost connection, so an upload retries for 2 minutes and then says so,
   naming both causes. NOT TESTED: a real upload (no bucket yet), the Upload
   button inside the console with a real login.
+
+### Jury updated from afriff.com (29 Oct 2026, user request)
+- Read afriff.com/festival/jury (10 International Jury members, same people,
+  order, countries and photos as ours) and wrote straight to Firestore with
+  the admin key; backup first:
+  /Users/mac/Documents/afriff-backups/before-jury-2026-10-29T09-15-04.json.
+- CHANGED DECISION: all 10 bios are now AFRIFF's official text from
+  afriff.com (they were our own short rewrites since 18 Oct), like the film
+  synopses on 25 Oct. Jemilah Alghali's roles now end "Brand strategy
+  executive". Keith Shiri's roles kept as ours (afriff.com differs only in
+  capitals). Built-in copy (`packages/core/src/data/jury.ts`) not changed:
+  the database is the master copy.
+- PUBLISHED 29 Oct 09:25 UTC (by an admin in the console), together with the
+  official schedule and the Storage posters. Photos still linked from
+  afriff.com (all 10 load; Keith Shiri's is 2.6 MB, heavy on slow data);
+  could be hosted in Storage, shrunk, like the posters.
+- BLACK AND WHITE PHOTOS (user request: "all the jury images are in black and
+  white" on afriff.com): one CSS rule in `apps/pwa/app/assets/css/classic.css`
+  (`filter: grayscale(1)` on jury photos: Jury page grid and list, bio sheet,
+  Globe Awards jury row), the same way afriff.com does it, so any photo the
+  team uploads later is black and white too. Initials keep their gold. The
+  files themselves stay in colour. Checked in a phone-sized browser on the dev
+  app. NOT committed, NOT deployed.
+
+### Turn on alerts card on every page (29 Oct 2026, user request)
+- STATUS: built and tested, NOT committed, NOT deployed. No rules change, no
+  new settings, no cost.
+- USER REQUEST: "an enable notifications card … fixed across the entire
+  screens … cancelable by clicking on the X button … or swiping it". Until
+  now the only way in was the "Alerts on this phone" switch on Profile and
+  News.
+- WHAT ATTENDEES SEE: a card above the bottom bar on every page (near the
+  bottom edge on the privacy and VIP pages), staying put while they move
+  between pages: bell icon, "Turn on alerts", "Know at once if a screening
+  moves, is cancelled or sells out, and for big festival news.", gold "Turn
+  on" and "Not now". Turn on = the phone's own permission question, then
+  "Alerts are on · You can turn them off in Profile" for a few seconds. Same
+  alerts as the Profile switch (turning on in one shows in the other).
+- CLOSING IT: ✕, "Not now", or a swipe sideways (either way) or down, the
+  same as the install toast (shared piece, `components/app/SwipeCard.vue`).
+  Closed = gone until the app is fully reloaded, then it shows again.
+- WHEN IT DOESN'T SHOW (CLAUDE'S CHOICES, easy to change in
+  `components/app/AppPwaPrompts.vue`):
+  - Once the phone has answered: alerts on, "Block" in the permission
+    question, or alerts switched off in Profile. So nobody is asked again
+    after saying no. (Block shows "Alerts are blocked … allow them in your
+    phone's settings" once, until closed.)
+  - iPhone in Safari: iPhones only allow alerts from the Home Screen app, and
+    the "Install the app first" screen already says how. The card shows in
+    the Home Screen app.
+  - On the sign-up page and over the welcome cards (same as the install toast).
+  - ONE CARD AT A TIME: on Android in Chrome, the alerts card comes first and
+    the "Install the AFRIFF app" toast follows once it's closed or alerts are
+    on (two stacked cards would cover half a small phone). A card that's
+    showing is never swapped for the other.
+  - Not in `npm run dev` (alerts never work there): use a build.
+- TESTED (29 Oct, by Claude): 48 checks in a phone-sized test browser on a
+  production build, with the permission question, the push address and the
+  staff app's alerts routes faked and everything else outside blocked (so
+  no real phone list was touched): same card through Home → Programme →
+  Queues → My Festival, News, Profile, privacy page; none on sign-up, back
+  after; ✕ / Not now / swipe right, left, down; short drag springs back; drag
+  up does nothing; a swipe from Turn on doesn't turn on; reload brings it
+  back; Turn on → "Alerts are on" → goes by itself, Profile switch on, no
+  card after; off in Profile → never back; Block → message, not back;
+  question closed unanswered → can ask again; failure → message + "Try
+  again"; with Chrome's install offer: alerts first, then the install toast
+  (still swipes away); welcome cards first; iPhone Safari none, Home Screen
+  app shown. Typecheck. NOT TESTED: real phones and a real notification.
 
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on
