@@ -1,8 +1,9 @@
 # App Hosting backend `afriff-app`: the attendee app (https://afriff.app).
 #
-# Named apphosting.yaml, not apphosting.production.yaml: App Hosting only reads
-# apphosting.<name>.yaml when the backend's Environment name (Settings >
-# Environment) is <name>, and neither backend has one set.
+# Read only by backends whose Environment name (Settings > Environment) is
+# "production": `afriff-app` and `afriff-backoffice` (checked 29 Oct 2026).
+# The staging backends are "staging" and read apphosting.staging.yaml. There's
+# no shared apphosting.yaml, so each file holds everything its backend needs.
 #
 # Sizing: this app gets far more traffic than the staff app (every attendee,
 # from a QR code), but each request is cheap. It's an SPA (ssr: false) with no
@@ -11,7 +12,7 @@
 # instances, many requests each, and room to scale out.
 #
 # Quota: Cloud Run gives afriff-app 128 vCPU / 256 GiB in us-central1 (checked
-# 29 Oct 2026), shared with afriff-backoffice (apps/admin/apphosting.yaml).
+# 29 Oct 2026), shared with afriff-backoffice and the two staging backends (apps/admin/apphosting.production.yaml).
 # The caps (40 here, 8 there) sit well inside it. They cap the bill if a bot
 # hammers the site; the quota isn't the limit here.
 runConfig:
@@ -28,7 +29,7 @@ runConfig:
 
 # The Firebase web app's public settings (not secrets: firestore.rules protects
 # the data). packages/core/nuxt.config.ts defaults them to '', so without them
-# the app can't reach the database. Same values in apps/admin/apphosting.yaml.
+# the app can't reach the database. Same values in apps/admin/apphosting.production.yaml.
 # No `availability` given = available at build and at run time.
 env:
   - variable: NUXT_PUBLIC_FIREBASE_API_KEY
@@ -43,3 +44,7 @@ env:
     value: "396757035301"
   - variable: NUXT_PUBLIC_FIREBASE_APP_ID
     value: "1:396757035301:web:abf6a05cf9014ad3b412cc"
+  # Testing switches in the address (?now=, ?queues=sample…) stay OFF here.
+  # Only a test backend should ever set this to "true" (packages/core/nuxt.config.ts).
+  - variable: NUXT_PUBLIC_TEST_SWITCHES
+    value: "false"

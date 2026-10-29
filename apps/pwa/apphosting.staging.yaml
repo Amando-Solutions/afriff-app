@@ -1,0 +1,58 @@
+# App Hosting backend `staging-afriff-app`: the attendee app's STAGING copy
+# (https://staging-afriff-app--afriff-app.us-central1.hosted.app), for trying a
+# change on real phones before it goes to the live app.
+#
+# Read only by backends whose Environment name (Settings > Environment) is
+# "staging"; the live backend `afriff-app` is "production" and reads
+# apphosting.production.yaml. There's no shared apphosting.yaml, so each file
+# holds everything its backend needs.
+#
+# SAME FIREBASE PROJECT AS THE LIVE APP (afriff-app): same database, logins,
+# published festival data and push-notification list. Staging differs only in
+# its address, its size and the testing switches. Anything saved through
+# staging is real: a plan or a sign-up made here shows up in the live app.
+# For a separate sandbox, create another Firebase project and change the six
+# NUXT_PUBLIC_FIREBASE_* values here and in apps/admin/apphosting.staging.yaml.
+#
+# Sizing: only the team opens it, so small and nothing kept warm (no idle
+# bill; the first visit after a quiet spell waits a second or two). It shares
+# the project's Cloud Run quota with the live backends (see
+# apphosting.production.yaml), and these caps keep it out of their way.
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 80
+  maxInstances: 2
+  minInstances: 0
+
+# The Firebase web app's public settings (not secrets: firestore.rules protects
+# the data). Same values as apphosting.production.yaml.
+# No `availability` given = available at build and at run time.
+env:
+  - variable: NUXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCPxdNaQyK6r4OU97-zBZBKLqHsHunGzYo
+  - variable: NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: afriff-app.firebaseapp.com
+  - variable: NUXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: afriff-app
+  - variable: NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: afriff-app.firebasestorage.app
+  - variable: NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "396757035301"
+  - variable: NUXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:396757035301:web:abf6a05cf9014ad3b412cc"
+  # Testing switches in the address (?now=, ?queues=sample, ?welcome=1,
+  # ?share=1, ?install=ios) are ON here, OFF on the live app
+  # (packages/core/nuxt.config.ts, DEVELOPER.md "Testing switches").
+  - variable: NUXT_PUBLIC_TEST_SWITCHES
+    value: "true"
+  # The staging staff app: phones join the alerts list through its server.
+  - variable: NUXT_PUBLIC_ADMIN_URL
+    value: https://staging-afriff-backoffice--afriff-app.us-central1.hosted.app
+  # Optional, public (not secrets). Without the Web Push key the "Alerts on this
+  # phone" switch and the "Turn on alerts" card stay hidden. Uncomment and fill
+  # in to try alerts on staging (the same values the live app uses).
+  # - variable: NUXT_PUBLIC_FIREBASE_VAPID_KEY
+  #   value: <Firebase console > Project settings > Cloud Messaging > Web Push certificates>
+  # - variable: NUXT_PUBLIC_PRIVACY_EMAIL
+  #   value: <AFRIFF's privacy contact>
