@@ -4,12 +4,17 @@ import { ArrowUpRightIcon, CheckIcon, DownloadIcon, ListChecksIcon, Share2Icon }
 import { FILMS } from '@afriff/core/data/programme'
 import { dateParts, timeLabel } from '@afriff/core/utils/format'
 import { statusTag } from '~/lib/alerts'
-import { planItems, planWhere, type PlanItem } from '~/lib/plan'
+import { planItems, planStart, planWhere, useStartingSoon, type PlanItem } from '~/lib/plan'
+import { venueShort } from '~/lib/today'
+import { useLiveClock } from '~/lib/queues'
 import { useFestival } from '~/lib/store'
 import { account } from '~/lib/account'
 
-// MY FESTIVAL ("My Schedule"): your plan by day, Share my day, your watched
-// list with stars and the Letterboxd export. Kept on this phone, and in the
+// MY FESTIVAL ("My Schedule"): two tabs, "Upcoming" (opens first every
+// time: your saved screenings and events starting within the hour, each
+// counting down) and "Scheduled" (your plan by day, Share my day); below both,
+// your watched list with stars and the Letterboxd export. ?tab=scheduled opens
+// the second tab (the My plan sheet's link). Kept on this phone, and in the
 // person's account when they're signed in (lib/planSync.ts). Not signed in:
 // a "Keep your plan on any phone · Sign up" card at the bottom. The account
 // itself (emails switch, log out, delete) and the alerts / anonymous counts
@@ -23,6 +28,24 @@ const mine = computed(() => planItems(state.scheduled))
 const nFilms = computed(() => mine.value.filter((i) => i.kind === 'screening').length)
 const nEvents = computed(() => mine.value.length - nFilms.value)
 const changed = computed(() => mine.value.filter((i) => statusTag(i.status)))
+const upcoming = useStartingSoon(() => mine.value)
+
+// ---------- Tabs ----------
+const TABS = [
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'scheduled', label: 'Scheduled' },
+] as const
+type Tab = (typeof TABS)[number]['id']
+const route = useRoute()
+const router = useRouter()
+const tab = computed<Tab>(() => (route.query.tab === 'scheduled' ? 'scheduled' : 'upcoming'))
+const pickTab = (id: Tab) => router.replace({ query: { ...route.query, tab: id === 'upcoming' ? undefined : id } })
+
+// Nothing within the hour: say what's next in the plan
+const t = useLiveClock(60000)
+const nextLater = computed(() => mine.value.find((i) => i.status !== 'cancelled' && planStart(i) > t.value) ?? null)
+/** "Landmark · Screen 1", or the place for events away from the cinemas */
+const shortWhere = (i: PlanItem) => (i.venue ? [venueShort(i.venue), i.room].filter(Boolean).join(' · ') : i.venueName)
 const byDay = computed(() => mine.value.reduce<Record<string, PlanItem[]>>((acc, s) => {
   (acc[s.date] ||= []).push(s)
   return acc
@@ -70,6 +93,7 @@ function exportLetterboxd() {
     <PageTitle title="My Schedule" :icon="ListChecksIcon" />
     <p class="muted">{{ summary }}</p>
 
+    <!-- a change to something in the plan shows on both tabs -->
     <div v-if="changed.length" class="plan-changed" role="status">
       <strong>{{ changed.length }} of your plans changed</strong>
       <NuxtLink v-for="i in changed" :key="i.id" :to="i.href" class="plan-changed-row">
@@ -77,49 +101,93 @@ function exportLetterboxd() {
       </NuxtLink>
     </div>
 
-    <div class="stat-tiles">
-      <button type="button" class="stat-tile" @click="diary?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
-        <span class="stat-n">{{ state.watched.size }}</span>
-        <span class="stat-l">{{ state.watched.size === 1 ? 'film' : 'films' }} seen</span>
+    <div role="tablist" aria-label="Your festival" class="q-tabs">
+      <button
+        v-for="x in TABS"
+        :key="x.id"
+        type="button"
+        role="tab"
+        class="q-tab"
+        :class="{ on: tab === x.id }"
+        :aria-selected="tab === x.id"
+        @click="pickTab(x.id)"
+      >
+        {{ x.label }}
       </button>
-      <div class="stat-tile">
-        <span class="stat-n">{{ mine.length }}</span>
-        <span class="stat-l">in your plan</span>
-      </div>
-      <NuxtLink to="/queues" class="stat-tile">
-        <span class="stat-n">{{ state.queuesChecked.size }}</span>
-        <span class="stat-l">queues checked</span>
+    </div>
+
+    <!-- Upcoming: saved screenings / events starting within the hour, each counting down -->
+    <section v-if="tab === 'upcoming'" class="upcoming">
+      <NuxtLink v-for="item in upcoming" :key="item.id" :to="item.href" class="upcoming-card">
+        <span class="upcoming-text">
+          <span class="hero-eyebrow">Starts at {{ timeLabel(item.time) }}</span>
+          <span class="upcoming-title">{{ item.title }}</span>
+          <span class="upcoming-where">{{ shortWhere(item) }}</span>
+        </span>
+        <Countdown :to="planStart(item)" small :label="`${item.title} starts in`" />
       </NuxtLink>
-    </div>
-
-    <div v-if="mine.length === 0" class="empty-block">
-      <p class="muted">Nothing here yet. Tap + on any screening to add it.</p>
-      <NuxtLink class="underline-link" to="/programme">Browse the schedule</NuxtLink>
-    </div>
-
-    <section v-for="date in days" :key="date" class="my-day">
-      <div class="my-day-head">
-        <h2 class="my-day-title">{{ dateParts(date).day }} {{ dateParts(date).month }} {{ dateParts(date).date }}</h2>
-        <button type="button" class="btn-pill" @click="shareDay(date)">
-          <Share2Icon :size="18" /> Share my day
-        </button>
-      </div>
-      <div v-for="item in byDay[date]" :key="item.id" class="my-row">
-        <NuxtLink :to="item.href" class="my-row-link">
-          <FilmPoster v-if="item.kind === 'screening'" :film="item.film" class="poster-thumb" />
-          <EventThumb v-else :event="item.event" class="poster-thumb" />
-          <span class="my-row-body">
-            <span class="muted small">{{ timeLabel(item.time) }} – {{ timeLabel(item.end) }}{{ item.kind === 'event' ? ` · ${item.typeLabel}` : '' }}</span>
-            <span class="my-row-title" :class="{ struck: item.status === 'cancelled' }">{{ item.title }}</span>
-            <StatusTag :status="item.status" />
-            <span class="venue-line"><VenueDot v-if="item.venue" :venue-id="item.venue" /> {{ planWhere(item) }}</span>
-          </span>
-        </NuxtLink>
-        <button type="button" class="round-btn added big" :aria-label="`Remove ${item.title} from My Festival`" @click="toggleScheduled(item.id)">
-          <CheckIcon :size="22" :stroke-width="2.4" />
-        </button>
+      <div v-if="upcoming.length === 0" class="empty-block">
+        <template v-if="mine.length === 0">
+          <p class="muted">Nothing here yet. Tap + on any screening to add it.</p>
+          <NuxtLink class="underline-link" to="/programme">Browse the schedule</NuxtLink>
+        </template>
+        <template v-else>
+          <p class="muted">Nothing in your plan starts in the next hour. Each one shows here an hour before it starts, with a countdown.</p>
+          <NuxtLink v-if="nextLater" :to="nextLater.href" class="underline-link">
+            Next: {{ nextLater.title }}, {{ dateParts(nextLater.date).day }} {{ dateParts(nextLater.date).date }} {{ dateParts(nextLater.date).month }} · {{ timeLabel(nextLater.time) }}
+          </NuxtLink>
+          <button type="button" class="underline-link" @click="pickTab('scheduled')">See everything you've scheduled</button>
+        </template>
       </div>
     </section>
+
+    <!-- Scheduled: the plan by day -->
+    <template v-else>
+      <div class="stat-tiles">
+        <button type="button" class="stat-tile" @click="diary?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
+          <span class="stat-n">{{ state.watched.size }}</span>
+          <span class="stat-l">{{ state.watched.size === 1 ? 'film' : 'films' }} seen</span>
+        </button>
+        <div class="stat-tile">
+          <span class="stat-n">{{ mine.length }}</span>
+          <span class="stat-l">in your plan</span>
+        </div>
+        <NuxtLink to="/queues" class="stat-tile">
+          <span class="stat-n">{{ state.queuesChecked.size }}</span>
+          <span class="stat-l">queues checked</span>
+        </NuxtLink>
+      </div>
+
+      <div v-if="mine.length === 0" class="empty-block">
+        <p class="muted">Nothing here yet. Tap + on any screening to add it.</p>
+        <NuxtLink class="underline-link" to="/programme">Browse the schedule</NuxtLink>
+      </div>
+
+      <section v-for="date in days" :key="date" class="my-day">
+        <div class="my-day-head">
+          <h2 class="my-day-title">{{ dateParts(date).day }} {{ dateParts(date).month }} {{ dateParts(date).date }}</h2>
+          <button type="button" class="btn-pill" @click="shareDay(date)">
+            <Share2Icon :size="18" /> Share my day
+          </button>
+        </div>
+        <div v-for="item in byDay[date]" :key="item.id" class="my-row">
+          <NuxtLink :to="item.href" class="my-row-link">
+            <FilmPoster v-if="item.kind === 'screening'" :film="item.film" class="poster-thumb" />
+            <EventThumb v-else :event="item.event" class="poster-thumb" />
+            <span class="my-row-body">
+              <span class="muted small">{{ timeLabel(item.time) }} – {{ timeLabel(item.end) }}{{ item.kind === 'event' ? ` · ${item.typeLabel}` : '' }}</span>
+              <span class="my-row-title" :class="{ struck: item.status === 'cancelled' }">{{ item.title }}</span>
+              <StatusTag :status="item.status" />
+              <span class="venue-line"><VenueDot v-if="item.venue" :venue-id="item.venue" /> {{ planWhere(item) }}</span>
+            </span>
+          </NuxtLink>
+          <button type="button" class="round-btn added big" :aria-label="`Remove ${item.title} from My Festival`" @click="toggleScheduled(item.id)">
+            <CheckIcon :size="22" :stroke-width="2.4" />
+          </button>
+        </div>
+      </section>
+
+    </template>
 
     <!-- Watched -->
     <section ref="diary" class="section">

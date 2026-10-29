@@ -1,97 +1,173 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
-import { UsersIcon } from 'lucide-vue-next'
-import { VENUES, filmById, venueById } from '@afriff/core/data/programme'
-import { queueLabel, timeLabel } from '@afriff/core/utils/format'
-import { isSampleQueues, minutesAgo, openQueues, queueFeed, recentUpdates, useLiveClock, type OpenQueue } from '~/lib/queues'
-import type { Tone } from '@afriff/core/types/festival'
+import { computed, ref, watch } from 'vue'
+import { InfoIcon } from 'lucide-vue-next'
+import { FESTIVAL, filmById, venueById } from '@afriff/core/data/programme'
+import { dayLabel, queueBar, queueLabel, screeningStart, time12, timeLabel } from '@afriff/core/utils/format'
+import { lagosDate } from '@afriff/core/utils/now'
+import type { Screening } from '@afriff/core/types/festival'
+import {
+  QUEUE_OPENS_MINUTES, countedAgo, isSampleQueues, lineOpensAt, lineOpensBefore, nextScreening, queueFeed,
+  startingSoon, startsIn, useLiveClock, type QueueRow,
+} from '~/lib/queues'
+import { openProgrammeDay } from '~/lib/programmeMemory'
 import { useFestival } from '~/lib/store'
 
-// QUEUES: lines being counted right now by door volunteers, a pin per venue,
-// and the latest counts. Updates by itself.
+// QUEUES: screenings starting soon with their live line count and chance of a
+// seat (your own plan is on My Festival, in the bottom bar). When nothing
+// starts soon: no lines open, the next line to open, and how counting works.
+// Updates by itself.
 useHead({ title: 'Queues' })
 const t = useLiveClock()
 const online = useOnline()
-// film title and label worked out once per row
-const withInfo = (x: OpenQueue) => ({ ...x, title: filmById(x.screening.film)?.title ?? '', venueName: venueById(x.screening.venue)?.name ?? '', label: queueLabel(x.queue) ?? { text: '', tone: 'muted' as Tone } })
-const open = computed(() => openQueues(t.value).map(withInfo))
-const updates = computed(() => recentUpdates(t.value).map(withInfo))
+const { isScheduled, toggleScheduled, markQueuesChecked } = useFestival()
 
-const { markQueuesChecked } = useFestival()
-watch(() => open.value.map((x) => x.screening.id).join(','), (ids) => { if (ids) markQueuesChecked(ids.split(',')) }, { immediate: true })
+const howOpen = ref(false)
 
-// One pin per venue, coloured by the soonest open queue there
-const pins = computed(() => VENUES.map((v) => {
-  const here = open.value.filter((x) => x.screening.venue === v.id)
-  const label = here[0] ? queueLabel(here[0].queue) : null
-  return { v, label, n: here.length }
-}))
+const shortVenue = (s: Screening) => (venueById(s.venue)?.name ?? '').replace('Filmhouse ', '')
+const withInfo = ({ screening: s, queue }: QueueRow) => ({
+  s,
+  queue,
+  title: filmById(s.film)?.title ?? '',
+  at: time12(s.time),
+  startsIn: startsIn(t.value, s),
+  label: queueLabel(queue),
+  bar: queue ? queueBar(queue, s.capacity) : null,
+  note: screeningStart(s).getTime() - QUEUE_OPENS_MINUTES * 60000 > t.value
+    ? `Line opens at ${timeLabel(lineOpensAt(s))}. We will show the count then.`
+    : 'We will show the count as soon as the door team starts counting.',
+})
+
+const soon = computed(() => startingSoon(t.value))
+const rows = computed(() => soon.value.map(withInfo))
+const linesOpen = computed(() => soon.value.length > 0)
+
+const counted = computed(() => soon.value.filter((r) => r.queue).map((r) => r.screening.id).join(','))
+watch(counted, (ids) => { if (ids) markQueuesChecked(ids.split(',')) }, { immediate: true })
+
+// "Next line to open" when nothing starts soon (gone after the festival)
+const next = computed(() => {
+  const s = nextScreening(t.value)
+  if (!s) return null
+  const day = s.date === lagosDate(new Date(t.value)) ? 'Today' : dayLabel(s.date)
+  return { s, title: filmById(s.film)?.title ?? '', opens: time12(lineOpensAt(s)), day }
+})
+
+const today = computed(() => lagosDate(new Date(t.value)))
+const festivalOn = computed(() => FESTIVAL.days.includes(today.value))
+const seeProgramme = () => { if (festivalOn.value) openProgrammeDay(today.value) }
+
+const feed = computed(() => {
+  if (isSampleQueues()) return { live: true, text: 'Sample counts for testing' }
+  if (!online.value) return { live: false, text: 'Offline · the last counts this phone received' }
+  if (queueFeed.live) return { live: true, text: 'Live · counted at the door by the AFRIFF team' }
+  return { live: false, text: 'Counted at the door by the AFRIFF team' }
+})
 </script>
 
 <template>
-  <div class="page">
-    <PageTitle title="Queues" :icon="UsersIcon" />
-    <p class="muted">See how long each line is before you head over. Counts are posted by AFRIFF door volunteers.</p>
+  <div class="page q-page">
+    <header class="q-head">
+      <h1 class="q-title">Queues</h1>
+      <p class="q-intro">Check how long the line is before you head to a screening, and how likely you are to get a seat.</p>
+      <span v-if="linesOpen" class="q-feed"><i class="q-feed-dot" :class="{ live: feed.live }" />{{ feed.text }}</span>
+    </header>
 
-    <section class="section">
-      <span v-if="isSampleQueues() || (online && queueFeed.live)" class="live-tag"><span class="pulse" aria-hidden="true" /> LIVE</span>
-      <span v-else class="label tone-muted">LAST COUNTS</span>
-      <h2 class="live-title">Queues open now</h2>
-      <p class="muted small">Screenings where door volunteers are counting the line</p>
-
-      <p v-if="open.length === 0" class="empty">No queues being counted right now. Volunteers start counting when each queue opens.</p>
-      <template v-else>
-        <!-- One pin per venue, coloured by the soonest open queue there (map-lite) -->
-        <div class="venue-pins">
-          <div class="venue-pins-row">
-            <div v-for="pin in pins" :key="pin.v.id" class="venue-pin" :class="pin.label ? `tone-bg-${pin.label.tone}` : ''">
-              <span class="venue-pin-name"><VenueDot :venue-id="pin.v.id" /> {{ pin.v.name.replace('Filmhouse ', '') }}</span>
-              <span class="venue-pin-state">{{ pin.label ? `${pin.label.text} · ${pin.n} line${pin.n > 1 ? 's' : ''}` : 'No lines' }}</span>
-            </div>
-          </div>
-          <div class="legend">
-            <span><i class="tone-bg-good" /> Good chance</span>
-            <span><i class="tone-bg-gold" /> Tight</span>
-            <span><i class="tone-bg-alert" /> Unlikely / Full</span>
-          </div>
-        </div>
-        <div class="stack" style="margin-top: 14px">
-          <NuxtLink v-for="{ screening: s, queue, title, label } in open" :key="s.id" :to="`/film/${s.film}`" class="queue-row">
-            <div class="queue-row-top">
-              <span class="row-title">{{ title }}</span>
-              <span class="label" :class="`tone-${label.tone}`">{{ label.text }}</span>
-            </div>
-            <span class="muted small">{{ timeLabel(s.time) }} · <VenueLine :venue-id="s.venue" :screen="s.screen" />{{ s.tag === 'Industry' ? ' · Industry' : '' }}</span>
-            <div class="queue-stats">
-              <span><strong>{{ queue.inLine }}</strong> in line</span>
-              <span><strong>{{ queue.seatsLeft }}</strong> seats left</span>
-              <span class="queue-updated">{{ minutesAgo(t, queue.updatedAt) }}</span>
-            </div>
-          </NuxtLink>
-        </div>
-      </template>
-    </section>
-
-    <section class="section">
-      <span v-if="isSampleQueues() || (online && queueFeed.live)" class="live-tag"><span class="pulse" aria-hidden="true" /> LIVE</span>
-      <h2 class="live-title">Recent updates</h2>
-      <p class="muted small">Latest counts first</p>
-      <p v-if="updates.length === 0" class="empty">No counts posted yet.</p>
-      <div v-else class="updates">
-        <div v-for="{ screening: s, queue, title, venueName, label } in updates" :key="`${s.id}-${queue.updatedAt}`" class="update-row">
-          <span class="update-when">{{ minutesAgo(t, queue.updatedAt) }}</span>
-          <span class="update-body">
-            <span class="update-title">{{ title }}</span>
-            <span class="muted small">{{ venueName }} · {{ queue.inLine }} in line · {{ queue.seatsLeft }} seats left</span>
-          </span>
-          <span class="update-label" :class="`tone-${label.tone}`">{{ label.text }}</span>
-        </div>
+    <template v-if="linesOpen">
+      <div class="q-legend" aria-label="What the colours mean">
+        <span><i class="q-dot tone-bg-good" />Good chance of a seat</span>
+        <span><i class="q-dot tone-bg-warn" />Filling up</span>
+        <span><i class="q-dot tone-bg-alert" />Likely full</span>
       </div>
-    </section>
 
-    <p v-if="!online && !isSampleQueues()" class="footnote">
-      You’re offline. These are the last counts this phone received; they’ll update by themselves when you’re back online.
-    </p>
-    <p class="footnote">{{ isSampleQueues() ? 'Sample counts for testing.' : queueFeed.live ? 'Counts update live as volunteers count.' : 'Counts update live as volunteers count, during screening hours.' }} Times are samples until the festival schedule is published.</p>
+      <div class="q-rows">
+        <NuxtLink v-for="r in rows" :key="r.s.id" :to="`/film/${r.s.film}`" class="q-row">
+          <span class="q-when">
+            <span class="q-time">{{ r.at.time }}</span>
+            <span class="q-ampm">{{ r.at.ampm }}</span>
+            <span class="q-in">{{ r.startsIn }}</span>
+          </span>
+          <span class="q-body">
+            <span class="q-film">{{ r.title }}</span>
+            <span class="q-venue">
+              <VenueDot :venue-id="r.s.venue" /> {{ shortVenue(r.s) }}{{ r.s.screen ? ` · ${r.s.screen}` : '' }}{{ r.s.tag === 'Industry' ? ' · Industry' : '' }}
+              <StatusTag :status="r.s.status" />
+            </span>
+            <template v-if="r.queue && r.label && r.bar">
+              <span class="q-status" :class="`tone-${r.label.tone}`"><i class="q-dot" :class="`tone-bg-${r.label.tone}`" />{{ r.label.text }}{{ r.label.detail ? ` · ${r.label.detail}` : '' }}</span>
+              <!-- seats taken (solid), then the line that would still fit (faded) -->
+              <span class="q-bar" aria-hidden="true">
+                <span :class="`tone-bg-${r.label.tone}`" :style="{ width: `${r.bar.taken}%` }" />
+                <span class="q-bar-line" :class="`tone-bg-${r.label.tone}`" :style="{ width: `${r.bar.line}%` }" />
+              </span>
+              <span class="q-counts">
+                <span><strong>{{ r.queue.inLine }}</strong> in line · {{ r.queue.seatsLeft }} of {{ r.bar.total }} seat{{ r.bar.total === 1 ? '' : 's' }} left</span>
+                <span>Counted {{ countedAgo(t, r.queue.updatedAt) }}</span>
+              </span>
+            </template>
+            <template v-else>
+              <span class="q-status tone-muted"><i class="q-dot tone-bg-muted" />Line not open yet</span>
+              <span class="q-note">{{ r.note }}</span>
+            </template>
+          </span>
+        </NuxtLink>
+      </div>
+
+      <button type="button" class="q-how-link" @click="howOpen = true">
+        <InfoIcon :size="18" :stroke-width="2" /> How are lines counted?
+      </button>
+      <BottomSheet v-model:open="howOpen" title="How lines are counted">
+        <QueueHowItWorks />
+      </BottomSheet>
+    </template>
+
+    <template v-else>
+      <section class="q-none">
+        <svg class="q-none-icon" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="5" cy="7" r="2" /><circle cx="12" cy="7" r="2" /><circle cx="19" cy="7" r="2" />
+          <path d="M2 18v-2a3 3 0 0 1 6 0v2M9 18v-2a3 3 0 0 1 6 0v2M16 18v-2a3 3 0 0 1 6 0v2" />
+        </svg>
+        <h2 class="q-none-title">No lines are open right now</h2>
+        <p class="q-intro">
+          Each line opens about <strong>{{ lineOpensBefore }}</strong> before its screening. Once it does, the door
+          team starts counting and you'll see the numbers here.
+        </p>
+      </section>
+
+      <section v-if="next" class="q-next">
+        <span class="q-eyebrow">NEXT LINE TO OPEN</span>
+        <div class="q-next-row">
+          <NuxtLink :to="`/film/${next.s.film}`" class="q-next-link">
+            <span class="q-when">
+              <span class="q-time">{{ next.opens.time }}</span>
+              <span class="q-ampm">{{ next.opens.ampm }}</span>
+              <span class="q-in">{{ next.day }}</span>
+            </span>
+            <span class="q-body">
+              <span class="q-film">{{ next.title }}</span>
+              <span class="q-venue"><VenueDot :venue-id="next.s.venue" /> {{ shortVenue(next.s) }} · film starts {{ timeLabel(next.s.time) }}</span>
+            </span>
+          </NuxtLink>
+          <button
+            type="button"
+            class="q-save"
+            :class="{ on: isScheduled(next.s.id) }"
+            :aria-pressed="isScheduled(next.s.id)"
+            :aria-label="isScheduled(next.s.id) ? `Remove ${next.title} from My Festival` : `Add ${next.title} to My Festival`"
+            @click="toggleScheduled(next.s.id)"
+          >
+            {{ isScheduled(next.s.id) ? '✓ Scheduled' : '+ Schedule' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="q-how-section">
+        <h2 class="q-h2">How it works</h2>
+        <QueueHowItWorks />
+      </section>
+
+      <NuxtLink to="/programme" class="btn btn-gold q-cta" @click="seeProgramme">
+        {{ festivalOn ? "See today's programme" : 'See the programme' }}
+      </NuxtLink>
+    </template>
   </div>
 </template>

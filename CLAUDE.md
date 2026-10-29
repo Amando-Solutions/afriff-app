@@ -70,10 +70,17 @@ tell me which).
 Rule: the bottom bar already reaches Programme, Queues and My Festival,
 so Home doesn't repeat them, and shortcuts carry no subtext.
 - News banner at the top when there's an urgent update.
+  CHANGED 29 Oct (user request): it's under the header on EVERY page, not
+  just Home, and stays there while scrolling. See "Home redesign + alert bar".
 - Hero: small gold eyebrow "1–7 Nov 2026 · Lagos", headline "Seven days
   of African stories on the big screen", "Opening night in" + compact
   d / h / m countdown (no seconds), ONE gold button "Explore the
   programme". (From 1 Nov this spot becomes the daily highlight, next.)
+  CHANGED 29 Oct (user request, designer's screens, in the app's own look):
+  eyebrow "1–7 November 2026" (no "Lagos": the festival is only in Lagos),
+  key art in the hero card, an "Opening night film" card, d / h / m / s
+  countdown (seconds now shown), button "See the programme". See "Home
+  redesign + alert bar".
 - 4 one-word icon shortcuts to things NOT in the bottom bar: Venues,
   How to attend (opens the sheet), Events, Jury.
 - "Opening day" light rows: poster, title, time · venue (no
@@ -159,12 +166,18 @@ user decision). Home's top banner depends on the Lagos date:
   seat. Get your tickets on afriff.com." (links to afriff.com/tickets).
   NOT committed yet.
 - "Queue": live count and label (Good chance / Tight / Unlikely /
-  Full); "No queues left for this film" once all showings are done.
+  Full; CHANGED 29 Oct: Good chance of a seat / Filling up / Likely full /
+  Full, see "Queues redesign"); "No queues left for this film" once all
+  showings are done.
 - "Directed by": initials tile (or photo) and director name, then
   Country and Language in small labelled lines.
 
 ## My Festival (copy FilmFest "My Schedule" layout)
 - Big title "MY SCHEDULE" with an icon, "N screenings over N days".
+  ADDED 29 Oct (user request): two tabs under it, "Upcoming" (opens first,
+  every time: your saved screenings / events starting within the hour, each
+  counting down; moved from Home's "Next up") and "Scheduled" (the plan by
+  day below). See "Upcoming countdowns on My Festival".
 - Films grouped by day; each day heading has a "Share my day" button on
   the right (opens WhatsApp with that day's plan as text).
 - Rows: poster thumbnail, time range (start to end), film title, venue
@@ -328,6 +341,10 @@ Read this first; the dated sections below are the detailed history.
   Queue "Good chance" green #5FD39A (new colour).
 - Queue labels: Full when 0 seats; else people-in-line ÷ seats-left
   under 0.7 = Good chance, under 1.2 = Tight, otherwise Unlikely.
+  CHANGED 29 Oct (Queues redesign): under 0.6 = "Good chance of a seat"
+  (green), under 1 = "Filling up · N seats left" (amber #F2A65A), otherwise
+  "Likely full · N more people than seats" (coral); 0 seats = "Full".
+  Same labels everywhere (Queues, film page, schedule rows, door view).
 - DATA FROM AFRIFF.COM (18 Oct 2026), in `src/data/programme.js`: all
   68 official-selection films (title, director, country, language,
   genre, runtime, year, programme section, poster), the 3 real venues,
@@ -1966,6 +1983,18 @@ heavy libraries) apply everywhere.
   link and the test invitation.
 - Backups (outside the project, they hold attendee emails):
   /Users/mac/Documents/afriff-backups/before-revert-2026-10-28.json.
+- AGAIN 29 Oct (~8 PM Lagos, after Michael's second round of tests): the
+  festival data in the database was identical to the 29 Oct 09:25 UTC
+  publish (official schedule + Storage posters + jury), and that publish
+  matches the schedule sheet (124 screenings, seats unchanged, no statuses)
+  and the pre-schedule backup apart from the schedule load's own changes. Only
+  test door counts were left: the Demo door volunteer's 4 counts on Thu 5 Nov
+  at Landmark and an old one on sample screening s11 (2 Nov). Both deleted;
+  no queue counts remain. Nothing published (not needed). afriff.com: film
+  list unchanged since 28 Oct; its schedule page no longer says times are
+  coming but still lists none. Left alone: test accounts, the test festival
+  email ("Urgent announcement", 28 Oct, sent to 4), the test invitation.
+  Backup: /Users/mac/Documents/afriff-backups/before-revert-2026-10-29.json.
 
 ### Invitation pushes for scheduled sends + alerts on the VIP page (28 Oct 2026, user request)
 - STATUS: built and tested, NOT committed, NOT deployed. No rules change, no
@@ -2040,6 +2069,14 @@ heavy libraries) apply everywhere.
   --add-missing (checked 29 Oct: 124 official screenings and 30 "Also
   screening" films in the database, no samples left) but NOT PUBLISHED yet
   (last Publish to app 28 Oct 11:42 UTC), so phones still show samples.
+  (Published since: 29 Oct 09:25 UTC.)
+  REMOVED AND PUT BACK, 29 Oct evening (Michael): the 30 "Also screening"
+  films (not on afriff.com; title-only, made by --add-missing from 37 sheet
+  rows) and their 30 screenings were deleted (~19:27 UTC), then restored
+  from the backup unchanged once it was clear they're in AFRIFF's sheet.
+  Never published in between. Database = 134 films, 124 screenings again;
+  the loader's dry run says all 124 "already loaded and unchanged". Backup:
+  /Users/mac/Documents/afriff-backups/before-remove-also-screening-2026-10-29T19-27-18.json.
   `scripts/schedule/` (load-schedule.mjs, plan.mjs, the sheet as JSON).
   Dry run: `node scripts/schedule/load-schedule.mjs` (changes nothing). Load:
   add `--write` (backup first; with `--add-missing` it also makes title-only
@@ -2176,6 +2213,14 @@ heavy libraries) apply everywhere.
   Festival), so films are all that need one. 42 films on the schedule still
   have NO poster (the 30 "Also screening" films + 12 more): the dry run lists
   them. Add pictures named <film id>.jpg to the folder and run again.
+  RE-CHECKED 29 Oct evening (Michael's request): afriff.com still has the
+  same 86 posters (all already in Storage and published 09:25 UTC). Its
+  whole site code (95 files, 181 pictures) has NO picture for the 48 films
+  without one, and the 30 "Also screening" films aren't on afriff.com at
+  all. These need picture files from AFRIFF.
+  The 30 were briefly deleted, then put back (see "Official screening
+  schedule loader" → REMOVED AND PUT BACK). Of the 48 without a poster, 18
+  are on afriff.com with no poster there; 30 aren't on afriff.com at all.
 - CONSOLE: every picture field (film poster, event graphic, sponsor logo,
   jury photo) has a preview and "Upload a picture"; the picture is made
   smaller on the device first (same size as the script). Admins and editors
@@ -2279,6 +2324,172 @@ heavy libraries) apply everywhere.
   again"; with Chrome's install offer: alerts first, then the install toast
   (still swipes away); welcome cards first; iPhone Safari none, Home Screen
   app shown. Typecheck. NOT TESTED: real phones and a real notification.
+
+### Queues redesign (29 Oct 2026, user request)
+- STATUS: built and tested, NOT committed, NOT deployed. No rules change, no
+  new settings, no cost.
+- FROM THE DESIGNER'S SCREENS in `afriff-screens-html/` ("Queues · live" and
+  "Queues · no lines open"; local design files, not part of the app).
+  Replaces the old page (map-lite venue pins and "Recent updates" are gone).
+- WHEN SOMETHING STARTS IN THE NEXT 3 HOURS (or is already being counted):
+  "Live · counted at the door by the AFRIFF team" (green dot; grey and
+  "Offline · the last counts this phone received" with no signal), two tabs
+  "Starting soon" / "My Festival", a colour key, and one row per screening:
+  time, "in 25 min", film, venue · screen, the chance of a seat with its
+  number ("Filling up · 14 seats left"), a coloured bar, "40 in line · 120
+  seats", "Counted 3 min ago". Not counted yet: "Line not open yet · Line
+  opens at 2:20 PM. We will show the count then." "My Festival" = your saved
+  screenings still to come today. "How are lines counted?" opens a sheet.
+- CHANGED 29 Oct, later (user request, from a screenshot: "the progress bar
+  doesn't move when the volunteer counts and the seats reduce", "Counted
+  10067 min ago" is wrong, no need for the My Festival tab):
+  - NO TABS: the "My Festival" tab is gone (the bottom bar's My Festival has
+    the person's plan); the page lists every screening starting soon.
+  - THE BAR now shows the whole room: out of the seats there were at the door
+    when counting started (the door view's "Seats available at the door",
+    saved as `seatsStart`; phones didn't read it before), the seats already
+    taken (solid colour) then the people in line who would still fit (same
+    colour, faded). It moves with every count: a walk-in let in grows the
+    solid part, "Joined the queue" grows the faded part, "Let in" from the
+    line turns faded into solid. Before, it was line ÷ seats left, so with 0
+    in line it stayed empty however many seats went. Counts line: "40 in
+    line · 82 of 120 seats left". No `seatsStart` (older records): the
+    screening's capacity from the console. `queueBar()` in
+    `packages/core/src/utils/format.ts` (replaces `queueFill`).
+  - "COUNTED … AGO": was compared with the app's clock, so with the test
+    clock (?now=) a week ahead a count made a minute earlier said "10067 min
+    ago". It now uses the phone's real clock (a door count carries the real
+    time it was saved); pretend counts (?queues=sample) still follow the test
+    clock. Also "1 hr ago" / "2 days ago" instead of thousands of minutes, and
+    "just now" if the phone's clock is a little behind. `countedAgo()` in
+    `apps/pwa/app/lib/queues.ts`.
+  - TESTED (29 Oct, by Claude): both apps typecheck; in a phone-sized browser
+    on the dev app with the test clock 7 days ahead: a count 3 min old says "3
+    min ago" (20 s = just now, 75 min = 1 hr ago, a little in the future =
+    just now); the bar for start counting (0%), 38 walk-ins (32%, old bar
+    0%), 30 join, 10 let in from the line, a long line (100%), full (100%), no
+    seatsStart (capacity used); the page with pretend counts: no tabs, "N of M
+    seats left", two-part bar, no errors (13 checks). NOT TESTED: real door
+    counts on a real phone (needs a volunteer login).
+- WHEN NOTHING STARTS SOON: "No lines are open right now", "Next line to
+  open" (when its line opens, the day, film, venue, film start, and
+  "+ Schedule" / "✓ Scheduled"), "How it works" (3 steps + colour key), gold
+  "See today's programme" ("See the programme" outside festival days).
+- CLAUDE'S CHOICES (easy to change):
+  - A line opens about 2 HOURS before its screening (the design's
+    "[45 minutes]" was a placeholder; 2 hours is what the film page, the
+    door view and the sample feed already use). One setting:
+    `QUEUE_OPENS_MINUTES` in `apps/pwa/app/lib/queues.ts`. CONFIRM with
+    AFRIFF when door volunteers will really start counting.
+  - The design's "Remind me" button is "+ Schedule" (adds the screening to
+    My Festival, so it shows under the My Festival tab). A real "tell me when
+    the line opens" push would need a Cloud Function watching the door counts
+    (Blaze is on); not built.
+  - Times use the app's own font (Manrope), not the design's Anton, so they
+    match the Programme rows.
+  - New label wording and thresholds (see "Queue labels" above).
+- Files: `apps/pwa/app/pages/queues.vue`,
+  `components/festival/QueueHowItWorks.vue`, `lib/queues.ts`
+  (`startingSoon`, `laterToday`, `nextScreening`, `lineOpensAt`), labels in
+  `packages/core/src/utils/format.ts` (`queueLabel`, `queueFill`), styles
+  `.q-*` in `assets/css/classic.css`.
+- TESTED (29 Oct, by Claude): typecheck both apps; phone-sized browser on the
+  dev app with the real published schedule: sample counts on a festival day
+  (Full / Likely full / not open yet, bar, "in 20 min", My Festival tab
+  empty, the sheet), festival-day morning (next line today, "See today's
+  programme"), before the festival (next line Sun 1 Nov, "See the
+  programme"), within 3 hours with nobody counting, after the festival (no
+  next line); no errors. NOT TESTED: real door counts, real phones.
+
+### Home redesign + alert bar (29 Oct 2026, user request)
+- STATUS: built and tested, NOT committed, NOT deployed. No rules change, no
+  new settings, no cost.
+- LAYOUT FROM THE DESIGNER'S SCREENS in `afriff-screens-html/` ("Home · before
+  the festival" and "Home · festival day"), LOOK FROM THE APP (USER DECISION
+  29 Oct: "use the current existing theme, style and font"): Manrope, the
+  colours in classic.css, the existing hero card, gold pill button, poster
+  strip, count chips, shortcut tiles and alert banner style. No new fonts,
+  colours or theme (the design's Anton / Oswald and its striped background
+  were tried and taken out again). Only the hero changed; "Opening day" /
+  "Today", "Masterclasses & events" and sponsors below it are as before.
+- BEFORE 1 NOV: the hero card has the key art (the film-strip head, taken
+  from the design file, now `apps/pwa/app/assets/images/home-keyart.jpg`,
+  73 KB) top-right, faded into the card; "1–7 NOVEMBER 2026" (no "Lagos");
+  "Seven days of African stories on the big screen" ("African stories" in
+  gold); "Opening night film" (the Opening Movie's 1 Nov screening: poster,
+  title, day · time, venue, director, "About the film →" to its page);
+  "Opening night starts in" with days / hours / mins / secs (seconds in light
+  gold; `components/festival/HeroCountdown.vue`); "See the programme".
+  NOTE: the countdown goes to FESTIVAL.openingNight (7:00 PM) but Lady's
+  screening is 8:30 PM in the real schedule. Fine if 7 PM is the gala; else
+  change `openingNight` in `packages/core/src/data/programme.ts`.
+- 1–7 NOV (`DailyHighlight.vue`): "TUESDAY 3 NOVEMBER" (no "Lagos"), "Day 3
+  of 7" with a bar per day (past days dim gold, today light gold), "Today's
+  highlights" + "See all" over the same filmstrip as before (whole posters,
+  never cropped), "Next up · 1:30 PM" with the film, venue and a h / m / s
+  countdown (moves on to the next item by itself; REMOVED 29 Oct, now
+  "Upcoming" on My Festival), the count chips, "See today's programme".
+  (The "That's a wrap for today…" / closing lines went with Next up.)
+  The "See all N films" end tile is gone ("See all" is in the
+  heading now). Headline "Daily highlights" → "Today's highlights" (design).
+- AFTER 7 NOV: thank-you hero unchanged.
+- ALERT BAR ON EVERY PAGE (user request: "fixed through the screens"):
+  `components/app/AlertBanner.vue`, under the header in `layouts/default.vue`
+  (same look as the old Home banner, cut to two lines); header and alert
+  stay at the top together while scrolling. Tap → the screening / event, else
+  News. Not on News itself (the alert is the top item there), nor on the
+  sign-up, privacy and VIP pages (they have no header). ✕ hides that alert on
+  this phone for good (CLAUDE'S CHOICE; a newer alert still shows). The film
+  page's "N screenings" jump stops below it.
+- TESTED (29 Oct, by Claude): typecheck; phone-sized browser on the dev app
+  with the real published schedule and a pretend urgent alert, at 440, 390
+  and 360 px: before (key art, no "Lagos", Lady card, seconds ticking,
+  Manrope), festival day, end of day, last night, after; alert on Home,
+  Programme, Queues and My Festival, stays put while scrolling, links to the
+  screening, hidden on News, ✕ hides it everywhere and is remembered, a newer
+  alert shows; "Next up" moves on at zero; no errors (25 checks). Production
+  build passed with the first version (before the fonts were taken out).
+  NOT TESTED: real phones.
+
+### Upcoming countdowns on My Festival (29 Oct 2026, user request)
+- STATUS: built and tested, NOT committed, NOT deployed. No rules change, no
+  new settings, no cost.
+- HOME: the "Next up" box with its countdown is gone from the festival-day
+  hero (the "That's a wrap for today…" / closing lines that took its place
+  late at night went with it). The opening-night countdown before 1 Nov stays.
+- MY FESTIVAL (`pages/my.vue`), CHANGED the same day (user request): two
+  tabs under "N screenings over N days", "Upcoming" and "Scheduled" (the
+  Queues page's tab style). Upcoming opens first every time the page opens
+  (also from the bottom bar); `/my?tab=scheduled` opens Scheduled (the My plan
+  sheet's "See your whole festival" link uses it). Scheduled = the number
+  tiles and the plan by day with Share my day, as before. "N of your plans
+  changed" stays above the tabs (seen on both); Watched stays below both.
+  UPCOMING TAB: each saved screening or event that starts within the next
+  hour, soonest first, as a card (Starts at 7:15 PM, title, "Landmark
+  · Screen 1", hrs / mins / secs countdown, tap → its page; the same card and
+  countdown Home had). A card appears exactly an hour before and goes when it
+  starts. Cancelled ones are left out. Nothing within the hour: "Nothing in
+  your plan starts in the next hour…", "Next: <title>, <day> · <time>" (a
+  link) and "See everything you've scheduled" (switches tab). Empty plan:
+  "Nothing here yet. Tap + on any screening to add it." + Browse the schedule.
+- MY PLAN SHEET (Programme → My plan): rows starting within the hour get a
+  small gold "Starts in 42:10" under the venue.
+- The hour is ONE setting, `STARTING_SOON_MINUTES` in `apps/pwa/app/lib/plan.ts`
+  (with `useStartingSoon()`, which both screens use). The countdown is
+  `components/festival/Countdown.vue` (was HeroCountdown.vue; also does the
+  opening-night one and the one-line version).
+- TESTED (29 Oct, by Claude): typecheck; phone-sized browser on the dev app
+  with the real published schedule, a saved plan and the test clock: Home has
+  no Next up; at 12:20 on 3 Nov the two 1:00 PM screenings show, the 3:40 PM
+  one doesn't; Upcoming above the plan by day; counts down; links to the
+  film; joins at 59:59, still there at 0:07, gone at the start; nothing before
+  the festival; My plan shows "Starts in" only on the two rows and it ticks;
+  no errors (15 checks). Tabs (13 checks): opens on Upcoming, Scheduled has
+  the tiles and days, ?tab=scheduled in the address, back via the bottom bar
+  = Upcoming again, the empty messages and "Next:", the switch-tab button, My
+  plan's link opens Scheduled. NOT TESTED: real phones.
+- To try: save a screening, then open `/my?now=<its date>T<an hour or less
+  before it>` (e.g. `/my?now=2026-11-03T12:20` for a 1:00 PM screening).
 
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on

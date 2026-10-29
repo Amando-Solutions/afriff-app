@@ -21,6 +21,7 @@
   --nav-pill: #26232E;      /* active nav pill */
   --alert: #F37B6B;         /* alerts, "Full" */
   --good: #5FD39A;          /* queue: good chance */
+  --warn: #F2A65A;          /* queue: filling up */
 
   /* Home hero card */
   --hero-top: #0A1042;
@@ -70,9 +71,9 @@
 .stack { display: flex; flex-direction: column; gap: 12px; }
 .dot { display: inline-block; border-radius: 50%; flex: none; }
 
-/* ---------- Header ---------- */
+/* ---------- Header (+ urgent alert under it, sticky together) ---------- */
+.app-top { position: sticky; top: var(--offline-bar, 0px); z-index: 20; transition: top .22s ease; }
 .header {
-  position: sticky; top: var(--offline-bar, 0px); z-index: 20; transition: top .22s ease;
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
   background: var(--bg);
@@ -155,8 +156,13 @@
 .news-banner-icon { color: var(--alert); flex: none; margin-top: 1px; }
 .news-banner-text { flex: 1; }
 .news-banner .icon-btn { width: 28px; height: 28px; }
+/* under the header on every page (AlertBanner.vue): on the page colour so nothing shows through while scrolling, two lines at most */
+.alert-wrap { padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--divider); }
+.alert-wrap .news-banner { margin-bottom: 0; }
+.alert-wrap .news-banner-text { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .hero {
+  position: relative; overflow: hidden;
   padding: 24px 20px; border-radius: 24px; border: 1px solid var(--border);
   background:
     radial-gradient(circle at 88% 8%, var(--hero-glow) 0%, transparent 45%),
@@ -164,16 +170,47 @@
 }
 .hero-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold-light); margin-bottom: 8px; }
 .hero-title { font-size: 28px; line-height: 1.15; font-weight: 800; letter-spacing: -0.8px; }
+.hero-title span { color: var(--gold-light); }
+/* before the festival: the key art top-right, faded into the card; text stays above it */
+.hero-art {
+  position: absolute; top: -12px; right: -30px; width: 280px; height: 320px;
+  object-fit: cover; object-position: 50% 10%; pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 78% 72% at 55% 42%, #000 55%, transparent 100%), linear-gradient(180deg, #000 55%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(ellipse 78% 72% at 55% 42%, #000 55%, transparent 100%), linear-gradient(180deg, #000 55%, transparent 100%);
+  mask-composite: intersect;
+}
+.hero > :not(.hero-art) { position: relative; }
+.hero:has(.hero-art) :is(.hero-eyebrow, .hero-title) { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45); }
+/* opening night film: poster + what, when, where */
+.opening-film { display: flex; gap: 16px; margin-top: 24px; }
+.poster.poster-opening { width: 104px; height: 156px; border-radius: var(--radius-sm); }
+.opening-film-text { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+.opening-film-text .hero-eyebrow { margin-bottom: 0; }
+.opening-film-title { font-size: 20px; font-weight: 800; line-height: 1.15; letter-spacing: -0.4px; }
+.opening-film-meta { color: var(--muted); font-size: 14px; line-height: 1.45; }
+.opening-film-more { margin-top: 4px; color: var(--gold-light); font-size: 15px; font-weight: 700; }
 .hero-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; color: var(--muted); font-size: 15px; }
 .hero-meta span { display: inline-flex; align-items: center; gap: 8px; }
 .hero-meta svg { color: var(--gold-light); }
 .hero-rule { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
 .hero-sub { color: var(--muted); font-size: 16px; }
-.countdown { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
-.countdown-label { flex-basis: 100%; color: var(--muted); font-size: 14px; }
-.count-box { display: inline-flex; align-items: baseline; gap: 2px; padding: 6px 10px; border-radius: 10px; background: rgba(19, 26, 72, 0.7); }
-.count-n { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.count-l { font-size: 12px; color: var(--muted); }
+.countdown { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+.countdown-label { color: var(--muted); font-size: 14px; }
+/* ticking countdown (Countdown.vue): days / hours / mins / secs, seconds in light gold; one line in My plan */
+.timer { display: flex; align-items: flex-start; padding: 12px 0 10px; border-block: 1px solid var(--border); }
+.timer-unit { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.timer-n { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.timer-unit:last-child .timer-n { color: var(--gold-light); }
+.timer-l { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.timer-colon { font-size: 26px; font-weight: 800; line-height: 1.1; color: var(--gold); }
+.timer.small { gap: 2px; padding: 0; border: 0; }
+.timer.small .timer-unit { flex: none; width: 40px; }
+.timer.small .timer-n { font-size: 24px; }
+.timer.small .timer-l { font-size: 10px; letter-spacing: 1px; }
+.timer.small .timer-colon { font-size: 18px; }
+.timer-inline { font-size: 13px; font-weight: 700; color: var(--gold-light); }
+.timer-inline strong { font-variant-numeric: tabular-nums; }
 .hero-cta { width: 100%; margin-top: 20px; }
 
 /* Daily highlight (Home banner during the festival) */
@@ -182,6 +219,14 @@
 .hl-top .hero-eyebrow { margin-bottom: 0; }
 .hl-date { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .hl-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; margin: 6px 0 12px; }
+.hl-title .muted { font-weight: 500; }
+.hl-days { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; max-width: 220px; margin-bottom: 20px; }
+.hl-days span { height: 4px; border-radius: 2px; background: var(--raised); }
+.hl-days .past { background: var(--gold); opacity: 0.55; }
+.hl-days .on { background: var(--gold-light); }
+.hl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.hl-head h2 { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+.hl-head .link { white-space: nowrap; }
 /* Filmstrip: whole posters at one height (never cropped), bleeds to the card edge */
 .filmstrip { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
 .filmstrip::-webkit-scrollbar { display: none; }
@@ -191,16 +236,8 @@
 .strip-poster-title { position: relative; z-index: 2; padding: 8px; font-size: 12px; font-weight: 600; line-height: 1.25; }
 .strip-title { margin-top: 4px; font-size: 12px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .strip-when { font-size: 12px; font-weight: 600; line-height: 16px; color: var(--gold-light); }
-.strip-more {
-  flex: none; display: grid; place-items: center; height: 156px; width: 88px; scroll-snap-align: start;
-  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.05);
-  text-align: center; font-size: 13px; font-weight: 600; line-height: 1.375; color: var(--gold-light);
-}
 .hl-counts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .hl-count { padding: 4px 10px; border-radius: 8px; background: var(--raised); color: var(--gold-light); font-size: 12.5px; font-weight: 700; }
-.hl-next { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(19, 26, 72, 0.8); font-size: 14px; line-height: 1.35; }
-.hl-next svg { color: var(--gold-light); flex: none; }
-.hl-next.done { color: var(--muted); }
 .gold-link { color: var(--gold-light); }
 
 .shortcuts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 20px; }
@@ -339,6 +376,8 @@
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 .tone-good { color: var(--good); }
 .tone-gold { color: var(--gold-light); }
+.tone-warn { color: var(--warn); }
+.tone-muted { color: var(--muted); }
 .tone-alert { color: var(--alert); }
 
 /* Schedule / All films switch */
@@ -526,7 +565,7 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
   display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 20px; border-radius: 23px;
   background: var(--gold); color: #1a1205; font-weight: 700;
 }
-#showtimes { scroll-margin-top: calc(84px + var(--offline-bar, 0px)); } /* clears the sticky header */
+#showtimes { scroll-margin-top: calc(84px + var(--offline-bar, 0px) + var(--alert-bar, 0px)); } /* clears the sticky header + alert */
 .btn-seen {
   display: inline-flex; align-items: center; gap: 10px; margin-top: 14px;
   height: 46px; padding: 0 20px; border-radius: 23px; border: 1px solid var(--border); font-weight: 600;
@@ -595,6 +634,14 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .facts dd { margin: 0; font-size: 17px; }
 
 /* ---------- My Festival ---------- */
+/* Tabs: Upcoming / Scheduled (the Queues tabs, .q-tabs) */
+/* Upcoming: saved screenings / events starting within the hour, each with its countdown (was Home's "Next up") */
+.upcoming { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.upcoming-card { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(19, 26, 72, 0.8); font-size: 14px; line-height: 1.35; }
+.upcoming-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.upcoming-text .hero-eyebrow { margin-bottom: 0; }
+.upcoming-title { font-size: 16px; font-weight: 800; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.upcoming-where { color: var(--muted); font-size: 13.5px; }
 .my-day { margin-top: 24px; }
 .my-day-head {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -608,15 +655,13 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .watched-row { padding: 12px 0; border-bottom: 1px solid var(--divider); }
 .footnote { margin-top: 28px; font-size: 13px; color: var(--placeholder); }
 
-/* ---------- Queues, Venues, News ---------- */
-.queue-row, .venue-card, .news-card {
+/* ---------- Venues, News ---------- */
+.venue-card, .news-card {
   display: flex; flex-direction: column; gap: 8px; padding: 16px;
   border-radius: var(--radius); background: var(--card); border: 1px solid var(--border);
 }
-.queue-row-top, .venue-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.venue-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .venue-card-head { justify-content: flex-start; }
-.queue-stats { display: flex; gap: 20px; font-size: 14px; color: var(--muted); }
-.queue-stats strong { color: var(--text); font-size: 20px; margin-right: 4px; }
 .news-card.urgent { border-color: rgba(243, 123, 107, 0.5); }
 
 @media (min-width: 400px) {
@@ -648,36 +693,84 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .stars button { width: 36px; height: 36px; display: grid; place-items: center; color: var(--placeholder); }
 .stars button.on { color: var(--gold-light); }
 
-/* ---------- Queues ---------- */
-.live-tag {
-  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px;
-  background: rgba(95, 211, 154, 0.12); color: var(--good); font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+/* ---------- Queues (pages/queues.vue) ---------- */
+/* full-width dividers: the page has 16px sides */
+.q-page { padding-top: 24px; }
+.q-head { display: flex; flex-direction: column; gap: 8px; }
+.q-title { font-size: 28px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.15; }
+.q-intro { font-size: 15px; line-height: 1.45; color: #C9CCE4; }
+.q-intro strong { color: var(--text); }
+.q-feed { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.q-feed-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--placeholder); }
+.q-feed-dot.live { background: var(--good); box-shadow: 0 0 0 4px rgba(95, 211, 154, 0.18); }
+/* tabs, used by My Festival's Upcoming / Scheduled (the Queues page had them first) */
+.q-tabs { display: flex; gap: 24px; margin: 20px -16px 0; padding: 0 16px; border-bottom: 1px solid var(--divider); }
+.q-tab {
+  height: 44px; margin-bottom: -1px; font-size: 15px; font-weight: 700; color: var(--muted);
+  border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
 }
-.live-title { font-size: 26px; font-weight: 800; color: var(--gold-light); letter-spacing: -0.5px; margin-top: 10px; }
-.queue-updated { margin-left: auto; font-size: 12px; color: var(--placeholder); }
-.venue-pins { margin-top: 14px; }
-.venue-pins-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
-.venue-pin {
-  display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius-sm);
-  background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--border);
+.q-tab.on { color: var(--text); border-bottom-color: var(--gold); }
+.q-legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 16px -16px 0; padding: 14px 16px;
+  font-size: 12px; font-weight: 600; color: var(--muted); border-block: 1px solid var(--divider);
 }
-.venue-pin.tone-bg-good { border-top-color: var(--good); }
-.venue-pin.tone-bg-gold { border-top-color: var(--gold); }
-.venue-pin.tone-bg-alert { border-top-color: var(--alert); }
-.venue-pin-name { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
-.venue-pin-state { font-size: 12px; color: var(--muted); }
-.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--muted); }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.legend .tone-bg-good { background: var(--good); }
-.legend .tone-bg-gold { background: var(--gold); }
-.legend .tone-bg-alert { background: var(--alert); }
-.updates { margin-top: 10px; }
-.update-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--divider); }
-.update-when { width: 64px; flex: none; font-size: 12px; color: var(--placeholder); padding-top: 2px; }
-.update-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.update-title { font-weight: 700; }
-.update-label { font-size: 12px; font-weight: 700; white-space: nowrap; padding-top: 2px; }
+.q-legend span, .q-how-legend span { display: flex; align-items: center; gap: 6px; }
+.q-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+.q-rows { display: flex; flex-direction: column; }
+.q-row { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--divider); }
+.q-when { width: 62px; flex: none; display: flex; flex-direction: column; gap: 2px; }
+.q-time { font-size: 24px; font-weight: 700; line-height: 1; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.q-ampm { font-size: 11px; font-weight: 700; color: var(--muted); }
+.q-in { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--gold-light); }
+.q-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.q-film { font-size: 16px; font-weight: 800; line-height: 1.25; }
+.q-venue { font-size: 13px; line-height: 1.4; color: var(--muted); }
+.q-venue .dot { margin-right: 2px; vertical-align: 1px; }
+.q-venue .status-tag { margin-left: 4px; }
+.q-status { display: flex; align-items: center; gap: 8px; margin-top: 2px; font-size: 14px; font-weight: 700; }
+.q-status .q-dot { align-self: flex-start; margin-top: 6px; }
+.q-bar { display: flex; height: 6px; background: var(--divider); }
+.q-bar span { height: 6px; transition: width .4s ease; }
+.q-bar .q-bar-line { opacity: 0.4; }
+.q-counts { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+.q-counts strong { color: var(--text); }
+.q-note { font-size: 12px; line-height: 1.4; color: var(--muted); }
+.q-empty { padding: 24px 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.q-empty .link { color: var(--gold-light); font-weight: 700; }
+.q-how-link { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 18px; font-size: 14px; font-weight: 700; color: var(--gold-light); }
+/* no line open */
+.q-none {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  margin: 28px -16px 0; padding: 28px 16px; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider);
+}
+.q-none-icon { color: var(--gold-light); }
+.q-none-title { font-size: 20px; font-weight: 800; }
+.q-next { display: flex; flex-direction: column; gap: 12px; padding-top: 22px; }
+.q-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; color: var(--gold-light); }
+.q-next-row { display: flex; align-items: center; gap: 14px; }
+.q-next-link { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+.q-next-link .q-body { gap: 4px; }
+.q-save {
+  flex: none; height: 44px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--gold);
+  font-size: 14px; font-weight: 700; color: var(--gold-light); white-space: nowrap; transition: background .15s, color .15s;
+}
+.q-save.on { background: var(--gold); color: #1a1205; }
+.q-how-section { display: flex; flex-direction: column; gap: 14px; padding-top: 30px; }
+.q-h2 { font-size: 17px; font-weight: 800; }
+.q-how { display: flex; flex-direction: column; gap: 14px; }
+.q-how-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.q-how-steps li { display: flex; gap: 12px; font-size: 14px; line-height: 1.5; color: #C9CCE4; }
+.q-how-n { flex: none; width: 24px; font-size: 20px; font-weight: 800; line-height: 1.1; color: var(--gold-light); }
+.q-how-legend {
+  display: flex; flex-direction: column; gap: 8px; margin-top: 6px; padding-top: 14px;
+  border-top: 1px solid var(--divider); font-size: 13px; color: var(--muted);
+}
+.q-how-legend strong { color: var(--text); }
+.q-cta { display: flex; width: 100%; margin-top: 26px; border-radius: 6px; }
+.tone-bg-good { background: var(--good); }
+.tone-bg-warn { background: var(--warn); }
+.tone-bg-alert { background: var(--alert); }
+.tone-bg-muted { background: var(--muted); }
 
 /* ---------- How to attend ---------- */
 .hta-card {
@@ -932,7 +1025,6 @@ img.jury-avatar, .jury-photo img { filter: grayscale(1); }
 .news-tags:empty { display: none; }
 .label.tone-muted { color: var(--muted); }
 .news-card .btn { align-self: flex-start; }
-.news-banner-cta { color: var(--gold-light); font-weight: 700; white-space: nowrap; }
 
 /* ---------- Added after the React app, in its style ---------- */
 /* Profile: account card (sign-up / logged in) */
@@ -1021,6 +1113,6 @@ img.jury-avatar, .jury-photo img { filter: grayscale(1); }
 .notice-leave-to { opacity: 0; transform: translateY(6px); }
 
 @media (prefers-reduced-motion: reduce) {
-  .conn, .app, .with-status, .header { transition: none; }
+  .conn, .app, .with-status, .app-top { transition: none; }
   .notice-enter-active, .notice-leave-active { transition: none; }
 }

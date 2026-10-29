@@ -3,8 +3,7 @@
   "framework": "nuxtjs",
   "git": {
     "deploymentEnabled": {
-      "*": false,
-      "main": true
+      "*": false
     }
   }
 }

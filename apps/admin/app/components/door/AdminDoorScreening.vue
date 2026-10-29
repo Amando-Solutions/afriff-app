@@ -157,7 +157,7 @@ function markFull() {
 const label = computed(() => (entry.value ? queueLabel({ inLine: inLine.value, seatsLeft: seatsLeft.value }) : null))
 const waiting = computed(() => board.pending || unsent.inLine !== 0 || unsent.seatsLeft !== 0)
 const full = computed(() => Boolean(entry.value) && seatsLeft.value === 0)
-const LABEL_TONE: Record<Tone, BadgeTone> = { muted: 'neutral', good: 'success', gold: 'accent', alert: 'danger' }
+const LABEL_TONE: Record<Tone, BadgeTone> = { muted: 'neutral', good: 'success', gold: 'accent', warn: 'accent', alert: 'danger' }
 </script>
 
 <template>

@@ -28,10 +28,11 @@ export interface QueueCount {
   venue: string
   inLine: number
   seatsLeft: number
+  seatsStart: number | null
   updatedAt: number | null
 }
 
-interface BoardEntry { inLine?: number; seatsLeft?: number; updatedAt?: Timestamp | null }
+interface BoardEntry { inLine?: number; seatsLeft?: number; seatsStart?: number; updatedAt?: Timestamp | null }
 
 /** Calls back with every counted screening that day, now and on every change. */
 export function watchQueueDay(
@@ -52,6 +53,7 @@ export function watchQueueDay(
             venue: d.id,
             inLine: Math.max(0, Number(e.inLine) || 0),
             seatsLeft: Math.max(0, Number(e.seatsLeft) || 0),
+            seatsStart: Number(e.seatsStart) > 0 ? Number(e.seatsStart) : null,
             updatedAt: e.updatedAt?.toMillis?.() ?? null,
           }
         }

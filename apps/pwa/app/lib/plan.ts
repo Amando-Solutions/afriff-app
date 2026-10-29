@@ -1,10 +1,12 @@
 // "My Festival" holds both screenings and events. This turns the saved IDs
 // into one list of plan items, sorted by day and time, that every screen
 // (My Festival, My plan sheet, day badges, Share my day) can use.
+import { computed } from 'vue';
 import type { FestivalEvent, Film, ItemStatus } from '@afriff/core/types/festival';
 import { SCREENINGS, filmById, venueById } from '@afriff/core/data/programme';
 import { EVENTS, EVENT_TYPES } from '@afriff/core/data/events';
-import { fromMinutes, toMinutes } from '@afriff/core/utils/format';
+import { fromMinutes, screeningStart, toMinutes } from '@afriff/core/utils/format';
+import { useLiveClock } from '~/lib/queues';
 
 interface PlanBase {
   id: string;
@@ -52,3 +54,28 @@ export function planItems(scheduled: ReadonlySet<string>): PlanItem[] {
 }
 
 export const planForDay = (scheduled: ReadonlySet<string>, date: string) => planItems(scheduled).filter((i) => i.date === date);
+
+// ---------- Starting soon: My Festival's "Upcoming" and the My plan countdown ----------
+/** How long before its start a saved screening or event counts as starting soon (and gets a countdown). */
+export const STARTING_SOON_MINUTES = 60;
+
+/** When it starts (ms, Lagos time) */
+export const planStart = (i: PlanItem) => screeningStart(i).getTime();
+
+/**
+ * The items starting within the next STARTING_SOON_MINUTES (cancelled ones
+ * left out), soonest first. Checked every second, so one joins exactly an
+ * hour before and leaves when it starts; screens only redraw when the list
+ * changes. Call from a component's setup.
+ */
+export function useStartingSoon(items: () => PlanItem[]) {
+  const t = useLiveClock(1000);
+  const ids = computed(() => items()
+    .filter((i) => i.status !== 'cancelled' && planStart(i) > t.value && planStart(i) - t.value <= STARTING_SOON_MINUTES * 60000)
+    .map((i) => i.id)
+    .join(' '));
+  return computed(() => {
+    const soon = new Set(ids.value.split(' '));
+    return items().filter((i) => soon.has(i.id));
+  });
+}

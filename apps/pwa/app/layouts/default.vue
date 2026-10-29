@@ -4,7 +4,7 @@ import { dataVersion } from '@afriff/core/published'
 import { testSwitch } from '@afriff/core/utils/now'
 
 // The attendee app's frame, laid out like the original React app: sponsor
-// ribbon, header, offline banner, the page and the bottom bar (the install
+// ribbon, header + urgent alert, the page and the bottom bar (the install
 // toast is in app.vue, so it stays on pages without this frame too).
 // Pages put their content in <div class="page">.
 // First open: on an iPhone in the browser, the install steps come first
@@ -30,13 +30,17 @@ watchEffect(() => {
 
 <template>
   <div class="app">
-    <a href="#main" class="sr-only z-[60] rounded-full bg-accent px-4 py-2 font-semibold text-on-accent focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+    <a href="#main" class="sr-only z-60 rounded-full bg-accent px-4 py-2 font-semibold text-on-accent focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
       Skip to content
     </a>
     <!-- key: when newly published festival data arrives, everything redraws with it -->
     <div :key="dataVersion">
       <SponsorMarquee variant="ribbon" />
-      <AppHeader />
+      <!-- header + urgent alert stay at the top together while scrolling -->
+      <div class="app-top">
+        <AppHeader />
+        <AlertBanner />
+      </div>
       <main id="main" class="main">
         <slot />
       </main>
