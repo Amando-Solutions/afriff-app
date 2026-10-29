@@ -846,6 +846,55 @@ scheduled invites at their time.
   `npm --prefix functions run logs:invites`. Cost on Blaze: ~43,200 runs a
   month (free allowance 2 million) and a second Cloud Scheduler job (3 free).
 
+### Pictures in Firebase Storage (29 Oct 2026, on Blaze)
+- **Bucket**: the default `afriff-app.firebasestorage.app`
+  (`NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, already in both apps' config). Create
+  it once: Firebase console → Storage → Get started. Only us-central1 /
+  us-east1 / us-west1 get Cloud Storage's no-cost allowance (5 GB stored,
+  100 GB downloaded a month); the location can't be changed later.
+- **Layout**: `images/<kind>/<file>`, kind = `films`, `events`, `sponsors`,
+  `jury`. Files never change at their address (`Cache-Control: public,
+  max-age=31536000, immutable`); a new picture is a new file and a new link,
+  which is what the attendee service worker's CacheFirst rule for
+  `firebasestorage.googleapis.com` expects (`packages/pwa/nuxt.config.ts`).
+  Links are Firebase download URLs (`…/o/<path>?alt=media&token=…`), so
+  phones never need a rules check to show one.
+- **Rules**: `storage.rules`, deployed with `npm run deploy:storage`, or
+  `npm run deploy:all-rules` (Firestore rules + `firestore.indexes.json` +
+  storage rules together; the index file is empty because every query uses
+  single-field indexes, and the live project has none either, so deploying
+  it deletes nothing). The first storage deploy asks to let Storage read
+  Firestore: yes. Public `get`;
+  `create` for admins and editors (role read from `users/{uid}` with
+  `firestore.get`, plus the confirmed superadmin emails), JPEG / PNG / WebP
+  under 3 MB, known kinds only; no overwrites; delete = admins. Tested with
+  the Rules test API (20 cases; a wide-open file fails 14 of them). The
+  superadmin list is now checked in three places by `apps/admin/test/team.test.ts`.
+- **Console**: every picture field (`upload` in `apps/admin/app/lib/schema.ts`:
+  film poster, event graphic, sponsor logo, jury photo) shows a preview and
+  "Upload a picture" (`AdminField.vue` → `lib/upload.ts`). The picture is
+  shrunk in the browser to fit 720 × 1080 (JPEG 0.72; PNG if it has
+  see-through pixels, for logos; a small JPEG is kept as it is), uploaded
+  with `uploadBytesResumable` (2-minute retry limit, not Firebase's 10), and
+  its download URL fills the field. Save waits while an upload runs. Editors'
+  uploads are stored straight away but only linked once their change is
+  approved. `firebase/storage` is loaded only when someone uploads.
+- **Posters script**: `scripts/posters/upload-posters.mjs` (dry run by
+  default, `--write` to upload; `--folder`, `--replace-team-links`). Matches
+  each file in `AFRIFF-posters/` (not in Git) to a film by ID, then by its
+  title in `_poster_list.csv`, then by file name (same `matchTitle` as the
+  schedule loader), shrinks it with macOS `sips` (720 × 1080, quality 65),
+  stores it as `images/films/<film id>.<sha256-12>.jpg` with a download
+  token, and sets `films/{id}.image`. Replaces empty posters, afriff.com /
+  lovable.app / IMDb links and its own earlier uploads; keeps anything the
+  team set (listed). Idempotent: same file = same object = nothing new.
+  Backs up the old links to `~/Documents/afriff-backups/before-posters-*.json`.
+  Never publishes.
+- **Not moved yet**: sponsor logos, jury photos and the two masterclass
+  graphics still linked from afriff.com (upload them in the console, or copy
+  the posters script), and the built-in copy in `packages/core/src/data/`
+  (only the first-visit fallback) still points at afriff.com.
+
 ## 5. Deploying and hosting
 Two Vercel projects from this one repo, one per app:
 
@@ -915,9 +964,12 @@ to test with real logins at a door; `?queues=sample` shows pretend queues for de
 **Before launch:**
 - Real screening and event times. All current times are **samples**
   (including the new Writers Workshop, Wed 4 Nov 3 PM).
-- Host film posters, sponsor logos and jury photos ourselves. They're still
-  hot-linked from AFRIFF's site (the masterclass graphics are now in
-  `apps/pwa/public/masterclasses/`, except Producing and Animation).
+- Host film posters, sponsor logos and jury photos ourselves. Posters: run
+  `scripts/posters/upload-posters.mjs --write` once Storage is switched on
+  (see "Pictures in Firebase Storage"). Sponsor logos and jury photos are
+  still hot-linked from AFRIFF's site; upload them in the console (the
+  masterclass graphics are in `apps/pwa/public/masterclasses/`, except
+  Producing and Animation).
 - AFRIFF to confirm the 3 "How to attend" sections marked CONFIRM; swap in
   the official logo (`packages/theme/public/`); add bios for Erin G. Wesley, Chuka
   Ejorh and Tunde Babalola (left empty rather than invented).

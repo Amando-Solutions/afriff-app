@@ -300,7 +300,11 @@ Read this first; the dated sections below are the detailed history.
 - Deploy commands (25 Oct, Firebase CLI, all to afriff-app): `npm run
   deploy:rules`, `deploy:functions` (the Cloud Functions in `functions/`;
   needs the paid Blaze plan). Pasting rules into
-  the Firebase console still works.
+  the Firebase console still works. ADDED 29 Oct: `deploy:storage`
+  (storage.rules) and `deploy:all-rules` = database rules + database indexes
+  (`firestore.indexes.json`, empty: no query needs one; matches the live
+  project, checked 29 Oct) + storage rules in one go. It only works once
+  Firebase Storage is switched on.
 - NEEDED FROM AFRIFF: real schedule (times, rooms), premiere status per
   film (afriff.com doesn't publish it, so no premiere badges yet), posters
   for the 18 films that have none, details for the 36 Out of Competition
@@ -2028,7 +2032,10 @@ heavy libraries) apply everywhere.
   too". Logs: `npm --prefix functions run logs:invites`.
 
 ### Official screening schedule loader (28 Oct 2026)
-- STATUS: script checked and fixed, NOT run with --write, NOT committed.
+- STATUS: script checked and fixed, NOT committed. RUN WITH --write
+  --add-missing (checked 29 Oct: 124 official screenings and 30 "Also
+  screening" films in the database, no samples left) but NOT PUBLISHED yet
+  (last Publish to app 28 Oct 11:42 UTC), so phones still show samples.
   `scripts/schedule/` (load-schedule.mjs, plan.mjs, the sheet as JSON).
   Dry run: `node scripts/schedule/load-schedule.mjs` (changes nothing). Load:
   add `--write` (backup first; with `--add-missing` it also makes title-only
@@ -2048,6 +2055,10 @@ heavy libraries) apply everywhere.
   sample timetable (s1…) and earlier loads (sch-…); screenings added in the
   console are kept and listed. Titles that look like an existing film are
   never auto-created (ALIASES / DIFFERENT_FILMS in plan.mjs).
+- WHAT GOES (29 Oct): the 90 sample screenings and the alerts posted about
+  them (e.g. the 28 Oct test "A Girl Unknown moved", an urgent banner with no
+  end time). NEVER deleted: films (11 have no screening in the sheet and keep
+  a page with no showtimes), events, venues, jury, sponsors, other news.
 - "Add missing festival data" no longer adds the sample timetable back once
   it's been replaced (apps/admin/app/lib/data.ts). Until the staff app is
   redeployed with that, DON'T press it after loading the schedule.
@@ -2137,6 +2148,60 @@ heavy libraries) apply everywhere.
   the old saved choice; Continue on the web closes them; no toast after 16 s;
   stay closed across tabs, privacy and sign-up pages; back after each full
   reload; none in the Home Screen app. Typecheck. NOT TESTED: real phones.
+
+### Pictures in Firebase Storage + poster upload script (29 Oct 2026, user request)
+- USER REQUEST: "we are on the blaze plan now … implement everything about
+  storage and create a script that will upload these posters and associate
+  them with the appropriate film and schedule".
+- STATUS: built and tested, NOT committed, NOT deployed, nothing uploaded.
+  Firebase Storage is NOT SWITCHED ON yet (checked 29 Oct: no bucket).
+- POSTERS: `AFRIFF-posters/` (87 files from afriff.com, 29 Oct; kept out of
+  Git and Vercel). `scripts/posters/upload-posters.mjs`: dry run by default,
+  `--write` uploads. Matches each file to its film (file name = film ID, else
+  the title in `_poster_list.csv`), shrinks it to 720 × 1080 (28 MB → 12 MB
+  for all 86; still sharp on a phone), stores it in Storage and sets the
+  film's poster. Dry run 29 Oct: 86 films, all currently linked from
+  afriff.com / IMDb, all the same pictures; `ife-ati-iku.jpg` is a second copy
+  of Ìfẹ́ àti Ikú's poster, not used. Never touches a poster the team set in
+  the console. Never publishes. Safe to run again.
+- THE SCHEDULE: screenings show their film's poster (Programme, Home, My
+  Festival), so films are all that need one. 42 films on the schedule still
+  have NO poster (the 30 "Also screening" films + 12 more): the dry run lists
+  them. Add pictures named <film id>.jpg to the folder and run again.
+- CONSOLE: every picture field (film poster, event graphic, sponsor logo,
+  jury photo) has a preview and "Upload a picture"; the picture is made
+  smaller on the device first (same size as the script). Admins and editors
+  only (`storage.rules`); editors' pictures go live with their approved change.
+- SETUP (once, in this order):
+  1. Firebase console → Build → Storage → Get started. LOCATION: pick
+     us-central1 (or us-east1 / us-west1) for Firebase's no-cost allowance
+     (5 GB stored, 100 GB downloaded a month); London (europe-west2) has
+     none. It can't be changed later. Posters aren't personal data, so the US
+     is fine (attendee data stays in Firestore, London).
+  2. `npm run deploy:storage`, or `npm run deploy:all-rules` for everything
+     (answer yes when it asks to let Storage read the database: that's how it
+     knows who's an admin or editor).
+  3. `node scripts/posters/upload-posters.mjs --write`, then Publish to app.
+  4. Deploy the staff app (for the Upload button).
+- COST (Blaze): in a US location, expected $0: ~12 MB stored, and each phone
+  downloads a poster once (kept offline after). Beyond the allowance: about
+  $0.12 per GB downloaded; e.g. 5,000 phones each seeing 50 posters ≈ 34 GB.
+  Set a budget alert in Google Cloud Billing.
+- TESTED (29 Oct, by Claude): storage rules with Firebase's rules checker (20
+  cases: anyone sees, admins/editors upload, volunteers/attendees/signed-out
+  can't, wrong folder / 3 MB / not a picture / SVG refused, no overwriting,
+  admins delete, owners need a confirmed email; a wide-open rules file fails
+  14 of them); the script's dry run against the live database; in a real
+  phone-sized browser on the staff dev app: the picture shrinking on real
+  posters (Which Way 1.2 MB → 216 KB at 720 × 1063; a small poster kept as
+  it is; a see-through logo stays PNG, a plain PNG becomes JPEG; broken and
+  non-picture files explained), the field itself (preview, "Upload a
+  picture" / "Upload a new picture", "Uploading… 0%", link box locked, "Still
+  trying…" after 15 s); staff typecheck; 102 automatic tests. FOUND: until
+  Storage is switched on, a browser can't reach it at all, which looks like
+  a lost connection, so an upload retries for 2 minutes and then says so,
+  naming both causes. NOT TESTED: a real upload (no bucket yet), the Upload
+  button inside the console with a real login.
 
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on

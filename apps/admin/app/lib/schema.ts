@@ -14,10 +14,14 @@ import { dayLabel, timeLabel } from '@afriff/core/utils/format';
 import type { DataDoc, Refs } from './types';
 
 export type FieldType = 'text' | 'textarea' | 'number' | 'url' | 'time' | 'day' | 'select' | 'ref' | 'checkbox' | 'color' | 'datetime';
+/** Firebase Storage folder (images/<kind>/) for a picture field's "Upload a picture" button; must be in storage.rules */
+export type UploadKind = 'films' | 'events' | 'sponsors' | 'jury';
 export interface Option { value: string; label: string }
 export interface FieldDef {
   key: string;
   label: string;
+  /** url fields with link 'image': also offer "Upload a picture" (lib/upload.ts), saved under images/<upload>/ */
+  upload?: UploadKind;
   type: FieldType;
   required?: boolean;
   hint?: string;
@@ -94,7 +98,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
       { key: 'language', label: 'Language', type: 'text', max: 100 },
       { key: 'runtime', label: 'Running time (minutes)', type: 'number', required: true, whole: true, min: 1, max: 600 },
       { key: 'year', label: 'Year', type: 'number', whole: true, min: 1895, max: Number(FESTIVAL.days[0]!.slice(0, 4)) + 1 },
-      { key: 'image', label: 'Poster image link', type: 'url', link: 'image', hint: 'Paste a link to the poster image (uploads need a paid Firebase plan)' },
+      { key: 'image', label: 'Poster', type: 'url', link: 'image', upload: 'films', hint: 'Upload the poster, or paste a link to it' },
       { key: 'trailer', label: 'Trailer link (YouTube or Vimeo)', type: 'url', link: 'video' },
       { key: 'synopsis', label: 'Synopsis', type: 'textarea', max: 3000 },
       { key: 'cast', label: 'Cast (optional)', type: 'text', hint: 'Main actors, separated by commas', max: 500 },
@@ -142,7 +146,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
       { key: 'speakerRole', label: 'Speaker\'s role', type: 'text', max: 150 },
       { key: 'bio', label: 'Speaker bio', type: 'textarea', max: 3000 },
       { key: 'about', label: 'About this event', type: 'textarea', required: true },
-      { key: 'image', label: 'Graphic / poster image link (optional)', type: 'url', link: 'image', hint: 'Tall images work best (e.g. 4:5). Shown whole on the event page.' },
+      { key: 'image', label: 'Graphic / poster (optional)', type: 'url', link: 'image', upload: 'events', hint: 'Upload it, or paste a link. Tall images work best (e.g. 4:5). Shown whole on the event page.' },
       { key: 'access', label: 'Who can attend', type: 'text', hint: 'e.g. Free · registration required', max: 150 },
       { key: 'tag', label: 'Public or Industry', type: 'select', options: tagOptions },
       { key: 'link.label', label: 'Button text', type: 'text', hint: 'e.g. Register on afriff.com', max: 60 },
@@ -195,7 +199,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
     sort: (a, b) => n(a.order) - n(b.order),
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true, max: 100 },
-      { key: 'logo', label: 'Logo image link', type: 'url', link: 'image' },
+      { key: 'logo', label: 'Logo', type: 'url', link: 'image', upload: 'sponsors', hint: 'Upload the logo (a PNG with a see-through background works best), or paste a link' },
       {
         key: 'logoStyle', label: 'Logo style on the dark app', type: 'select',
         options: [
@@ -222,7 +226,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
       { key: 'country', label: 'Country', type: 'text', max: 100 },
       { key: 'jury', label: 'Which jury', type: 'text', required: true, hint: 'e.g. International Jury. Members with the same jury name are shown together under that heading.', max: 80 },
       { key: 'bio', label: 'Short bio', type: 'textarea', max: 3000 },
-      { key: 'photo', label: 'Photo link', type: 'url', link: 'image', hint: 'If empty, their initials are shown instead' },
+      { key: 'photo', label: 'Photo', type: 'url', link: 'image', upload: 'jury', hint: 'Upload a photo, or paste a link. If empty, their initials are shown instead' },
       { key: 'order', label: 'Position (0 = first)', type: 'number', whole: true, min: 0, max: 999 },
     ],
   },
