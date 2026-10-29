@@ -2153,8 +2153,12 @@ heavy libraries) apply everywhere.
 - USER REQUEST: "we are on the blaze plan now … implement everything about
   storage and create a script that will upload these posters and associate
   them with the appropriate film and schedule".
-- STATUS: built and tested, NOT committed, NOT deployed, nothing uploaded.
-  Firebase Storage is NOT SWITCHED ON yet (checked 29 Oct: no bucket).
+- STATUS: built and tested, NOT committed, NOT deployed. Storage SWITCHED ON
+  (bucket afriff-app.firebasestorage.app, us-central1) and the script RUN
+  WITH --write 29 Oct ~09:58 Lagos: 86 films now link to our own copies
+  (checked: all 86 links load as pictures for anyone). Backup of the old
+  links: /Users/mac/Documents/afriff-backups/before-posters-2026-10-29T08-58-34.json.
+  NOT PUBLISHED yet, so phones still use the afriff.com / IMDb links.
 - POSTERS: `AFRIFF-posters/` (87 files from afriff.com, 29 Oct; kept out of
   Git and Vercel). `scripts/posters/upload-posters.mjs`: dry run by default,
   `--write` uploads. Matches each file to its film (file name = film ID, else
