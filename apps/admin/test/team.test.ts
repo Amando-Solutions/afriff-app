@@ -23,13 +23,15 @@ describe('superadmins', () => {
     assert.equal(needsOwnerCheck({ email: MICHAEL, emailVerified: true }), false)
     assert.equal(needsOwnerCheck({ email: 'ada@gmail.com', emailVerified: false }), false)
   })
-  it('are the same two in firestore.rules', () => {
-    const rules = readFileSync(new URL('../../../firestore.rules', import.meta.url), 'utf8')
-    const list = rules.match(/function superadminEmails\(\) \{ return \[([^\]]*)\]; \}/)
-    assert.ok(list, 'superadminEmails() not found in firestore.rules')
-    const inRules = [...list[1]!.matchAll(/'([^']+)'/g)].map((m) => m[1])
-    assert.deepEqual(inRules.sort(), [...SUPERADMIN_EMAILS].sort())
-  })
+  for (const file of ['firestore.rules', 'storage.rules']) {
+    it(`are the same two in ${file}`, () => {
+      const rules = readFileSync(new URL(`../../../${file}`, import.meta.url), 'utf8')
+      const list = rules.match(/function superadminEmails\(\) \{ return \[([^\]]*)\]; \}/)
+      assert.ok(list, `superadminEmails() not found in ${file}`)
+      const inRules = [...list[1]!.matchAll(/'([^']+)'/g)].map((m) => m[1])
+      assert.deepEqual(inRules.sort(), [...SUPERADMIN_EMAILS].sort())
+    })
+  }
 })
 
 describe('changing roles on the Team page', () => {

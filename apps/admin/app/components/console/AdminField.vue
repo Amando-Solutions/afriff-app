@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive, watch } from 'vue'
+import { ImageUpIcon } from 'lucide-vue-next'
+import { imageLink } from '@afriff/core/utils/links'
 import { COLLECTIONS, type FieldDef } from '~/lib/schema'
 import type { DataDoc, Refs } from '~/lib/types'
+import { uploadPicture } from '~/lib/upload'
 
 const INPUT_TYPES: Partial<Record<FieldDef['type'], string>> = { number: 'number', url: 'url', time: 'time', color: 'color', datetime: 'datetime-local' }
 
 // One form field, drawn from its description in schema.ts, with its problem
-// (lib/checks.ts) under it. "blur" = they left the field.
+// (lib/checks.ts) under it. "blur" = they left the field. Picture fields
+// (schema `upload`) also get a preview and "Upload a picture"; "uploading"
+// tells the form to hold Save until the link is in.
 const props = defineProps<{ f: FieldDef; refs: Refs; error?: string }>()
-const emit = defineEmits<{ blur: [] }>()
+const emit = defineEmits<{ blur: []; uploading: [busy: boolean] }>()
 const model = defineModel<string | number | boolean>()
 // checkboxes hold true/false; number boxes hold a number once edited (Vue's
 // v-model does that for type="number"); every other field holds text.
@@ -35,6 +40,38 @@ const refOptions = computed(() => {
     .sort(rc.sort)
     .map((o) => ({ value: o.id, label: labelOf(o) }))
 })
+
+// ---------- Picture fields: preview + upload ----------
+const upload = reactive({ busy: false, percent: 0, msg: '', error: '', broken: false, slow: false })
+// pictures shipped with the attendee app ("/masterclasses/…") live at its address, not this one
+const attendeeUrl = String(useRuntimeConfig().public.attendeeUrl || '').replace(/\/$/, '')
+const preview = computed(() => {
+  const link = props.f.upload && typeof model.value === 'string' ? imageLink(model.value) : ''
+  return link.startsWith('/') ? `${attendeeUrl}${link}` : link
+})
+watch(preview, () => { upload.broken = false })
+
+async function onPick(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || !props.f.upload || upload.busy) return
+  Object.assign(upload, { busy: true, percent: 0, msg: '', error: '', slow: false })
+  emit('uploading', true)
+  // nothing sent after 15 s: Firebase keeps retrying for up to 2 minutes, so say so
+  const slowTimer = setTimeout(() => { if (upload.busy && upload.percent === 0) upload.slow = true }, 15_000)
+  try {
+    model.value = await uploadPicture(file, props.f.upload, (p) => { upload.percent = p })
+    upload.msg = 'Uploaded. Save to keep it.'
+    emit('blur')
+  } catch (err) {
+    upload.error = err instanceof Error ? err.message : String(err)
+  } finally {
+    clearTimeout(slowTimer)
+    Object.assign(upload, { busy: false, slow: false })
+    emit('uploading', false)
+  }
+}
 </script>
 
 <template>
@@ -63,10 +100,31 @@ const refOptions = computed(() => {
       :step="f.type === 'number' ? (f.whole ? 1 : 'any') : undefined"
       :autocapitalize="f.type === 'url' ? 'off' : undefined"
       :spellcheck="f.type === 'url' ? false : undefined"
+      :disabled="upload.busy || undefined"
       v-bind="aria"
       @blur="emit('blur')"
     />
     <span v-if="error" :id="`${f.key}-error`" class="text-meta font-normal text-danger" role="alert">{{ error }}</span>
     <small v-if="f.hint" class="text-label font-normal">{{ f.hint }}</small>
   </label>
+  <!-- outside the label above, so tapping the button doesn't jump into the link box -->
+  <div v-if="f.upload" class="-mt-2 flex items-center gap-3">
+    <span class="flex h-20 w-16 shrink-0 items-center justify-center overflow-hidden rounded-tile border border-line bg-raised">
+      <img v-if="preview && !upload.broken" :src="preview" alt="" class="size-full object-contain" @error="upload.broken = true" />
+      <ImageUpIcon v-else class="size-5 text-muted" aria-hidden="true" />
+    </span>
+    <div class="flex min-w-0 flex-col items-start gap-1.5">
+      <label
+        class="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-meta font-semibold text-ink shadow-card hover:border-line-strong hover:bg-hover has-[:disabled]:pointer-events-none has-[:disabled]:opacity-45 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent"
+      >
+        <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" :disabled="upload.busy" @change="onPick" />
+        <ImageUpIcon class="size-4" aria-hidden="true" />
+        {{ upload.busy ? `Uploading… ${upload.percent}%` : preview ? 'Upload a new picture' : 'Upload a picture' }}
+      </label>
+      <span v-if="upload.slow" class="text-meta text-muted" role="status">Still trying to reach Firebase… (a slow connection, or picture uploads aren’t switched on yet)</span>
+      <span v-else-if="upload.error" class="text-meta text-danger" role="alert">{{ upload.error }}</span>
+      <span v-else-if="upload.msg" class="text-meta text-success" role="status">{{ upload.msg }}</span>
+      <span v-else-if="preview && upload.broken" class="text-meta text-muted">This link doesn’t show a picture.</span>
+    </div>
+  </div>
 </template>

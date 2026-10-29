@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// AFRIFF file storage rules (Firebase Storage): who can see and add pictures.
+// Deploy with `npm run deploy:storage` whenever it changes (or paste it into
+// Firebase console → Storage → Rules → Publish).
+//
+// Only festival pictures live here, under images/<kind>/: film posters, event
+// graphics, sponsor logos and jury photos. Anyone can see them (they're on
+// attendees' phones). Admins and editors add them with the console's "Upload
+// a picture" button; scripts/posters uploads with the admin key, which these
+// rules don't apply to. Nobody can change a file once it's there: a new
+// picture is a new file with its own link, so a phone that saved the old one
+// for offline use never shows a stale copy under the new link.
+//
+// Roles come from the database (users/{uid}.role, see firestore.rules). The
+// first deploy asks to let Storage read the database: say yes. The superadmin
+// list must match firestore.rules and apps/admin/shared/team.ts (an automatic
+// test checks all three).
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() { return request.auth != null; }
+    function role() {
+      let profile = /databases/(default)/documents/users/$(request.auth.uid);
+      return firestore.exists(profile) ? firestore.get(profile).data.role : 'none';
+    }
+    // A confirmed email only: anyone can create a login with an unconfirmed one.
+    function superadminEmails() { return ['michaelakpuofoba@gmail.com', 'tithera14@gmail.com']; }
+    function isSuperadmin() {
+      return request.auth.token.get('email_verified', false) == true
+        && request.auth.token.get('email', '').lower() in superadminEmails();
+    }
+    function isAdmin() { return signedIn() && (isSuperadmin() || role() == 'admin'); }
+    function canUpload() { return signedIn() && (isSuperadmin() || role() in ['admin', 'editor']); }
+
+    match /images/{kind}/{file} {
+      // seeing one picture by its link only: nobody lists the folders
+      allow get: if true;
+      // the console makes every picture a JPEG or PNG under 3 MB before uploading it
+      allow create: if canUpload()
+        && kind in ['films', 'events', 'sponsors', 'jury']
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if isAdmin();
+    }
+
+    // anything else: nobody
+  }
+}

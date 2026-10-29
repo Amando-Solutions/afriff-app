@@ -25,6 +25,8 @@ const isNew = props.id === 'new'
 const existing = computed(() => (isNew ? null : map.value[props.id]))
 const values = ref<FormValues | null>(null)
 const status = reactive({ busy: false, msg: '', error: '' })
+// pictures still uploading: Save waits for their links
+const uploading = ref(0)
 const alertDraft = ref<AlertDraft | null>(null)
 
 // fill the form once the item has loaded
@@ -147,11 +149,12 @@ async function remove() {
           :refs="refs"
           :error="checks.errors[f.key]"
           @blur="checks.left(f.key)"
+          @uploading="(busy) => (uploading += busy ? 1 : -1)"
         />
         <p v-if="status.error" class="text-meta text-danger" role="alert">{{ status.error }}</p>
         <p v-if="status.msg" class="text-meta text-success" role="status">{{ status.msg }}</p>
         <div class="flex flex-wrap gap-2.5">
-          <UiButton type="submit" size="lg" :disabled="status.busy">{{ status.busy ? 'Saving…' : profile.role === 'admin' ? 'Save' : 'Send for approval' }}</UiButton>
+          <UiButton type="submit" size="lg" :disabled="status.busy || uploading > 0">{{ status.busy ? 'Saving…' : uploading > 0 ? 'Uploading picture…' : profile.role === 'admin' ? 'Save' : 'Send for approval' }}</UiButton>
           <UiButton v-if="!isNew" variant="danger" size="lg" :disabled="status.busy" @click="remove">Delete</UiButton>
         </div>
       </form>

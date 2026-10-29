@@ -21,7 +21,9 @@
 //   5. turns down editors' requests about screenings still waiting in Approvals
 //   6. rewords the "Times are samples" notice (n1) if it still has its original text
 //   7. deletes the sample timetable and screenings from an earlier load that are
-//      no longer in the sheet. Screenings added in the console are kept (listed)
+//      no longer in the sheet, and the alerts posted about them ("… moved").
+//      Screenings added in the console are kept (listed). Films, events,
+//      venues and other news are never deleted
 //
 // Safe to run again: same sheet → same IDs, nothing added twice.
 import fs from 'node:fs';
@@ -182,9 +184,19 @@ if (plan.warnings.length) {
 line('\nNOTES FROM THE SHEET');
 for (const n of sheet.notes) line(`  ${n}`);
 
-const linked = news.filter((n) => n.screening && removedIds.has(n.screening));
+// Alerts about a screening that's going ("Lady moved", "… cancelled") would stay
+// on Home and in News announcing a change to a screening that no longer exists,
+// so they go too. Other news linked to one only loses the link.
+const ALERT_TYPES = ['venue-change', 'time-change', 'cancelled', 'sold-out'];
+const linkedAll = news.filter((n) => n.screening && removedIds.has(n.screening));
+const staleAlerts = linkedAll.filter((n) => ALERT_TYPES.includes(n.type));
+const linked = linkedAll.filter((n) => !ALERT_TYPES.includes(n.type));
+if (staleAlerts.length) {
+  line(`\nALERTS ABOUT A SCREENING THAT WILL BE DELETED (${staleAlerts.length}): deleted too, so they stop showing on Home and in News`);
+  for (const n of staleAlerts) line(`  "${n.title}" (${n.id}) → ${n.screening}${n.urgent ? ', urgent banner' : ''}`);
+}
 if (linked.length) {
-  line('\nNEWS LINKED TO A SCREENING THAT WILL BE DELETED (the link will be dropped):');
+  line('\nNEWS LINKED TO A SCREENING THAT WILL BE DELETED (the link will be dropped, the news stays):');
   for (const n of linked) line(`  news "${n.title}" → ${n.screening}`);
 }
 
@@ -241,6 +253,7 @@ for (const c of pendingScreenings) {
   }));
 }
 for (const n of linked) ops.push((b) => b.update(db.doc(`news/${n.id}`), { screening: '' }));
+for (const n of staleAlerts) ops.push((b) => b.delete(db.doc(`news/${n.id}`)));
 if (n1Original) {
   ops.push((b) => b.update(db.doc('news/n1'), {
     title: 'Event times are samples for now',
@@ -254,7 +267,7 @@ for (let i = 0; i < ops.length; i += 500) {
   for (const op of ops.slice(i, i + 500)) op(batch);
   await batch.commit();
 }
-line(`Done: ${newFilms.length} films added, ${runtimeFills.length} running times filled in, ${creates.length} screenings added, ${updates.length} updated, ${removed.length} old screenings deleted, ${pendingScreenings.length} pending screening requests turned down${n1Original ? ', notice n1 reworded' : ''}.`);
+line(`Done: ${newFilms.length} films added, ${runtimeFills.length} running times filled in, ${creates.length} screenings added, ${updates.length} updated, ${removed.length} old screenings deleted, ${staleAlerts.length} alerts about them deleted, ${pendingScreenings.length} pending screening requests turned down${n1Original ? ', notice n1 reworded' : ''}.`);
 line('Attendees see none of this until an admin presses Publish to app in the console.');
 line('(New and deleted screenings aren\'t offered as alerts there. On a later run, any screening whose time or screen changed is: tick the ones attendees should hear about.)');
 line('Don\'t press "Add missing festival data" in a staff app deployed before this load: it would add the sample timetable back.');
