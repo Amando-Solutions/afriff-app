@@ -23,7 +23,6 @@
 // at all when an admin switches "Require an account" off (console → Attendees).
 import { reactive } from 'vue'
 import { cleanName, nameProblem } from '@afriff/core/accounts/rules'
-import { firebaseConfig } from '@afriff/core/firebase/config'
 import { applySave, currentPlan, replacePlan, type SaveIntent } from './store'
 import { planIsSaved, startPlanSync, stopPlanSync } from './planSync'
 import { setAlertsOwner } from './push'
@@ -150,22 +149,12 @@ const IN_APP_BROWSER = /Instagram|FBAN|FBAV|FB_IAB|FB4A|Snapchat|musical_ly|Byte
 
 /**
  * Can "Continue with Google" work here?
- *   'ok'     yes
+ *   'ok'     yes, the iPhone Home Screen app included: there the whole page goes
+ *            to Google and back (lib/firebase/google.ts), as in DP Fitness
  *   'in-app' inside another app's built-in browser: Google says no there, so the page says why
- *   'off'    the iPhone Home Screen app, until Google sign-in is served from the app's own
- *            address (lib/firebase/google.ts); everyone there still has email + password
  */
-export function googleSignInHere(): 'ok' | 'in-app' | 'off' {
-  if (typeof window === 'undefined') return 'off'
-  if (IN_APP_BROWSER.test(navigator.userAgent)) return 'in-app'
-  const homeScreenIphone = (navigator as Navigator & { standalone?: boolean }).standalone === true
-  if (homeScreenIphone) {
-    try {
-      if (firebaseConfig().authDomain !== window.location.host) return 'off'
-    } catch {
-      return 'off'
-    }
-  }
+export function googleSignInHere(): 'ok' | 'in-app' {
+  if (typeof window !== 'undefined' && IN_APP_BROWSER.test(navigator.userAgent)) return 'in-app'
   return 'ok'
 }
 

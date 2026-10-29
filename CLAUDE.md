@@ -1002,6 +1002,9 @@ heavy libraries) apply everywhere.
 - INSTALL: same toasts (Android one-tap Install, iPhone Share steps, plus a
   hint for Instagram/WhatsApp's built-in browsers). Fixed: "Not now" used to
   hide the Android install offer forever; now it's a week, as intended.
+  CHANGED 28 Oct (user request): no week any more. Closing it lasts until a
+  full reload, and it stays on every page but sign-up; iPhones get the steps
+  screen instead of a toast. See "Install toast on every page".
 - Splash screen (emblem + gold loading bar) while the app starts.
 - COST WARNING (Firebase): with no relay, every phone's reads count against
   Firestore's free 50,000 reads/day. Published data is cheap. Live queues
@@ -1253,7 +1256,8 @@ heavy libraries) apply everywhere.
   Screen → Add; hint that newer iPhones put Share under •••), a note for
   Instagram / WhatsApp's built-in browsers, "Already added it? Open AFRIFF
   from your Home Screen", and "Continue on the web" (remembered in that
-  browser). Then the welcome cards. Not shown in the Home Screen app, on
+  browser; CHANGED 28 Oct, user decision: it now closes the screen only until
+  a full reload, see "Install toast on every page"). Then the welcome cards. Not shown in the Home Screen app, on
   Android or on laptops. Test on a laptop: add `?install=ios` to the address.
 - CONSOLE (admins only): Attendees page = "Require an account to save to My
   Festival" switch (ON by default; OFF = saving works without an account),
@@ -1377,6 +1381,10 @@ heavy libraries) apply everywhere.
   "Keep your plan on any phone · Sign up" card (comes back to Profile after
   signing up) and the same switches. The privacy page and the sign-up
   page's note now say "Profile" instead of "My Festival".
+  CHANGED 28 Oct (user request): Log out and Delete my account are no longer
+  in the account card; they're the very last thing on Profile, under the
+  privacy link, with a divider above (`components/account/AccountActions.vue`;
+  same confirm sheets as before). NOT committed yet.
 - AVATARS (user asked for DiceBear with a seed; CHANGED 27 Oct, user: "use
   a neutral dicebear category"): style "Notionists Neutral" = a face only on
   a plain colour, no hair, body or skin tone (CC0 licence: free for
@@ -1478,9 +1486,10 @@ heavy libraries) apply everywhere.
   instead of typing a password ("Confirm with Google and delete").
 - WHERE THE BUTTON DOESN'T SHOW: inside Instagram's, Facebook's, TikTok's
   (and similar) built-in browsers, because Google refuses to sign anyone in
-  there; a note says to open the page in Chrome or Safari. And in the iPhone
-  Home Screen app until one setup step is done (below); everyone there can
-  still use email + password.
+  there; a note says to open the page in Chrome or Safari. (Until 28 Oct also
+  hidden in the iPhone Home Screen app until a setup step was done; CHANGED
+  28 Oct, user request "make sure it works just like" DP Fitness: it shows
+  there now. See "Install toast on every page" → GOOGLE.)
 - HOW (same as DP Fitness): Firebase's own Google sign-in. A pop-up window
   everywhere, except the iPhone Home Screen app, where the whole page goes to
   Google and comes back (a pop-up there opens in Safari and never returns).
@@ -2042,6 +2051,92 @@ heavy libraries) apply everywhere.
 - "Add missing festival data" no longer adds the sample timetable back once
   it's been replaced (apps/admin/app/lib/data.ts). Until the staff app is
   redeployed with that, DON'T press it after loading the schedule.
+
+### Install from the alerts card (28 Oct 2026, user request)
+- STATUS: built and tested, NOT committed, NOT deployed.
+- IPHONE (Safari, not the Home Screen app): the "Alerts on your iPhone" card
+  on Profile, News and the VIP page can now be tapped ("Show me how"). It
+  opens a bottom sheet, "Add to Home Screen", with the same 3 steps as the
+  install-first screen (one shared piece, `components/app/InstallSteps.vue`),
+  the note for Instagram / WhatsApp's browsers, "Then open AFRIFF from your
+  Home Screen, log in if you have an account, and turn alerts on in
+  Profile", and "Got it".
+- ANDROID / CHROME: the switch still works straight away, because Android
+  allows alerts from the browser, so nobody has to install first. While the
+  app isn't installed and Chrome offers it, the card also has an "Install"
+  button under the switch. It opens Chrome's own install dialog and goes away
+  afterwards. If Chrome isn't offering the install (other browsers, or the
+  person said no to Chrome recently), the button doesn't show.
+- Test the iPhone card on a laptop: `?install=ios`, on a build with alerts
+  set up (the card is hidden in `npm run dev`).
+- TESTED (28 Oct, by Claude): 24 checks in a phone-sized test browser on a
+  throwaway production build with pretend alert keys (iPhone: card, sheet,
+  steps, Got it / Esc / ✕ / tap outside close it, News too, install-first
+  screen unchanged; Android: no button until Chrome offers, Install opens
+  Chrome's dialog (faked), button gone after yes or no, switch stays);
+  typecheck. NOT TESTED: real phones.
+
+### Install toast on every page (28 Oct 2026, user request)
+- STATUS: built and tested, NOT committed, NOT deployed.
+- USER REQUEST: "the install prompt [should be] fixed through the screens …
+  they should be able to close the install prompt or swipe it away. However
+  after a full refresh of the app, the prompt should become visible again."
+- ANDROID / CHROME: the "Install the AFRIFF app" toast now sits in
+  `apps/pwa/app/app.vue`, not the page frame, so it stays put on every page,
+  incl. the privacy and VIP-link pages (near the bottom edge there: no bottom
+  bar). NOT on the sign-up page (USER DECISION 28 Oct); it comes back on
+  leaving it. Before, it vanished on those pages.
+- CLOSING IT: ✕, "Not now", a swipe sideways (either way) or down, or "Cancel"
+  in Chrome's own install dialog. While swiping, the card follows the finger
+  and fades. A short drag springs back. Dragging up does nothing.
+  Closed = gone until the app is fully reloaded (kept in memory only, never
+  on the phone), then it shows again. Replaces the week-long "Not now".
+- IPHONE (USER DECISION 28 Oct: "on iphones it is not a prompt … rather, the
+  installation steps … that is what can be closed and then upon full refresh
+  it comes back"): no install toast on iPhone any more. The "Install the app
+  first" steps screen is what shows. "Continue on the web" closes it until a
+  full reload (no longer remembered in the browser; the old saved choice is
+  ignored), then it shows again. Same rule and same switch as Android's
+  toast. The alerts card's "Show me how" sheet still has the steps too.
+- Files: `components/app/AppPwaPrompts.vue` (toast + swipe),
+  `layouts/default.vue` (iPhone steps screen),
+  `packages/pwa/app/composables/useInstallApp.ts` (`dismissed` / `dismiss()`
+  replace `snoozed` / `snooze()`).
+- GOOGLE IN THE IPHONE HOME SCREEN APP (user question 28 Oct): the Home
+  Screen app has its own storage, separate from Safari, so the AFRIFF login
+  and the Google accounts signed in in Safari don't come along. The first
+  time, Google asks for the email + password there (iPhone can fill a saved
+  password or passkey); after that Google remembers them in the app.
+  ASKED 28 Oct: "what if the pop-up stays inside the Home Screen app?" Answer:
+  iOS decides where a pop-up opens (Safari or a separate sheet), and its
+  result can't get back to the app, so it hangs; storage is still separate.
+  The redirect (whole screen to Google and back, inside the app) already
+  keeps people in the app.
+  CHANGED 28 Oct (user: DP Fitness works on iPhones, "make sure it works just
+  like that here"): the button now SHOWS in the Home Screen app, with the
+  usual afriff-app.firebaseapp.com helper, exactly as DP Fitness (same code
+  path; DP Fitness had no rule hiding it). SETUP 3 is now optional hardening
+  (DEVELOPER.md). Google's page says "to continue to afriff-app.firebaseapp.com".
+  FIXED on the way: opening the sign-up page and tapping Google quickly
+  erased the "gone to Google" note, so backing out said nothing and a ticked
+  emails box was forgotten (`googleReturn` in lib/firebase/google.ts).
+  TESTED: real Firebase in a phone-sized test browser posing as the Home
+  Screen app: button shows, tap sends the whole screen to Google's sign-in
+  page (no pop-up), Back → "Google sign-in didn't finish", second try works;
+  Safari still uses the small window (6 checks; nobody signed in). NOT
+  TESTED: a real Google sign-in on a real iPhone.
+- TESTED (28 Oct, by Claude): 39 checks in a phone-sized test browser on the
+  dev app, with Chrome's install offer faked (Chrome only makes a real one on
+  an HTTPS deploy): same toast through Home → Programme → Queues → My
+  Festival → Home, Profile → privacy → back; none on the sign-up page (from
+  Profile or opened directly), back on leaving it; a sheet opens on top of
+  it; ✕ / Not now / Cancel in Chrome's dialog close it and it stays closed on
+  other pages; mouse and finger swipes right, left and down close it; short
+  drag springs back; up does nothing; a drag from Install doesn't install; a
+  full reload brings it back each time. iPhone: steps on opening even with
+  the old saved choice; Continue on the web closes them; no toast after 16 s;
+  stay closed across tabs, privacy and sign-up pages; back after each full
+  reload; none in the Home Screen app. Typecheck. NOT TESTED: real phones.
 
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on

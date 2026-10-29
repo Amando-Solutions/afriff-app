@@ -11,27 +11,17 @@ import { isIosDevice } from '../lib/platform'
  * and the most the app can do is show where that is. `method` tells them apart.
  */
 
-const SNOOZE_KEY = 'afriff-install-snoozed'
-/** How long "Not now" keeps the prompt away. */
-const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000
-
 /**
  *  · `prompt` — Chrome has offered the install; one tap does it.
  *  · `ios`    — iPhone/iPad, where the Share sheet is the only route.
  */
 export type InstallMethod = 'prompt' | 'ios'
 
-const readSnooze = (): number => {
-  try {
-    return Number(localStorage.getItem(SNOOZE_KEY) || 0)
-  } catch {
-    return 0
-  }
-}
-
 export const useInstallApp = () => {
   const ios = useState<boolean>('install-ios', isIosDevice)
-  const snoozedAt = useState<number>('install-snoozed-at', readSnooze)
+  // Closing the prompt (✕, "Not now", a swipe) lasts until the app is fully
+  // reloaded: it's kept in memory only, never on the phone, so a refresh asks again.
+  const dismissed = useState<boolean>('install-dismissed', () => false)
 
   // On iPhone, `navigator.standalone` (read into installState) is only true for
   // the real home-screen app. In-app browsers (Instagram, WhatsApp…) correctly
@@ -45,18 +35,11 @@ export const useInstallApp = () => {
     return null
   })
 
-  const snoozed = computed(() => Date.now() - snoozedAt.value < SNOOZE_MS)
-
   const install = () => promptInstall()
 
-  const snooze = () => {
-    snoozedAt.value = Date.now()
-    try {
-      localStorage.setItem(SNOOZE_KEY, String(snoozedAt.value))
-    } catch {
-      /* not saved: fine, it's only a reminder */
-    }
+  const dismiss = () => {
+    dismissed.value = true
   }
 
-  return { method, isInstalled, snoozed, install, snooze }
+  return { method, isInstalled, dismissed, install, dismiss }
 }

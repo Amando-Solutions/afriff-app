@@ -4,10 +4,11 @@
 // A small Google window (pop-up) everywhere, except the iPhone Home Screen
 // app: there a pop-up opens in Safari, a separate app with no way back, and
 // the sign-in would never finish. So the whole page goes to Google instead and
-// comes back to /auth, which finishes it (googleReturn). That only works once
-// the app serves Firebase's sign-in helper from its own address
-// (nuxt.config.ts routeRules + NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN; until then
-// lib/account.ts googleSignInHere() hides the button in that one place).
+// comes back to /auth, which finishes it (googleReturn), with the project's
+// usual firebaseapp.com helper, exactly as DP Fitness does on iPhones.
+// Optional hardening, if Safari's privacy rules ever lose the result on the
+// way back ("didn't finish"): serve the helper from the app's own address
+// (nuxt.config.ts routeRules + NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN).
 //
 // Loaded only on the sign-up page and the delete sheet, so the pop-up code
 // isn't in the rest of the app (see attendeeAuth in ./account).
@@ -121,14 +122,17 @@ async function startRedirect(marketing: boolean): Promise<null> {
 export async function googleReturn(): Promise<GoogleResult | null> {
   firebaseDb()
   const wasAway = pending.read()
+  // only clear a note that was there on arrival: a tap on the button while this
+  // was still asking writes a new one, for the trip that's just starting
+  const done = () => { if (wasAway) pending.clear() }
   let credential: UserCredential | null
   try {
     credential = await getRedirectResult(attendeeAuth(browserPopupRedirectResolver), browserPopupRedirectResolver)
   } catch (e) {
-    pending.clear()
+    done()
     throw explained(e)
   }
-  pending.clear()
+  done()
   if (credential) return resultOf(credential, wasAway?.marketing ?? false)
   // went to Google and came back with nothing: they backed out, or the browser lost it on the way
   if (wasAway) throw Object.assign(new Error('Google sign-in did not finish'), { code: 'google/unfinished' })

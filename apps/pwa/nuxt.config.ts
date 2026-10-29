@@ -61,9 +61,10 @@ export default defineNuxtConfig({
     '/**': { headers: { 'Cross-Origin-Opener-Policy': 'same-origin-allow-popups' } },
     // Firebase's sign-in helper, served from this app's own address. The
     // iPhone Home Screen app can't use a Google window and goes to Google with
-    // the whole page instead, which Safari only lets finish when the helper is
-    // on the same address as the app. Used once NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    // on the attendee project is this app's own address (DEVELOPER.md).
+    // the whole page instead. That works with the usual firebaseapp.com helper
+    // (as in DP Fitness); this is optional hardening against Safari's privacy
+    // rules, used only once NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN on the attendee
+    // project is this app's own address (DEVELOPER.md).
     '/__/auth/**': { proxy: `${FIREBASE_HELPER}/__/auth/**` },
   },
 
