@@ -1,0 +1,45 @@
+# App Hosting backend `afriff-app`: the attendee app (https://afriff.app).
+#
+# Named apphosting.yaml, not apphosting.production.yaml: App Hosting only reads
+# apphosting.<name>.yaml when the backend's Environment name (Settings >
+# Environment) is <name>, and neither backend has one set.
+#
+# Sizing: this app gets far more traffic than the staff app (every attendee,
+# from a QR code), but each request is cheap. It's an SPA (ssr: false) with no
+# server routes, so the server only hands out the app shell and static files,
+# and Cloud CDN in front of it serves the hashed /_nuxt files. So: small
+# instances, many requests each, and room to scale out.
+#
+# Quota: Cloud Run gives afriff-app 128 vCPU / 256 GiB in us-central1 (checked
+# 29 Oct 2026), shared with afriff-backoffice (apps/admin/apphosting.yaml).
+# The caps (40 here, 8 there) sit well inside it. They cap the bill if a bot
+# hammers the site; the quota isn't the limit here.
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  # Static files are served in milliseconds, so one instance takes far more
+  # than the default 80 at once. 40 × 250 = 10,000 requests at the same moment.
+  concurrency: 250
+  maxInstances: 40
+  # One instance stays warm, so the first QR scan of the day doesn't wait for a
+  # cold start. Billed while idle (roughly $10 a month at most): set it to 0
+  # after the festival.
+  minInstances: 1
+
+# The Firebase web app's public settings (not secrets: firestore.rules protects
+# the data). packages/core/nuxt.config.ts defaults them to '', so without them
+# the app can't reach the database. Same values in apps/admin/apphosting.yaml.
+# No `availability` given = available at build and at run time.
+env:
+  - variable: NUXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCPxdNaQyK6r4OU97-zBZBKLqHsHunGzYo
+  - variable: NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: afriff-app.firebaseapp.com
+  - variable: NUXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: afriff-app
+  - variable: NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: afriff-app.firebasestorage.app
+  - variable: NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "396757035301"
+  - variable: NUXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:396757035301:web:abf6a05cf9014ad3b412cc"
