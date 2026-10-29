@@ -358,7 +358,7 @@ const FAN = [
         <p v-if="note" class="mt-4 rounded-tile bg-accent-soft px-3 py-2 text-meta text-ink" role="status">{{ note }}</p>
 
         <!-- ---------- Continue with Google: signs up or logs in, whichever it is ---------- -->
-        <div v-if="(mode === 'signup' || mode === 'login') && google !== 'off'" class="mt-4 flex flex-col gap-3">
+        <div v-if="mode === 'signup' || mode === 'login'" class="mt-4 flex flex-col gap-3">
           <template v-if="google === 'ok'">
             <UiButton variant="secondary" size="lg" block :loading="googleBusy" :disabled="!online || busy" @click="withGoogle">
               <GoogleMark v-if="!googleBusy" />

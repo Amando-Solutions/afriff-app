@@ -12,3 +12,5 @@ firebase-debug.log
 !.env.example
 # design references stay on this laptop, never shipped or uploaded
 reference/
+# poster files stay on this laptop: once uploaded they live in Firebase Storage (scripts/posters)
+AFRIFF-posters/

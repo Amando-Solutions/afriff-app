@@ -8,3 +8,6 @@ dist/
 .env*
 # Cloud Functions are deployed to Firebase, not Vercel
 functions/
+# poster files for scripts/posters (they live in Firebase Storage)
+AFRIFF-posters/
+scripts/

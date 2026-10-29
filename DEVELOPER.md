@@ -259,8 +259,12 @@ All of this lives in `packages/pwa` and applies to both apps.
   false`): it force-reloads every open page on update and its "not now"
   hid the install offer for good.
 - **Install**: Chrome's offer is caught at start (`lib/installPrompt.ts`) and
-  shown as our toast; iPhone gets the Share → Add to Home Screen steps
-  (with a hint for in-app browsers). "Not now" snoozes for a week.
+  shown as our toast; iPhone gets the install-first screen's Share → Add to
+  Home Screen steps instead (below). The toast (`components/app/AppPwaPrompts.vue`)
+  is mounted in `app.vue`, so it stays across every page, layout or not, except
+  the sign-up page (`/auth`). ✕, "Not now", Cancel in Chrome's dialog or a swipe
+  (sideways or down) closes it until the next full reload
+  (`useInstallApp().dismissed`, in memory only; it also closes the iPhone screen).
 - **Offline banner** (`AppOfflineBanner.vue`): "You're offline…" while
   offline, "Back online" for a moment on return. Queues says when counts are
   the last ones received, and only shows "Live" when they are.
@@ -448,8 +452,9 @@ it's published.
 - **iPhone install-first** (27 Oct, as in DP Fitness's `access-code.vue`):
   `components/app/InstallFirst.vue`, shown by `layouts/default.vue` when
   `useInstallApp().method === 'ios'` (iPhone/iPad, not standalone) until
-  "Continue on the web" (localStorage `afriff-ios-web`, also snoozes the install
-  toast). Welcome cards wait for it. `?install=ios` forces it for testing.
+  "Continue on the web" (`useInstallApp().dismiss()`: closed until the next full
+  reload, then it shows again; nothing stored). iPhones get no install toast.
+  Welcome cards wait for it. `?install=ios` forces it for testing.
 - **Known**: the layout re-keys `<main>` when newer published data arrives
   (`dataVersion`), which closes an open bottom sheet (e.g. the delete
   confirmation) if a publish lands while it's open. Pre-existing; rare.
@@ -523,7 +528,13 @@ it's published.
      and support email Google shows.
   2. Authorized domains must list the attendee app's address (already needed for
      password resets). Without it: "Google sign-in doesn't work from this address yet".
-  3. **For the iPhone Home Screen app** (else the button is hidden there):
+  3. **Optional, for the iPhone Home Screen app.** Since 28 Oct the button shows
+     there and the whole page goes to Google and back through the usual
+     `afriff-app.firebaseapp.com` helper, exactly as DP Fitness does (its
+     `mustRedirect()`), so this step is no longer needed for it to work. Do it
+     if a real iPhone keeps saying "Google sign-in didn't finish" (Safari's
+     privacy rules losing the result on the way back), or to have Google's page
+     say the app's own address instead of firebaseapp.com:
      Google Cloud console → APIs & Services → Credentials → the OAuth client
      "Web client (auto created by Google Service)" → Authorized redirect URIs →
      add `https://<attendee address>/__/auth/handler`; then on the **attendee**
@@ -835,6 +846,55 @@ scheduled invites at their time.
   `npm --prefix functions run logs:invites`. Cost on Blaze: ~43,200 runs a
   month (free allowance 2 million) and a second Cloud Scheduler job (3 free).
 
+### Pictures in Firebase Storage (29 Oct 2026, on Blaze)
+- **Bucket**: the default `afriff-app.firebasestorage.app`
+  (`NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, already in both apps' config). Create
+  it once: Firebase console → Storage → Get started. Only us-central1 /
+  us-east1 / us-west1 get Cloud Storage's no-cost allowance (5 GB stored,
+  100 GB downloaded a month); the location can't be changed later.
+- **Layout**: `images/<kind>/<file>`, kind = `films`, `events`, `sponsors`,
+  `jury`. Files never change at their address (`Cache-Control: public,
+  max-age=31536000, immutable`); a new picture is a new file and a new link,
+  which is what the attendee service worker's CacheFirst rule for
+  `firebasestorage.googleapis.com` expects (`packages/pwa/nuxt.config.ts`).
+  Links are Firebase download URLs (`…/o/<path>?alt=media&token=…`), so
+  phones never need a rules check to show one.
+- **Rules**: `storage.rules`, deployed with `npm run deploy:storage`, or
+  `npm run deploy:all-rules` (Firestore rules + `firestore.indexes.json` +
+  storage rules together; the index file is empty because every query uses
+  single-field indexes, and the live project has none either, so deploying
+  it deletes nothing). The first storage deploy asks to let Storage read
+  Firestore: yes. Public `get`;
+  `create` for admins and editors (role read from `users/{uid}` with
+  `firestore.get`, plus the confirmed superadmin emails), JPEG / PNG / WebP
+  under 3 MB, known kinds only; no overwrites; delete = admins. Tested with
+  the Rules test API (20 cases; a wide-open file fails 14 of them). The
+  superadmin list is now checked in three places by `apps/admin/test/team.test.ts`.
+- **Console**: every picture field (`upload` in `apps/admin/app/lib/schema.ts`:
+  film poster, event graphic, sponsor logo, jury photo) shows a preview and
+  "Upload a picture" (`AdminField.vue` → `lib/upload.ts`). The picture is
+  shrunk in the browser to fit 720 × 1080 (JPEG 0.72; PNG if it has
+  see-through pixels, for logos; a small JPEG is kept as it is), uploaded
+  with `uploadBytesResumable` (2-minute retry limit, not Firebase's 10), and
+  its download URL fills the field. Save waits while an upload runs. Editors'
+  uploads are stored straight away but only linked once their change is
+  approved. `firebase/storage` is loaded only when someone uploads.
+- **Posters script**: `scripts/posters/upload-posters.mjs` (dry run by
+  default, `--write` to upload; `--folder`, `--replace-team-links`). Matches
+  each file in `AFRIFF-posters/` (not in Git) to a film by ID, then by its
+  title in `_poster_list.csv`, then by file name (same `matchTitle` as the
+  schedule loader), shrinks it with macOS `sips` (720 × 1080, quality 65),
+  stores it as `images/films/<film id>.<sha256-12>.jpg` with a download
+  token, and sets `films/{id}.image`. Replaces empty posters, afriff.com /
+  lovable.app / IMDb links and its own earlier uploads; keeps anything the
+  team set (listed). Idempotent: same file = same object = nothing new.
+  Backs up the old links to `~/Documents/afriff-backups/before-posters-*.json`.
+  Never publishes.
+- **Not moved yet**: sponsor logos, jury photos and the two masterclass
+  graphics still linked from afriff.com (upload them in the console, or copy
+  the posters script), and the built-in copy in `packages/core/src/data/`
+  (only the first-visit fallback) still points at afriff.com.
+
 ## 5. Deploying and hosting
 Two Vercel projects from this one repo, one per app:
 
@@ -904,9 +964,12 @@ to test with real logins at a door; `?queues=sample` shows pretend queues for de
 **Before launch:**
 - Real screening and event times. All current times are **samples**
   (including the new Writers Workshop, Wed 4 Nov 3 PM).
-- Host film posters, sponsor logos and jury photos ourselves. They're still
-  hot-linked from AFRIFF's site (the masterclass graphics are now in
-  `apps/pwa/public/masterclasses/`, except Producing and Animation).
+- Host film posters, sponsor logos and jury photos ourselves. Posters: run
+  `scripts/posters/upload-posters.mjs --write` once Storage is switched on
+  (see "Pictures in Firebase Storage"). Sponsor logos and jury photos are
+  still hot-linked from AFRIFF's site; upload them in the console (the
+  masterclass graphics are in `apps/pwa/public/masterclasses/`, except
+  Producing and Animation).
 - AFRIFF to confirm the 3 "How to attend" sections marked CONFIRM; swap in
   the official logo (`packages/theme/public/`); add bios for Erin G. Wesley, Chuka
   Ejorh and Tunde Babalola (left empty rather than invented).

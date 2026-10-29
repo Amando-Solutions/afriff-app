@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { dataVersion } from '@afriff/core/published'
 import { testSwitch } from '@afriff/core/utils/now'
 
 // The attendee app's frame, laid out like the original React app: sponsor
-// ribbon, header, offline banner, the page, the bottom bar, and the install /
-// update toasts. Pages put their content in <div class="page">.
+// ribbon, header, offline banner, the page and the bottom bar (the install
+// toast is in app.vue, so it stays on pages without this frame too).
+// Pages put their content in <div class="page">.
 // First open: on an iPhone in the browser, the install steps come first
 // (InstallFirst); then the welcome cards; then the app.
 const welcomeOpen = useState('welcome-open', () => false)
@@ -17,22 +18,14 @@ onMounted(() => {
   }
 })
 
-// iPhone / iPad in the browser (not the Home Screen app): install first,
-// until they choose "Continue on the web" (remembered in this browser).
-const WEB_KEY = 'afriff-ios-web'
+// iPhone / iPad in the browser (not the Home Screen app): install first.
+// "Continue on the web" closes it until the app is fully reloaded, the same
+// rule as the Android install toast (useInstallApp().dismissed).
 const install = useInstallApp()
-const onWeb = ref((() => {
-  try { return localStorage.getItem(WEB_KEY) === '1' } catch { return false }
-})())
 const installFirstOpen = useState('install-first-open', () => false)
 watchEffect(() => {
-  installFirstOpen.value = !onWeb.value && (install.method.value === 'ios' || testSwitch('install') === 'ios')
+  installFirstOpen.value = !install.dismissed.value && (install.method.value === 'ios' || testSwitch('install') === 'ios')
 })
-function continueOnWeb() {
-  onWeb.value = true
-  try { localStorage.setItem(WEB_KEY, '1') } catch { /* blocked: asked again next visit */ }
-  install.snooze() // and no "Add to Home Screen" toast straight after
-}
 </script>
 
 <template>
@@ -49,8 +42,7 @@ function continueOnWeb() {
       </main>
     </div>
     <AppTabBar />
-    <AppPwaPrompts />
-    <InstallFirst v-if="installFirstOpen" @web="continueOnWeb" />
+    <InstallFirst v-if="installFirstOpen" @web="install.dismiss()" />
     <WelcomeCards v-else-if="welcomeOpen" @done="welcomeOpen = false" />
   </div>
 </template>

@@ -64,7 +64,7 @@ export default defineNuxtConfig({
     server: { allowedHosts: true },
     // the console's own code is big on purpose (only staff open it)
     build: { chunkSizeWarningLimit: 700 },
-    optimizeDeps: { include: ['lucide-vue-next', 'firebase/app', 'firebase/auth', 'firebase/firestore'] },
+    optimizeDeps: { include: ['lucide-vue-next', 'firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'] },
   },
 
   app: {
