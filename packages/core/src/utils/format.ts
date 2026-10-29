@@ -1,5 +1,5 @@
 // Date, time and queue helpers shared by all screens.
-import type { Queue, ToneLabel } from '../types/festival';
+import type { Queue, QueueLabel } from '../types/festival';
 
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
@@ -55,14 +55,34 @@ export const runtimeLabel = (mins: number) => (mins >= 60 ? `${Math.floor(mins /
 export const screeningStart = (sc: { date: string; time: string }) => new Date(`${sc.date}T${sc.time}:00+01:00`);
 
 // Queue label from people in line vs seats left
-export function queueLabel(queue: Pick<Queue, 'inLine' | 'seatsLeft'> | null | undefined): ToneLabel | null {
+// People in line ÷ seats left: under 0.6 good chance, under 1 filling up,
+// otherwise more people than seats.
+export function queueLabel(queue: Pick<Queue, 'inLine' | 'seatsLeft'> | null | undefined): QueueLabel | null {
   if (!queue) return null;
   const { inLine, seatsLeft } = queue;
-  if (seatsLeft <= 0) return { text: 'Full', tone: 'alert' };
+  if (seatsLeft <= 0) return { text: 'Full', tone: 'alert', detail: 'no seats left' };
   const ratio = inLine / seatsLeft;
-  if (ratio < 0.7) return { text: 'Good chance', tone: 'good' };
-  if (ratio < 1.2) return { text: 'Tight', tone: 'gold' };
-  return { text: 'Unlikely', tone: 'alert' };
+  if (ratio < 0.6) return { text: 'Good chance of a seat', tone: 'good', detail: '' };
+  const spare = seatsLeft - inLine;
+  if (ratio < 1) return { text: 'Filling up', tone: 'warn', detail: `${spare} seat${spare === 1 ? '' : 's'} left` };
+  const extra = inLine - seatsLeft;
+  return {
+    text: 'Likely full',
+    tone: 'alert',
+    detail: extra === 0 ? 'as many people as seats' : `${extra} more ${extra === 1 ? 'person' : 'people'} than seats`,
+  };
+}
+
+// The queue's bar, out of the seats there were at the door (seatsStart, else
+// the screening's capacity): the seats already taken (solid), then the people
+// in line who would still fit (faded). Moves with every count: "Let in" turns
+// line into taken, a walk-in adds to taken, "Joined" adds to the line.
+export function queueBar({ inLine, seatsLeft, seatsStart }: Pick<Queue, 'inLine' | 'seatsLeft' | 'seatsStart'>, capacity = 0) {
+  const total = Math.max(seatsStart || capacity, seatsLeft, 1);
+  const taken = seatsLeft <= 0 ? total : total - seatsLeft;
+  const line = Math.min(inLine, Math.max(0, seatsLeft));
+  const pct = (n: number) => Math.round((n / total) * 1000) / 10;
+  return { taken: pct(taken), line: pct(line), total };
 }
 
 export const initials = (name: string) =>

@@ -1,7 +1,7 @@
 import { onBeforeUnmount, reactive, ref } from 'vue';
 import type { Queue, Screening } from '@afriff/core/types/festival';
 import { FESTIVAL, SCREENINGS } from '@afriff/core/data/programme';
-import { screeningStart } from '@afriff/core/utils/format';
+import { fromMinutes, screeningStart, toMinutes } from '@afriff/core/utils/format';
 import { lagosDate, now, testSwitch } from '@afriff/core/utils/now';
 
 // LIVE QUEUES (build step 8)
@@ -26,7 +26,8 @@ import { lagosDate, now, testSwitch } from '@afriff/core/utils/now';
 // to see pretend queues (opens 2 hours before each screening, the line grows,
 // a new count every 5 minutes; follows the test clock ?now=...).
 
-export const QUEUE_OPENS_MINUTES = 120;
+/** a line opens (volunteers start counting) about this long before its screening */
+export const QUEUE_OPENS_MINUTES: number = 120;
 const POST_EVERY_MINUTES = 5;
 /** start listening this long before a screening (volunteers may start counting early) */
 const LISTEN_BEFORE_MINUTES = 180;
@@ -127,6 +128,7 @@ function sampleAt(screening: Screening, t: number): Queue | null {
   return {
     inLine: Math.max(0, Math.round(C * demand * 0.7 * p) + wobble),
     seatsLeft: Math.max(0, Math.round(C * (1 - demand * 0.45) - C * demand * 0.35 * p)),
+    seatsStart: C,
     updatedAt: postedAt,
   };
 }
@@ -140,7 +142,8 @@ export function queueAt(screening: Screening, t: number = now().getTime()): Queu
   const e = board.date === screening.date ? board.queues[screening.id] : null;
   if (!e) return null; // no volunteer is counting this one (yet)
   if (screeningStart(screening).getTime() <= t) return null; // film has started: queue over
-  return { inLine: e.inLine, seatsLeft: e.seatsLeft, updatedAt: e.updatedAt || t };
+  // no time yet (the save is still on its way): it was just counted
+  return { inLine: e.inLine, seatsLeft: e.seatsLeft, seatsStart: e.seatsStart, updatedAt: e.updatedAt || Date.now() };
 }
 
 // A ref holding "now" (ms) that moves on every 30 seconds, and as soon as new
@@ -167,27 +170,56 @@ export function openQueues(t: number): OpenQueue[] {
   }).sort((a, b) => screeningStart(a.screening).getTime() - screeningStart(b.screening).getTime());
 }
 
-const latestFirst = (a: OpenQueue, b: OpenQueue) =>
-  b.queue.updatedAt - a.queue.updatedAt || a.screening.time.localeCompare(b.screening.time);
+// A screening on the Queues screen, with its count once a volunteer is counting.
+export interface QueueRow { screening: Screening; queue: Queue | null }
 
-// Recent counts across all open queues, latest first.
-export function recentUpdates(t: number, limit = 10): OpenQueue[] {
-  if (!SAMPLE) return openQueues(t).sort(latestFirst).slice(0, limit);
-  const slot = POST_EVERY_MINUTES * 60000;
-  const updates: OpenQueue[] = [];
-  for (const { screening } of openQueues(t)) {
-    for (let k = 0; k < 4; k++) {
-      const q = sampleAt(screening, t - k * slot);
-      if (!q) break;
-      updates.push({ screening, queue: q });
-    }
-  }
-  return updates.sort(latestFirst).slice(0, limit);
+const startOf = (s: Screening) => screeningStart(s).getTime();
+const upcoming = (t: number) => SCREENINGS
+  .filter((s) => s.status !== 'cancelled' && startOf(s) > t)
+  .sort((a, b) => startOf(a) - startOf(b));
+
+// "Starting soon": screenings in the next 3 hours (same window the phone
+// listens for counts in), plus any further out that are already being counted.
+export function startingSoon(t: number): QueueRow[] {
+  return upcoming(t).flatMap((s): QueueRow[] => {
+    const queue = queueAt(s, t);
+    return queue || startOf(s) - t <= LISTEN_BEFORE_MINUTES * 60000 ? [{ screening: s, queue }] : [];
+  });
 }
 
-export const minutesAgo = (t: number, at: number) => {
-  const m = Math.max(0, Math.round((t - at) / 60000));
-  return m === 0 ? 'just now' : `${m} min ago`;
+
+// The next screening to start, for "Next line to open" (null after the festival).
+export const nextScreening = (t: number): Screening | null => upcoming(t)[0] ?? null;
+
+// When a screening's line opens (about QUEUE_OPENS_MINUTES before it starts), as 'HH:MM'
+export const lineOpensAt = (s: Screening) => fromMinutes((toMinutes(s.time) - QUEUE_OPENS_MINUTES + 24 * 60) % (24 * 60));
+
+// "2 hours" / "45 minutes": how long before a screening its line opens
+export const lineOpensBefore = QUEUE_OPENS_MINUTES % 60 === 0
+  ? `${QUEUE_OPENS_MINUTES / 60} hour${QUEUE_OPENS_MINUTES === 60 ? '' : 's'}`
+  : `${QUEUE_OPENS_MINUTES} minutes`;
+
+// "in 25 min" / "in 2 hr 05" until a screening starts
+export function startsIn(t: number, s: Screening) {
+  const m = Math.max(0, Math.round((startOf(s) - t) / 60000));
+  if (m === 0) return 'starting now';
+  if (m < 60) return `in ${m} min`;
+  const rest = m % 60;
+  return `in ${Math.floor(m / 60)} hr${rest ? ` ${String(rest).padStart(2, '0')}` : ''}`;
+}
+
+// "Counted 3 min ago". A door count carries the real time it was saved, so
+// this compares it with the real clock, not the ?now= test clock (a test day a
+// week ahead said "10067 min ago"). Pretend counts (?queues=sample) follow the
+// test clock. `t` is the screen's clock, so the text moves on with it.
+export const countedAgo = (t: number, at: number) => {
+  const m = Math.max(0, Math.floor(((SAMPLE ? t : Date.now()) - at) / 60000));
+  if (m === 0) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  const d = Math.floor(h / 24);
+  return `${d} day${d === 1 ? '' : 's'} ago`;
 };
 
 export const isSampleQueues = () => SAMPLE;

@@ -150,15 +150,23 @@ export interface JuryMember {
 export interface Queue {
   inLine: number
   seatsLeft: number
+  /** seats there were at the door when counting started (door view: "Seats available at the door") */
+  seatsStart?: number | null
   /** ms since 1970 */
   updatedAt: number
 }
 
-export type Tone = 'good' | 'gold' | 'alert' | 'muted'
+/** 'warn' = amber, a queue that's filling up */
+export type Tone = 'good' | 'gold' | 'warn' | 'alert' | 'muted'
 
 export interface ToneLabel {
   text: string
   tone: Tone
+}
+
+/** A queue's chance of a seat, plus the numbers behind it ("14 seats left") */
+export interface QueueLabel extends ToneLabel {
+  detail: string
 }
 
 /** What "Publish to app" sends to phones (one JSON document) */

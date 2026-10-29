@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
-import { AwardIcon, ChevronRightIcon, GraduationCapIcon, MapPinIcon, TicketIcon, TriangleAlertIcon, XIcon } from 'lucide-vue-next'
-import { activeBanner, newsLink } from '~/lib/alerts'
-import { FESTIVAL, SCREENINGS, filmById } from '@afriff/core/data/programme'
+import { computed, ref } from 'vue'
+import { AwardIcon, ChevronRightIcon, GraduationCapIcon, MapPinIcon, TicketIcon } from 'lucide-vue-next'
+import { FESTIVAL, SCREENINGS, filmById, venueById } from '@afriff/core/data/programme'
 import { EVENTS, EVENT_TYPES, isMultiDay } from '@afriff/core/data/events'
 import { dateParts, queueLabel, timeLabel } from '@afriff/core/utils/format'
 import { queueAt, useLiveClock } from '~/lib/queues'
-import { lagosDate, now as clockNow } from '@afriff/core/utils/now'
+import { lagosDate } from '@afriff/core/utils/now'
 import { dayInfo, festivalPhase, venueShort, type UpcomingItem } from '~/lib/today'
 import type { FestivalEvent, Film, ItemStatus, Screening } from '@afriff/core/types/festival'
 import { openProgrammeDay } from '~/lib/programmeMemory'
 import { useFestival } from '~/lib/store'
+import keyArt from '~/assets/images/home-keyart.jpg'
 
 // HOME, kept simple: the bottom bar already reaches Programme, Queues and
-// My Festival, so Home only shows the banner, shortcuts to the things the
+// My Festival, so Home only shows the hero, shortcuts to the things the
 // bottom bar doesn't reach, a taste of the day, events and sponsors.
+// (The urgent alert is under the header on every page: AlertBanner.vue.)
+// Hero laid out like the designer's screens (afriff-screens-html/afriff-home-*.html)
+// in the app's own look: before the festival the key art, headline, opening
+// night film and countdown; 1–7 Nov the daily highlight (DailyHighlight.vue).
 useHead({ title: 'AFRIFF 2026' })
 
 const { isScheduled, toggleScheduled } = useFestival()
@@ -22,31 +26,19 @@ const t = useLiveClock(60000) // redraw every minute: "Next up" and Today move o
 const phase = computed(() => festivalPhase(t.value))
 const today = computed(() => lagosDate(new Date(t.value)))
 
-// ---------- Urgent news banner ----------
-const bannerHidden = ref(false)
-const urgent = computed(() => activeBanner())
-const urgentLink = computed(() => (urgent.value ? newsLink(urgent.value) : null))
-const urgentTitle = computed(() => {
-  const title = urgent.value?.title || ''
-  return /[.!?:]$/.test(title) ? title : `${title}.`
-})
+// ---------- Countdown to opening night (Countdown ticks every second) ----------
+const openingAt = new Date(FESTIVAL.openingNight).getTime()
+const openingStarted = computed(() => t.value >= openingAt)
 
-// ---------- Countdown (d / h / m, no seconds) ----------
-const nowMs = ref(clockNow().getTime())
-const tick = setInterval(() => { nowMs.value = clockNow().getTime() }, 1000)
-onBeforeUnmount(() => clearInterval(tick))
-const countdown = computed(() => {
-  const diff = Math.max(0, new Date(FESTIVAL.openingNight).getTime() - nowMs.value)
-  const sec = Math.floor(diff / 1000)
-  return {
-    days: Math.floor(sec / 86400),
-    hours: Math.floor((sec % 86400) / 3600),
-    mins: Math.floor((sec % 3600) / 60),
-    done: diff === 0,
-  }
+// ---------- Opening night film: the Opening Movie's first-day screening ----------
+const openingFilm = computed(() => {
+  const s = SCREENINGS.filter((x) => x.date === FESTIVAL.days[0] && x.status !== 'cancelled' && filmById(x.film)?.section === 'Opening Movie')
+    .sort((a, b) => b.time.localeCompare(a.time))[0] // the evening one, if it plays twice
+  const film = s && filmById(s.film)
+  if (!s || !film) return null
+  const p = dateParts(s.date)
+  return { film, when: `${p.day} ${p.date} ${p.month} · ${timeLabel(s.time)}`, venue: venueById(s.venue)?.name || '' }
 })
-const pad = (n: number) => String(n).padStart(2, '0')
-const units = computed(() => [{ n: countdown.value.days, l: 'd' }, { n: countdown.value.hours, l: 'h' }, { n: countdown.value.mins, l: 'm' }])
 
 // ---------- Shortcuts to things the bottom bar doesn't reach ----------
 const howTo = ref(false)
@@ -114,31 +106,29 @@ const strip = computed(() => {
 
 <template>
   <div class="page">
-    <!-- Urgent news (newest urgent alert that hasn't passed its "show until" time) -->
-    <div v-if="urgent && !bannerHidden" class="news-banner" role="status">
-      <TriangleAlertIcon :size="20" class="news-banner-icon" />
-      <NuxtLink :to="urgentLink?.href || '/news'" class="news-banner-text">
-        <strong>{{ urgentTitle }}</strong> {{ urgent.body }}
-        <span v-if="urgentLink" class="news-banner-cta"> {{ urgentLink.label }} →</span>
-      </NuxtLink>
-      <button type="button" class="icon-btn" aria-label="Dismiss" @click="bannerHidden = true">
-        <XIcon :size="18" />
-      </button>
-    </div>
-
-    <!-- Before the festival: countdown -->
+    <!-- Before the festival: key art, headline, opening night film, countdown -->
     <section v-if="phase === 'before'" class="hero">
-      <p class="hero-eyebrow">1–7 Nov 2026 · Lagos</p>
-      <h2 class="hero-title">Seven days of African stories on the big screen</h2>
-      <p v-if="countdown.done" class="hero-sub">The festival is on. Enjoy the films!</p>
-      <div v-else class="countdown" :aria-label="`Opening night in ${countdown.days} days, ${countdown.hours} hours and ${countdown.mins} minutes`">
-        <span class="countdown-label">Opening night in</span>
-        <span v-for="u in units" :key="u.l" class="count-box" aria-hidden="true">
-          <span class="count-n">{{ pad(u.n) }}</span>
-          <span class="count-l">{{ u.l }}</span>
+      <img :src="keyArt" alt="" class="hero-art" decoding="async" />
+      <p class="hero-eyebrow">1–7 November 2026</p>
+      <h2 class="hero-title">Seven days of <span>African stories</span> on the big screen</h2>
+
+      <NuxtLink v-if="openingFilm" :to="`/film/${openingFilm.film.id}`" class="opening-film">
+        <FilmPoster :film="openingFilm.film" class="poster-opening" />
+        <span class="opening-film-text">
+          <span class="hero-eyebrow">Opening night film</span>
+          <span class="opening-film-title">{{ openingFilm.film.title }}</span>
+          <span class="opening-film-meta">
+            {{ openingFilm.when }}<template v-if="openingFilm.venue"><br />{{ openingFilm.venue }}</template><template v-if="openingFilm.film.director"><br />Dir. {{ openingFilm.film.director }}</template>
+          </span>
+          <span class="opening-film-more">About the film →</span>
         </span>
+      </NuxtLink>
+
+      <div v-if="!openingStarted" class="countdown">
+        <span class="countdown-label">Opening night starts in</span>
+        <Countdown :to="openingAt" days label="Opening night starts in" />
       </div>
-      <NuxtLink to="/programme" class="btn btn-gold hero-cta">Explore the programme</NuxtLink>
+      <NuxtLink to="/programme" class="btn btn-gold hero-cta">See the programme</NuxtLink>
     </section>
 
     <!-- 1–7 Nov: the daily highlight -->

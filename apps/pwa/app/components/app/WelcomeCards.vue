@@ -76,7 +76,7 @@ onBeforeUnmount(() => { document.body.style.overflow = prev })
             <div class="wc-seats">
               <i v-for="s in 24" :key="s" :class="{ free: (s - 1) % 5 === 3 || s - 1 > 19 }" />
             </div>
-            <div class="wc-label">Good chance · 63 seats left</div>
+            <div class="wc-label">Good chance of a seat</div>
           </div>
           <div v-else-if="c.art === 'seen'" class="wc-card">
             <div class="wc-posters">
