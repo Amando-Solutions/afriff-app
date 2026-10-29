@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 import { BellRingIcon, CheckIcon, DownloadIcon } from 'lucide-vue-next'
 import { testSwitch } from '@afriff/core/utils/now'
 import { browserCanPush, pushConfigured, pushState, turnOnAlerts } from '~/lib/push'
@@ -12,17 +12,20 @@ import { browserCanPush, pushConfigured, pushState, turnOnAlerts } from '~/lib/p
  * ✕, "Not now" or swiping it away (sideways or down, SwipeCard.vue) closes a
  * card until the app is fully reloaded; then it asks again.
  *
- * 1. "Turn on alerts": the same alerts as the switch on Profile and News
+ * 1. "Install the AFRIFF app" (logic in useInstallApp, from @afriff/pwa), for
+ *    Android / Chrome / Edge: the browser's own install dialog ("Cancel" there
+ *    closes it too). iPhones get the install-first screen's steps instead
+ *    (InstallFirst.vue). First, because installing is what we want people to
+ *    do first.
+ * 2. "Turn on alerts": the same alerts as the switch on Profile and News
  *    (lib/push.ts). Where the switch works (Android browsers, the iPhone Home
  *    Screen app; not iPhone Safari, where the install-first screen says how),
  *    and only while this phone has never been asked: someone who said no, or
  *    turned alerts off in Profile, isn't asked again.
- * 2. "Install the AFRIFF app" (logic in useInstallApp, from @afriff/pwa), for
- *    Android / Chrome / Edge: the browser's own install dialog ("Cancel" there
- *    closes it too). iPhones get the install-first screen's steps instead
- *    (InstallFirst.vue).
- * A card that's showing stays until it's closed, even if the other one
- * becomes possible meanwhile.
+ * Chrome makes its install offer a moment after the page loads, so the alerts
+ * card waits a few seconds before it shows, and an alerts card nobody has
+ * tapped yet still gives way to the install toast if the offer comes later.
+ * Once "Turn on" is tapped it stays, to say how that went.
  *
  * There's no "new version ready" toast any more: a new version installs by
  * itself and the app reloads onto it when it's next reopened
@@ -46,25 +49,36 @@ const alertsClosed = ref(false)
 // turned on from this card: it stays up to say how that went
 const alertsTapped = ref(false)
 const alertsDone = ref(false)
+// time for Chrome's install offer to arrive, so the install toast usually comes
+// first without the alerts card showing and then swapping for it
+const ALERTS_WAIT_MS = 3000
+const alertsWaited = ref(false)
 
 const wanted = {
-  alerts: computed(() => alertsPossible.value && !alertsClosed.value
-    && (alertsTapped.value || (!pushState.on && pushState.permission === 'default'))),
   install: computed(() => install.method.value === 'prompt' && !install.dismissed.value),
+  alerts: computed(() => alertsPossible.value && alertsWaited.value && !alertsClosed.value
+    && (alertsTapped.value || (!pushState.on && pushState.permission === 'default'))),
 }
 type Prompt = keyof typeof wanted
 const current = ref<Prompt | null>(null)
 watchEffect(() => {
-  if (current.value && wanted[current.value].value) return
-  current.value = wanted.alerts.value ? 'alerts' : wanted.install.value ? 'install' : null
+  if (current.value === 'alerts' && alertsTapped.value && wanted.alerts.value) return
+  current.value = wanted.install.value ? 'install' : wanted.alerts.value ? 'alerts' : null
 })
 
+let waitTimer: ReturnType<typeof setTimeout> | undefined
 let doneTimer: ReturnType<typeof setTimeout> | undefined
+onMounted(() => {
+  waitTimer = setTimeout(() => { alertsWaited.value = true }, ALERTS_WAIT_MS)
+})
 function closeAlerts() {
   clearTimeout(doneTimer)
   alertsClosed.value = true
 }
-onBeforeUnmount(() => clearTimeout(doneTimer))
+onBeforeUnmount(() => {
+  clearTimeout(waitTimer)
+  clearTimeout(doneTimer)
+})
 
 // straight from the tap: browsers only ask for permission in answer to one
 async function turnOn() {

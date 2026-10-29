@@ -323,7 +323,8 @@ Read this first; the dated sections below are the detailed history.
   Firebase Storage is switched on.
 - NEEDED FROM AFRIFF: real schedule (times, rooms), premiere status per
   film (afriff.com doesn't publish it, so no premiere badges yet), posters
-  for the 18 films that have none, details for the 36 Out of Competition
+  for the 42 scheduled films that have none (29 Oct; 30 of them are
+  title-only "Also screening" films that also need every detail), details for the 36 Out of Competition
   films (synopsis, runtime, country), poster / logo / jury photo files to
   host ourselves, sponsors' OK to show logos, confirm 3 "How to attend"
   sections, bios for Erin G. Wesley, Chuka Ejorh, Tunde Babalola, date +
@@ -946,6 +947,8 @@ heavy libraries) apply everywhere.
 - Testing switches (`?now=`, `?queues=sample`, `?welcome=1`, `?share=1`)
   now go straight after the address, e.g. `/programme?now=2026-11-03T13:00`,
   and are remembered for the browser tab.
+  CHANGED 29 Oct: only where `NUXT_PUBLIC_TEST_SWITCHES=true` (off on the
+  live apps). See "Testing switches only where a setting allows".
 - Hosting: `vercel.json` tells Vercel the project is Nuxt now (it was set
   up as Vite). Deploy the same way as before.
 - Checked (cloud browser at phone size): every screen, welcome cards, plan
@@ -2221,6 +2224,16 @@ heavy libraries) apply everywhere.
   The 30 were briefly deleted, then put back (see "Official screening
   schedule loader" → REMOVED AND PUT BACK). Of the 48 without a poster, 18
   are on afriff.com with no poster there; 30 aren't on afriff.com at all.
+  DELETED 29 Oct ~20:32 UTC (Michael's decision): the 6 films with no poster
+  AND no screening in the sheet: 2:Love, A Gram of Deception, GOAT, Her
+  Daughters' Mother, Soul Catcher, The Trouble With Us All (all on
+  afriff.com; nothing referred to them). Database = 128 films, 124
+  screenings; 42 films left without a poster, all on the schedule. Not
+  published yet. Backup: /Users/mac/Documents/afriff-backups/
+  before-remove-unscheduled-2026-10-29T20-32-40.json. WATCH OUT: all but
+  GOAT are still in the built-in copy (`packages/core/src/data/programme.ts`),
+  so the console's "Add missing festival data" would add those 5 back.
+  Don't press it, or remove their lines from programme.ts first.
 - CONSOLE: every picture field (film poster, event graphic, sponsor logo,
   jury photo) has a preview and "Upload a picture"; the picture is made
   smaller on the device first (same size as the script). Admins and editors
@@ -2306,10 +2319,16 @@ heavy libraries) apply everywhere.
     the "Install the app first" screen already says how. The card shows in
     the Home Screen app.
   - On the sign-up page and over the welcome cards (same as the install toast).
-  - ONE CARD AT A TIME: on Android in Chrome, the alerts card comes first and
-    the "Install the AFRIFF app" toast follows once it's closed or alerts are
-    on (two stacked cards would cover half a small phone). A card that's
-    showing is never swapped for the other.
+  - ONE CARD AT A TIME: on Android in Chrome, the "Install the AFRIFF app"
+    toast comes first and the alerts card follows once it's closed or the app
+    is installed (two stacked cards would cover half a small phone).
+    CHANGED 29 Oct (Michael: "the installation prompt should be above the
+    alert prompt because that is what we want the user to do first"; it was
+    alerts first). Chrome makes its install offer a moment after the page
+    loads, so the alerts card waits 3 s before showing, and an alerts card
+    nobody has tapped still gives way to the install toast if the offer comes
+    later. Once "Turn on" is tapped, the alerts card stays until closed.
+    NOT committed yet.
   - Not in `npm run dev` (alerts never work there): use a build.
 - TESTED (29 Oct, by Claude): 48 checks in a phone-sized test browser on a
   production build, with the permission question, the push address and the
@@ -2490,6 +2509,34 @@ heavy libraries) apply everywhere.
   plan's link opens Scheduled. NOT TESTED: real phones.
 - To try: save a screening, then open `/my?now=<its date>T<an hour or less
   before it>` (e.g. `/my?now=2026-11-03T12:20` for a 1:00 PM screening).
+
+### Testing switches only where a setting allows (29 Oct 2026, Michael's request)
+- STATUS: built and tested, NOT committed, NOT deployed. No cost.
+- WHAT: the testing switches in the address (`?now=`, `?queues=sample`,
+  `?welcome=1`, `?share=1`, `?install=ios`) now only work where the setting
+  `NUXT_PUBLIC_TEST_SWITCHES` is `true`. Anywhere else (unset, `false`,
+  anything else) the address is ignored: real clock, real queues, no welcome
+  cards forced, even if a switch was remembered in that browser tab earlier.
+  Both apps (the staff door view follows `?now=` too).
+- WHERE IT'S SET: `true` in the local `apps/pwa/.env` and `apps/admin/.env`
+  (so testing on the laptop works as before); `false` on the live apps
+  (`apps/*/apphosting.production.yaml`). The app's front page is built ahead
+  of time with the value inside it, so it must be set when the app is BUILT
+  (and when it runs); change it = rebuild/redeploy.
+- STAGING (same day): `apps/pwa/apphosting.staging.yaml` and
+  `apps/admin/apphosting.staging.yaml` for the two staging backends Michael
+  made on Firebase App Hosting (`staging-afriff-app`,
+  `staging-afriff-backoffice`, environment "staging"): switches ON there,
+  small (max 2 copies running, none kept warm), each pointing at the other.
+  SAME Firebase project as the live apps, so anything published, counted or
+  sent from the staging console is real. Details: DEVELOPER.md §5.
+- One gate: `testSwitch()` in `packages/core/src/utils/now.ts` (reads
+  `runtimeConfig.public.testSwitches` from `packages/core/nuxt.config.ts`).
+- TESTED (29 Oct, by Claude): both apps typecheck; 102 staff tests; attendee
+  app production builds in a phone-sized browser (database writes blocked):
+  switch off → `?now=` ignored on Home and not remembered, a remembered clock
+  ignored, `?queues=sample` ignored, `?welcome=1` ignored; switch on → all of
+  them work (14 checks). NOT TESTED: the staff app in a browser (same gate).
 
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on

@@ -19,6 +19,12 @@ export default defineNuxtConfig({
         messagingSenderId: process.env.NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
         appId: process.env.NUXT_PUBLIC_FIREBASE_APP_ID || '',
       },
+      // Testing switches in the address (?now=, ?queues=sample, ?welcome=1,
+      // ?share=1, ?install=ios; src/utils/now.ts testSwitch()). Only
+      // NUXT_PUBLIC_TEST_SWITCHES=true lets them work; unset or anything else
+      // = ignored, so a production build can't be steered from the address.
+      // Set it at build AND run time (`/` is prerendered with the value baked in).
+      testSwitches: process.env.NUXT_PUBLIC_TEST_SWITCHES === 'true',
     },
   },
 })
