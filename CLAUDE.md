@@ -1983,6 +1983,18 @@ heavy libraries) apply everywhere.
   link and the test invitation.
 - Backups (outside the project, they hold attendee emails):
   /Users/mac/Documents/afriff-backups/before-revert-2026-10-28.json.
+- AGAIN 29 Oct (~8 PM Lagos, after Michael's second round of tests): the
+  festival data in the database was identical to the 29 Oct 09:25 UTC
+  publish (official schedule + Storage posters + jury), and that publish
+  matches the schedule sheet (124 screenings, seats unchanged, no statuses)
+  and the pre-schedule backup apart from the schedule load's own changes. Only
+  test door counts were left: the Demo door volunteer's 4 counts on Thu 5 Nov
+  at Landmark and an old one on sample screening s11 (2 Nov). Both deleted;
+  no queue counts remain. Nothing published (not needed). afriff.com: film
+  list unchanged since 28 Oct; its schedule page no longer says times are
+  coming but still lists none. Left alone: test accounts, the test festival
+  email ("Urgent announcement", 28 Oct, sent to 4), the test invitation.
+  Backup: /Users/mac/Documents/afriff-backups/before-revert-2026-10-29.json.
 
 ### Invitation pushes for scheduled sends + alerts on the VIP page (28 Oct 2026, user request)
 - STATUS: built and tested, NOT committed, NOT deployed. No rules change, no
@@ -2057,6 +2069,14 @@ heavy libraries) apply everywhere.
   --add-missing (checked 29 Oct: 124 official screenings and 30 "Also
   screening" films in the database, no samples left) but NOT PUBLISHED yet
   (last Publish to app 28 Oct 11:42 UTC), so phones still show samples.
+  (Published since: 29 Oct 09:25 UTC.)
+  REMOVED AND PUT BACK, 29 Oct evening (Michael): the 30 "Also screening"
+  films (not on afriff.com; title-only, made by --add-missing from 37 sheet
+  rows) and their 30 screenings were deleted (~19:27 UTC), then restored
+  from the backup unchanged once it was clear they're in AFRIFF's sheet.
+  Never published in between. Database = 134 films, 124 screenings again;
+  the loader's dry run says all 124 "already loaded and unchanged". Backup:
+  /Users/mac/Documents/afriff-backups/before-remove-also-screening-2026-10-29T19-27-18.json.
   `scripts/schedule/` (load-schedule.mjs, plan.mjs, the sheet as JSON).
   Dry run: `node scripts/schedule/load-schedule.mjs` (changes nothing). Load:
   add `--write` (backup first; with `--add-missing` it also makes title-only
@@ -2193,6 +2213,14 @@ heavy libraries) apply everywhere.
   Festival), so films are all that need one. 42 films on the schedule still
   have NO poster (the 30 "Also screening" films + 12 more): the dry run lists
   them. Add pictures named <film id>.jpg to the folder and run again.
+  RE-CHECKED 29 Oct evening (Michael's request): afriff.com still has the
+  same 86 posters (all already in Storage and published 09:25 UTC). Its
+  whole site code (95 files, 181 pictures) has NO picture for the 48 films
+  without one, and the 30 "Also screening" films aren't on afriff.com at
+  all. These need picture files from AFRIFF.
+  The 30 were briefly deleted, then put back (see "Official screening
+  schedule loader" → REMOVED AND PUT BACK). Of the 48 without a poster, 18
+  are on afriff.com with no poster there; 30 aren't on afriff.com at all.
 - CONSOLE: every picture field (film poster, event graphic, sponsor logo,
   jury photo) has a preview and "Upload a picture"; the picture is made
   smaller on the device first (same size as the script). Admins and editors
