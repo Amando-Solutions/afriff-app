@@ -1,6 +1,6 @@
 // Icon and colours for each kind of event (used where films show a poster)
 import type { Component } from 'vue';
-import { BriefcaseIcon, GraduationCapIcon, MessagesSquareIcon, MicIcon, PartyPopperIcon, SparklesIcon, TrophyIcon, UsersIcon, WrenchIcon } from 'lucide-vue-next';
+import { BriefcaseIcon, GraduationCapIcon, MicIcon, PartyPopperIcon, SparklesIcon, TrophyIcon, UsersIcon, WrenchIcon } from 'lucide-vue-next';
 import type { EventType, FestivalEvent } from '@afriff/core/types/festival';
 import { venueById } from '@afriff/core/data/programme';
 
@@ -11,9 +11,6 @@ export const EVENT_LOOK: Record<EventType, EventLook> = {
   workshop: { icon: WrenchIcon, a: '#E9C362', b: '#3A2A12' },
   market: { icon: BriefcaseIcon, a: '#8F84FF', b: '#1E1850' },
   panel: { icon: MicIcon, a: '#3CCFB8', b: '#0B3A3A' },
-  // AFCM sessions share the market's violet (--afcm in classic.css)
-  'afcm-panel': { icon: MicIcon, a: '#8F84FF', b: '#1E1850' },
-  'afcm-fireside': { icon: MessagesSquareIcon, a: '#8F84FF', b: '#1E1850' },
   gala: { icon: SparklesIcon, a: '#F07AB8', b: '#4A0F2E' },
   awards: { icon: TrophyIcon, a: '#E9C362', b: '#2A1F05' },
   party: { icon: PartyPopperIcon, a: '#F37B6B', b: '#40130E' },

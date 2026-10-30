@@ -142,7 +142,7 @@ export const COLLECTIONS: Record<CollectionName, CollectionDef> = {
       { key: 'end', label: 'End time', type: 'time', required: true },
       { key: 'venue', label: 'Venue', type: 'ref', ref: 'venues', hint: 'Leave empty if it\'s not at one of the festival cinemas' },
       { key: 'place', label: 'Room or place', type: 'text', hint: 'e.g. Masterclass room, or the address if not at a cinema', max: 200 },
-      { key: 'speaker', label: 'Speaker', type: 'text', hint: 'For a panel, separate the names with commas (AFCM sessions show each one)', max: 150 },
+      { key: 'speaker', label: 'Speaker', type: 'text', max: 150 },
       { key: 'speakerRole', label: 'Speaker\'s role', type: 'text', max: 150 },
       { key: 'bio', label: 'Speaker bio', type: 'textarea', max: 3000 },
       { key: 'about', label: 'About this event', type: 'textarea', required: true },

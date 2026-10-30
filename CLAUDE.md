@@ -83,8 +83,6 @@ so Home doesn't repeat them, and shortcuts carry no subtext.
   redesign + alert bar".
 - 4 one-word icon shortcuts to things NOT in the bottom bar: Venues,
   How to attend (opens the sheet), Events, Jury.
-  ADDED 30 Oct (user request): a 5th, "AFCM", and Films / AFCM tabs on
-  "Opening day" / "Today". See "AFCM sessions on Home and Programme".
 - "Opening day" light rows: poster, title, time · venue (no
   "Filmhouse"), + to add to My Festival; opening film always included,
   shown in time order; "See all".
@@ -142,8 +140,6 @@ user decision). Home's top banner depends on the Lagos date:
   with its colour dot and number of screenings that day.
 - Row with "N screenings", a filter chip ("Public" / "Industry"), and a
   toggle between list view and timeline view.
-  ADDED 30 Oct (user request): an "AFCM" filter beside All / Films / Events.
-  See "AFCM sessions on Home and Programme".
 - List rows: large time on the left ("6:30" with "PM" under it), film
   title in bold capitals, venue dot + venue name, category in small
   capitals, poster thumbnail on the right, round "+" button to add to
@@ -2595,90 +2591,6 @@ heavy libraries) apply everywhere.
   switch off → `?now=` ignored on Home and not remembered, a remembered clock
   ignored, `?queues=sample` ignored, `?welcome=1` ignored; switch on → all of
   them work (14 checks). NOT TESTED: the staff app in a browser (same gate).
-
-### AFCM sessions on Home and Programme (30 Oct 2026, user request)
-- STATUS: app code built and tested, NOT committed, NOT deployed. Sessions and
-  posters ARE IN THE DATABASE (loaded 30 Oct ~21:00 Lagos) but NOT PUBLISHED.
-  No rules change, no new settings, no cost.
-- USER REQUEST (Michael, from the preview https://afriff-afcm-preview.vercel.app,
-  built elsewhere; its code wasn't in GitHub, so it was rebuilt here from the
-  preview's screens and data): show the AFCM market's sessions as their own
-  kind of event, without changing the layout. THEN (same day): "the afcm data,
-  schedule, poster and other information about afcm [should] be added to the
-  firestore db instead of hardcoded locally". So the app holds NO AFCM data:
-  everything below comes from the database, once published.
-- THE DATA, IN FIRESTORE: 23 sessions (panels and fireside chats), Mon 2 – Fri
-  6 Nov at Filmhouse Twinwaters, as `events` records `afcm-d2-s1` … `afcm-d6-s3`:
-  title, day, start and end, speakers (comma list), "Moderated by …" / "In
-  conversation", about, "AFCM market badge", "Badges on afcm-market.com" link,
-  poster. Two new event types, "AFCM panel" and "AFCM fireside chat" (violet,
-  the Twinwaters colour #8F84FF); the console's event form offers them by
-  itself, so the team edits sessions like any event. POSTERS in Firebase
-  Storage, images/events/<id>.<fingerprint>.jpg (720 × 900, ~140 KB; all 23
-  checked to open without a login). Taken from the preview, which matches
-  AFCM's own session graphics. The Programme's AFCM card reads the 4 "AFCM Film
-  & Content Market · Day N" market records already in the database (name
-  without "· Day N", about, badge link; title opens that day's record).
-- THE LOADER: `node scripts/afcm/load-afcm.mjs` (dry run) / `--write`. Input:
-  `scripts/afcm/afcm-2026-sessions.json` (in Git, like the schedule sheet;
-  never shipped) and the posters in `AFCM-posters/` (kept out of Git and
-  Vercel, like AFRIFF-posters/). Backs up the events, uploads posters, adds
-  sessions missing from the database; never changes or deletes one that's there
-  (only fills a missing poster); lists differences. Run 30 Oct: 23 added, 23
-  posters uploaded. Backup: /Users/mac/Documents/afriff-backups/
-  before-afcm-2026-10-30T20-59-38.json. Running it again changes nothing.
-- HOME: the daily highlight's count chips add "N AFCM sessions". A 5th
-  shortcut "AFCM" opens the Schedule's AFCM filter. "Opening day" / "Today"
-  has two tabs, Films (as before) and AFCM: the sessions of the next day that
-  has any (today during the festival), up to 4, still to finish, with a green
-  "On now", speaker faces ("Ini Edo, Toyin Abraham + 3 more"), the line
-  "Twinwaters, Oniru · 10 AM – 3:30 PM · 2 earlier today" (worked out from
-  that day's sessions and the venue's area; the preview had a fixed "10 AM –
-  5 PM"), "That's it for today's sessions." when they're over, and "Market
-  sessions" as the heading before the day comes. Its "See all" opens the
-  Schedule on that day, AFCM filter on. The "Masterclasses & events" strip
-  leaves the sessions out.
-- PROGRAMME: All / Films / Events / AFCM. "Events" no longer includes AFCM
-  sessions; "All" does. AFCM shows "N sessions", the card (market name, about
-  cut to 3 lines, "Sessions Mon 2 – Fri 6 Nov · Twinwaters, Oniru", the market
-  record's link: today "Market badges on afriff.com"), and on a day without
-  sessions "No AFCM sessions on this day. They run Mon 2 – Fri 6 Nov." A small
-  violet dot under each day that has sessions. `/programme?type=afcm`
-  (optionally `&day=`) opens it; the address is tidied afterwards so coming
-  back from a session keeps the day and filter picked since. The Events tab
-  lists the sessions under "All events" and "Market & panels" (as the preview).
-  On narrow phones the count now drops under the chips (four chips no longer
-  fit on one line at 360 px; the page scrolled sideways).
-- NO SESSIONS IN THE DATA (before the publish, or offline on a first visit):
-  the AFCM shortcut, tabs and filter don't show at all.
-- SESSION PAGE (the normal event page): "With" lists each panellist on their
-  own line with initials, then "Moderated by …" (it used to show one "SA"
-  tile for the whole panel). No "times are samples" note on AFCM sessions
-  (their times are AFCM's own).
-- CLAUDE'S CHOICES (easy to change): as the preview, the Films tab still lists
-  masterclasses and other events; sessions sit in the Events tab's "Market &
-  panels"; no `?afcm=preview` switch.
-- TO GET IT TO PHONES, IN THIS ORDER: 1. deploy both apps from this branch;
-  2. Publish to app. DON'T PUBLISH BEFORE THE DEPLOY: the app live now doesn't
-  know the two new types and would show the 23 sessions as "Networking" events
-  (Schedule, Events tab, Home's events strip). The next publish is ~150 KB of
-  the 900 KB limit. (The console's "Add missing festival data" no longer
-  touches AFCM, but still brings back 5 deleted films: don't press it.)
-- TESTED (30 Oct, by Claude): both apps typecheck; 102 staff tests; attendee
-  production build; the loader's dry run and write on the live database, then
-  the records read back and every poster link fetched; the published-data
-  cleanup keeps all 23 (types, venue, posters, links); phone-sized browser on
-  the dev app fed a copy of exactly what the next publish will contain (built
-  like the Publish button, read-only; database blocked so nothing replaced it):
-  Home day 3 (22 screenings · 5 AFCM sessions, AFCM shortcut, tab with On now,
-  faces and Storage posters, 2 earlier), See all → Tue with the filter, card
-  from the market record (Tue → Day 2's page, Fri → Day 1's), Sat empty
-  message, session page with its Storage poster and speaker list. Earlier,
-  with the built-in data: before / evening / day 7 / after, filter counts,
-  back navigation, timeline, no sideways scroll at 320–412 px; with the live
-  published data (no sessions yet): no AFCM shortcut, tabs or filter. NOT
-  TESTED: real phones, the console's event list with a real admin login, a
-  real publish.
 
 ### How to deploy (publish an update)
 - HOSTING DECISION (user, 24 Oct): Option C. Michael hosts the app on

@@ -14,5 +14,3 @@ firebase-debug.log
 reference/
 # poster files stay on this laptop: once uploaded they live in Firebase Storage (scripts/posters)
 AFRIFF-posters/
-# AFCM session posters, same: once loaded they live in Firebase Storage (scripts/afcm)
-AFCM-posters/
