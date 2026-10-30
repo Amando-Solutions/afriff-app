@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import type { FestivalEvent } from '@afriff/core/types/festival'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
-  AwardIcon, BarChart3Icon, CalendarDaysIcon, CheckIcon, ChevronRightIcon, ClapperboardIcon, EyeIcon, FilmIcon, ListChecksIcon,
+  AwardIcon, BarChart3Icon, CalendarDaysIcon, CheckIcon, ClapperboardIcon, EyeIcon, FilmIcon, ListChecksIcon,
   ListIcon, MapPinIcon, SearchIcon, SparklesIcon,
 } from 'lucide-vue-next'
 import { FESTIVAL, FILMS, SCREENINGS, SECTIONS } from '@afriff/core/data/programme'
-import { EVENTS, EVENT_FILTERS, EVENT_TYPES, eventsOn, isAfcm, isMultiDay } from '@afriff/core/data/events'
+import { EVENTS, EVENT_FILTERS, EVENT_TYPES, eventsOn, isMultiDay } from '@afriff/core/data/events'
 import { dateParts } from '@afriff/core/utils/format'
-import { lagosDate } from '@afriff/core/utils/now'
 import { dayItems, type DayItemType } from '~/lib/dayItems'
 import { planForDay } from '~/lib/plan'
-import { venuePlace } from '~/lib/today'
 import { openProgrammeDay, programmeMemory as memory } from '~/lib/programmeMemory'
 import { useLiveClock } from '~/lib/queues'
 import { useFestival } from '~/lib/store'
@@ -20,26 +18,10 @@ import { useFestival } from '~/lib/store'
 // PROGRAMME: Schedule (by day, list or timeline), All films, Events.
 // /programme, /programme/films, /programme/events
 const route = useRoute()
-const router = useRouter()
 const tab = computed(() => (route.params.tab === 'films' || route.params.tab === 'events' ? route.params.tab : 'schedule'))
 useHead({ title: 'Programme' })
 // /programme?day=2026-11-03 opens the Schedule on that day (links in "Share my day")
 if (typeof route.query.day === 'string' && FESTIVAL.days.includes(route.query.day)) openProgrammeDay(route.query.day)
-// /programme?type=afcm (Home's AFCM shortcut and tab) opens the Schedule on the AFCM
-// sessions: on ?day= if given, else today's or the next day that has any
-const afcmDays = [...new Set(EVENTS.filter(isAfcm).map((e) => e.date))].sort()
-if (route.query.type === 'afcm' && afcmDays.length) {
-  memory.type = 'afcm'
-  memory.venues = []
-  if (typeof route.query.day !== 'string') {
-    const from = FESTIVAL.days.includes(lagosDate()) ? lagosDate() : FESTIVAL.days[0]!
-    memory.day = afcmDays.find((d) => d >= from) ?? afcmDays[0] ?? memory.day
-  }
-}
-// then tidy the address, so coming back from a film keeps the day and filter picked since
-onMounted(() => {
-  if (route.query.type || route.query.day) router.replace({ query: { ...route.query, type: undefined, day: undefined } })
-})
 
 const searching = ref(false)
 const { state, isWatched, toggleWatched } = useFestival()
@@ -53,10 +35,7 @@ const TABS: { id: 'schedule' | 'films' | 'events'; label: string; to: string; ic
 
 // ---------- Schedule ----------
 const TAG_FILTERS = ['All', 'Public', 'Industry'] as const
-const ALL_TYPES: { id: DayItemType; label: string }[] = [{ id: 'all', label: 'All' }, { id: 'films', label: 'Films' }, { id: 'events', label: 'Events' }, { id: 'afcm', label: 'AFCM' }]
-// AFCM only once there are AFCM sessions in the data
-const TYPE_FILTERS = ALL_TYPES.filter((f) => f.id !== 'afcm' || afcmDays.length > 0)
-if (memory.type === 'afcm' && !afcmDays.length) memory.type = 'all'
+const TYPE_FILTERS: { id: DayItemType; label: string }[] = [{ id: 'all', label: 'All' }, { id: 'films', label: 'Films' }, { id: 'events', label: 'Events' }]
 const planOpen = ref(false)
 
 // screenings and events for the day, one row per showing, in time order
@@ -76,24 +55,8 @@ const s = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : 
 const countText = computed(() =>
   memory.type === 'films' ? s(nFilms.value, 'screening')
     : memory.type === 'events' ? s(nEvents.value, 'event')
-      : memory.type === 'afcm' ? s(nEvents.value, 'session')
-        : `${s(nFilms.value, 'film')} · ${s(nEvents.value, 'event')}`,
+      : `${s(nFilms.value, 'film')} · ${s(nEvents.value, 'event')}`,
 )
-
-// "Mon 2 – Fri 6 Nov", the days with AFCM sessions
-const afcmSpan = (() => {
-  if (!afcmDays.length) return ''
-  const first = dateParts(afcmDays[0]!)
-  const last = dateParts(afcmDays[afcmDays.length - 1]!)
-  return afcmDays.length === 1 ? `${first.day} ${first.date} ${first.month}` : `${first.day} ${first.date} – ${last.day} ${last.date} ${last.month}`
-})()
-// The AFCM card: what the market is, from its market-day records in the database
-// (title, about, badge link: edited in the console). The day's record if it has
-// one, else the first; shown without its " · Day N".
-const markets = EVENTS.filter((e) => e.type === 'market').sort((a, b) => a.date.localeCompare(b.date))
-const market = computed(() => markets.find((m) => m.date === memory.day) ?? markets[0] ?? null)
-const marketName = computed(() => market.value?.title.replace(/\s*·\s*Day \d+$/i, '') ?? '')
-const afcmFacts = [afcmSpan && `Sessions ${afcmSpan}`, venuePlace(EVENTS.find(isAfcm)?.venue)].filter(Boolean).join(' · ')
 
 // ---------- All films ----------
 const sections = computed(() => {
@@ -145,7 +108,7 @@ const eventDays = computed(() =>
           class="chip small"
           :class="{ on: memory.type === f.id }"
           @click="memory.type = f.id"
-        ><span v-if="f.id === 'afcm'" class="afcm-dot" />{{ f.label }}</button>
+        >{{ f.label }}</button>
         <span class="muted type-count">{{ countText }}</span>
       </div>
 
@@ -159,14 +122,7 @@ const eventDays = computed(() =>
         </div>
       </div>
 
-      <div v-if="memory.type === 'afcm' && market" class="afcm-info">
-        <NuxtLink :to="`/event/${market.id}`" class="afcm-info-title">{{ marketName }} <ChevronRightIcon :size="16" /></NuxtLink>
-        <span v-if="market.about" class="afcm-info-about">{{ market.about }}</span>
-        <span v-if="afcmFacts">{{ afcmFacts }}</span>
-        <a v-if="market.link?.url" :href="market.link.url" target="_blank" rel="noopener noreferrer" class="link">{{ market.link.label || 'More about the market' }}</a>
-      </div>
-      <p v-if="items.length === 0 && memory.type === 'afcm'" class="empty">No AFCM sessions on this day.{{ afcmSpan ? ` They run ${afcmSpan}.` : '' }}</p>
-      <p v-else-if="items.length === 0" class="empty">Nothing {{ emptyWord }} at these venues on this day.</p>
+      <p v-if="items.length === 0" class="empty">Nothing {{ emptyWord }} at these venues on this day.</p>
       <div v-else-if="memory.view === 'list'" class="rows">
         <template v-for="i in items" :key="i.id">
           <ScreeningRow v-if="i.kind === 'screening'" :screening="i.screening" :clock="clock" />

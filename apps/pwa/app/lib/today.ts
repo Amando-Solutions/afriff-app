@@ -1,7 +1,7 @@
 // What's on a festival day, for the Home daily highlight and "Today" list.
 import type { FestivalEvent, Film, Screening } from '@afriff/core/types/festival';
 import { DAY_THEMES, FESTIVAL, SCREENINGS, filmById, venueById } from '@afriff/core/data/programme';
-import { EVENT_TYPES, eventsOn, isAfcm } from '@afriff/core/data/events';
+import { EVENT_TYPES, eventsOn } from '@afriff/core/data/events';
 import { lagosDate } from '@afriff/core/utils/now';
 
 const startOf = (item: { date: string; time: string }) => new Date(`${item.date}T${item.time}:00+01:00`).getTime();
@@ -23,10 +23,7 @@ export type UpcomingItem =
 export function dayInfo(day: string, t: number) {
   const screenings = SCREENINGS.filter((s) => s.date === day && s.status !== 'cancelled')
     .sort((a, b) => a.time.localeCompare(b.time));
-  const dayEvents = eventsOn(day).filter((e) => e.status !== 'cancelled');
-  // AFCM market sessions are counted and listed on their own (Home's AFCM tab)
-  const afcm = dayEvents.filter(isAfcm);
-  const events = dayEvents.filter((e) => !isAfcm(e));
+  const events = eventsOn(day).filter((e) => e.status !== 'cancelled');
   const learn = events.filter((e) => EVENT_TYPES[e.type]?.group === 'learn');
   const other = events.filter((e) => EVENT_TYPES[e.type]?.group !== 'learn');
 
@@ -50,7 +47,7 @@ export function dayInfo(day: string, t: number) {
     if (film) films.push(film);
   }
 
-  // Everything still to start today, screenings and events together (AFCM sessions have their own tab)
+  // Everything still to start today, screenings and events together
   const upcoming: UpcomingItem[] = [
     ...screenings.map((s): UpcomingItem => ({ kind: 'screening', item: s, at: startOf(s) })),
     ...events.map((e): UpcomingItem => ({ kind: 'event', item: e, at: startOf(e) })),
@@ -59,15 +56,10 @@ export function dayInfo(day: string, t: number) {
   const index = FESTIVAL.days.indexOf(day);
   return {
     day, index, total: FESTIVAL.days.length, theme: DAY_THEMES[day] || '',
-    films, upcoming, afcm,
-    counts: { screenings: screenings.length, afcm: afcm.length, learn: learn.length, other: other.length },
+    films, upcoming,
+    counts: { screenings: screenings.length, learn: learn.length, other: other.length },
     tomorrow: FESTIVAL.days[index + 1] || null,
   };
 }
 
 export const venueShort = (id: string | null | undefined) => (venueById(id)?.name || '').replace(/^Filmhouse\s+/, '');
-// "Twinwaters, Oniru": short venue name and the first part of its area
-export const venuePlace = (id: string | null | undefined) => {
-  const v = venueById(id);
-  return v ? [venueShort(v.id), v.area?.split(',')[0]?.trim()].filter(Boolean).join(', ') : '';
-};

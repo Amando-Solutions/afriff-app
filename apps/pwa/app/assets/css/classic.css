@@ -22,8 +22,6 @@
   --alert: #F37B6B;         /* alerts, "Full" */
   --good: #5FD39A;          /* queue: good chance */
   --warn: #F2A65A;          /* queue: filling up */
-  --afcm: #8F84FF;          /* AFCM market sessions (Twinwaters' venue colour) */
-  --afcm-text: #B9B3FF;     /* AFCM labels on navy */
 
   /* Home hero card */
   --hero-top: #0A1042;
@@ -382,9 +380,6 @@
 .day-num { font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: -1.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .day-month { font-size: 12px; font-weight: 700; line-height: 1.25; color: var(--muted); }
 .day.on .day-num, .day.on .day-month { color: var(--gold-light); }
-/* violet dot under days with AFCM sessions (an empty one keeps every day the same height) */
-.day-afcm { display: block; width: 6px; height: 6px; margin-top: 6px; border-radius: 50%; }
-.day-afcm.on { background: var(--afcm); }
 
 .chips {
   display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
@@ -948,58 +943,13 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .speaker .initials-tile { flex: none; width: 84px; height: 84px; font-size: 32px; }
 .speaker-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .speaker-bio { margin-top: 6px; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
-
-/* ---------- AFCM market sessions ---------- */
-.afcm-dot, .gold-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--afcm); }
-.gold-dot { background: var(--gold); }
-.row-cat.afcm { color: var(--afcm-text); }
-.row-title.clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.row-live {
-  display: inline-flex; align-items: center; gap: 6px; color: var(--good);
-  font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
-}
-/* speakers in a row: faces on top, "Name, Name + 3 more" under them */
-.speaker-faces { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
-.speaker-faces-stack { display: flex; }
-.speaker-face {
-  display: grid; place-items: center; width: 26px; height: 26px; margin-left: -8px; border-radius: 50%;
-  border: 2px solid var(--bg); font-size: 10px; font-weight: 800;
-}
-.speaker-face:first-child { margin-left: 0; }
-.speaker-faces-names {
-  color: var(--muted); font-size: 13.5px; line-height: 1.35;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-/* event page: everyone on the panel, one per line */
-.speaker-list { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
-.speaker-list li { display: flex; align-items: center; gap: 12px; padding: 7px 0; font-size: 16px; font-weight: 600; }
-.speaker-list .speaker-face { width: 36px; height: 36px; margin-left: 0; font-size: 12px; flex: none; }
-/* Home: Films / AFCM tabs (the .seg switch, with buttons) */
-.seg.small { margin-bottom: 4px; }
-.seg button {
-  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px;
-  border-radius: 18px; color: var(--muted); font-weight: 600; font-size: 14px; border: 1px solid transparent;
-}
-.seg button.on { background: var(--bg); color: var(--text); border-color: var(--border); }
-.afcm-sub { margin: 10px 0 0; }
-/* Schedule, AFCM filter: what the market is */
-.afcm-info {
-  display: flex; flex-direction: column; gap: 6px; margin-top: 14px; padding: 14px;
-  border-radius: var(--radius-sm); background: rgba(143, 132, 255, 0.08); border: 1px solid rgba(143, 132, 255, 0.35);
-  font-size: 14px; line-height: 1.45;
-}
-.afcm-info-title { display: inline-flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 700; color: var(--text); }
-.afcm-info-title svg { color: var(--gold-light); }
-.afcm-info span { color: var(--muted); }
-.afcm-info-about { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.afcm-info .link { color: var(--gold-light); font-weight: 700; }
 .section-head .link { white-space: nowrap; flex: none; }
 .ad-loading { min-height: 100vh; display: grid; place-items: center; color: var(--muted); }
 
 /* Schedule: All / Films / Events filter */
 .type-filter { display: flex; gap: 8px; margin-top: 12px; }
 .tl-block.event { border-style: dashed; }
-.type-filter { align-items: center; flex-wrap: wrap; row-gap: 6px; } /* on narrow phones the count drops under the chips */
+.type-filter { align-items: center; }
 .type-count { margin-left: auto; font-size: 13.5px; white-space: nowrap; }
 
 /* ---------- Sponsor marquee (moves left to right on a loop) ---------- */

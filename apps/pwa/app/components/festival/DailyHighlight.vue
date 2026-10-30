@@ -26,7 +26,6 @@ const dateLine = computed(() => {
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 const counts = computed(() => [
   d.value.counts.screenings && plural(d.value.counts.screenings, 'screening'),
-  d.value.counts.afcm && plural(d.value.counts.afcm, 'AFCM session'),
   d.value.counts.learn && plural(d.value.counts.learn, 'masterclass', 'masterclasses'),
   d.value.counts.other && plural(d.value.counts.other, 'event'),
 ].filter(Boolean))

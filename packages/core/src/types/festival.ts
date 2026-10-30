@@ -108,8 +108,7 @@ export interface HowToSection {
   order?: number
 }
 
-/** 'afcm-panel' / 'afcm-fireside': sessions of the AFCM film and content market (in the database only) */
-export type EventType = 'masterclass' | 'workshop' | 'market' | 'panel' | 'afcm-panel' | 'afcm-fireside' | 'gala' | 'awards' | 'party' | 'networking'
+export type EventType = 'masterclass' | 'workshop' | 'market' | 'panel' | 'gala' | 'awards' | 'party' | 'networking'
 export type EventGroup = 'learn' | 'industry' | 'celebrate'
 
 export interface FestivalEvent {
