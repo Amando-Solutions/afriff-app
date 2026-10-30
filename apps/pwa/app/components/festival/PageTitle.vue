@@ -7,6 +7,6 @@ withDefaults(defineProps<{ title: string; icon?: Component | null }>(), { icon: 
 <template>
   <h1 class="page-title">
     {{ title }}
-    <component :is="icon" v-if="icon" :size="30" :stroke-width="1.8" class="page-title-icon" />
+    <component :is="icon" v-if="icon" :size="26" :stroke-width="1.8" class="page-title-icon" />
   </h1>
 </template>

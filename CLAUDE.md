@@ -2446,7 +2446,7 @@ heavy libraries) apply everywhere.
   and fills EXACTLY the first screen, from under the header (and the alert,
   if one shows) down to the bottom bar, so everything from the date to "See
   the programme" is visible without scrolling on any phone. Bigger: the date
-  (12 → about 15px), the headline (28–34 → up to about 40px, ALL CAPITALS
+  (12 → about 15px), the headline (28–34 → about 35px on a 390px-wide phone, ALL CAPITALS
   and extra bold: Manrope stops at 800, so a thin outline in the text's own
   colour thickens it; user requests 30 Oct; the opening film's title is in
   capitals too, like its "OPENING NIGHT FILM" label), the opening
@@ -2484,6 +2484,11 @@ heavy libraries) apply everywhere.
   The "See all N films" end tile is gone ("See all" is in the
   heading now). Headline "Daily highlights" → "Today's highlights" (design).
 - AFTER 7 NOV: thank-you hero unchanged.
+- PAGE TITLES SMALLER (30 Oct, user request): the big capital titles on the
+  other pages (PROGRAMME, MY SCHEDULE, NEWS & ALERTS, VENUES, THE JURY,
+  PROFILE) and the film / event page titles 34 → 28px (icon 30 → 26).
+  QUEUES now uses the same title piece (`PageTitle`), so it's in capitals at
+  the same size, for consistency (no icon after it, unlike the others).
 - ALERT BAR ON EVERY PAGE (user request: "fixed through the screens"):
   `components/app/AlertBanner.vue`, under the header in `layouts/default.vue`
   (same look as the old Home banner, cut to two lines); header and alert
