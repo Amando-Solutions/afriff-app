@@ -201,7 +201,7 @@
 .home-hero .hero-eyebrow { margin-bottom: clamp(6px, 1.4cqh, 12px); font-size: clamp(13px, 2.4cqh, 16px); }
 /* capitals, extra bold: Manrope stops at 800, so a thin outline in the text's own colour thickens it */
 .home-hero .hero-title {
-  font-size: clamp(26px, min(10cqw, 6.5cqh), 46px); font-weight: 800; line-height: 1.06; letter-spacing: -0.6px; text-transform: uppercase;
+  font-size: clamp(24px, min(9cqw, 5.9cqh), 42px); font-weight: 800; line-height: 1.06; letter-spacing: -0.5px; text-transform: uppercase;
   -webkit-text-stroke: 0.035em currentColor;
 }
 .home-hero :is(.home-hero-head .hero-eyebrow, .hero-title) { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55); }
@@ -347,7 +347,7 @@
 .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .page-title {
   display: flex; align-items: center; gap: 12px;
-  font-size: 34px; font-weight: 800; text-transform: uppercase; letter-spacing: -1px; line-height: 1.1;
+  font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.6px; line-height: 1.1;
   margin-bottom: 10px;
 }
 .title-row .page-title { margin-bottom: 0; }
@@ -590,7 +590,7 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 .film-badge.gold { color: var(--gold-light); background: rgba(219, 164, 64, 0.14); border-color: transparent; }
 .film-badge.comp { color: var(--text); background: var(--raised); border-color: transparent; }
 .film-badge.comp svg { color: var(--gold-light); }
-.film-title { font-size: 34px; font-weight: 800; text-transform: uppercase; letter-spacing: -1px; line-height: 1.1; margin-top: 12px; margin-bottom: 6px; }
+.film-title { font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.6px; line-height: 1.1; margin-top: 12px; margin-bottom: 6px; }
 .film-facts { color: var(--muted); font-size: 15px; font-weight: 500; }
 .film-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
 .film-actions { gap: 8px; }
@@ -731,7 +731,7 @@ button:active, .btn:active, .tile:active, .chip:active, .fab:active { transform:
 /* full-width dividers: the page has 16px sides */
 .q-page { padding-top: 24px; }
 .q-head { display: flex; flex-direction: column; gap: 8px; }
-.q-title { font-size: 28px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.15; }
+.q-head .page-title { margin-bottom: 0; }
 .q-intro { font-size: 15px; line-height: 1.45; color: #C9CCE4; }
 .q-intro strong { color: var(--text); }
 .q-feed { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; color: var(--muted); }

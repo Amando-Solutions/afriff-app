@@ -67,7 +67,7 @@ const feed = computed(() => {
 <template>
   <div class="page q-page">
     <header class="q-head">
-      <h1 class="q-title">Queues</h1>
+      <PageTitle title="Queues" />
       <p class="q-intro">Check how long the line is before you head to a screening, and how likely you are to get a seat.</p>
       <span v-if="linesOpen" class="q-feed"><i class="q-feed-dot" :class="{ live: feed.live }" />{{ feed.text }}</span>
     </header>
