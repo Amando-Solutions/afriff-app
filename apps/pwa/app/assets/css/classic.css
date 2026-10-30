@@ -81,9 +81,13 @@
 }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand span { font-size: 28px; font-weight: 500; letter-spacing: -0.5px; }
-.bell { position: relative; padding: 6px; color: var(--text); }
+/* same 42px centred circle as .header-avatar, so the two icons line up */
+.bell {
+  position: relative; display: grid; place-items: center;
+  width: 42px; height: 42px; border-radius: 50%; color: var(--text);
+}
 .badge {
-  position: absolute; top: -2px; right: -4px;
+  position: absolute; top: 0; right: -2px;
   min-width: 20px; height: 20px; padding: 0 5px;
   border-radius: 10px; background: var(--gold); color: #1a1205;
   font-size: 12px; font-weight: 700; display: grid; place-items: center;

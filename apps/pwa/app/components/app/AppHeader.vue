@@ -7,6 +7,7 @@ import { account } from '~/lib/account'
 // Header on every screen: logo + name left; right, the bell with the unread
 // count (opens News) and the person's avatar (opens Profile). Not signed in:
 // a plain person icon, which opens Profile too (sign up, and the switches).
+// Bell and person icon: same size and stroke, each centred in a 42px circle.
 const unread = useUnreadCount()
 const route = useRoute()
 const p = computed(() => account.profile)
@@ -30,8 +31,8 @@ const p = computed(() => account.profile)
         :aria-label="p ? `Your profile, ${p.firstName} ${p.lastName}` : 'Profile: sign up or log in'"
         :aria-current="route.path === '/profile' ? 'page' : undefined"
       >
-        <UserAvatar v-if="p" :seed="p.uid" :size="34" :initials="(p.firstName[0] || '') + (p.lastName[0] || '')" />
-        <CircleUserRoundIcon v-else :size="28" :stroke-width="1.6" />
+        <UserAvatar v-if="p" :seed="p.uid" :size="30" :initials="(p.firstName[0] || '') + (p.lastName[0] || '')" />
+        <CircleUserRoundIcon v-else :size="26" :stroke-width="1.8" />
       </NuxtLink>
     </div>
   </header>
