@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { InfoIcon } from 'lucide-vue-next'
+import { InfoIcon, UsersIcon } from 'lucide-vue-next'
 import { FESTIVAL, filmById, venueById } from '@afriff/core/data/programme'
 import { dayLabel, queueBar, queueLabel, screeningStart, time12, timeLabel } from '@afriff/core/utils/format'
 import { lagosDate } from '@afriff/core/utils/now'
@@ -67,7 +67,7 @@ const feed = computed(() => {
 <template>
   <div class="page q-page">
     <header class="q-head">
-      <PageTitle title="Queues" />
+      <PageTitle title="Queues" :icon="UsersIcon" />
       <p class="q-intro">Check how long the line is before you head to a screening, and how likely you are to get a seat.</p>
       <span v-if="linesOpen" class="q-feed"><i class="q-feed-dot" :class="{ live: feed.live }" />{{ feed.text }}</span>
     </header>

@@ -1401,6 +1401,10 @@ heavy libraries) apply everywhere.
 - HEADER: right of the bell, a round avatar (signed in) or a plain person
   icon (not signed in). Both open the Profile page (`/profile`); the circle
   gets a gold ring while you're on it.
+  FIXED 30 Oct (user: "bell and profile icons don't look aligned"): the bell
+  sat ~3px higher and looked smaller. Now the bell and the avatar each sit
+  centred in the same 42px circle; the bell and person icons are both 26px
+  (same line thickness), and the avatar is 30px (was 34). NOT committed yet.
 - PROFILE PAGE (`apps/pwa/app/pages/profile.vue`), moved from the bottom of
   My Festival: the account card (avatar, name, email, "Saved to your
   account", "Festival emails from AFRIFF", Log out, Delete my account), the
@@ -2488,7 +2492,9 @@ heavy libraries) apply everywhere.
   other pages (PROGRAMME, MY SCHEDULE, NEWS & ALERTS, VENUES, THE JURY,
   PROFILE) and the film / event page titles 34 → 28px (icon 30 → 26).
   QUEUES now uses the same title piece (`PageTitle`), so it's in capitals at
-  the same size, for consistency (no icon after it, unlike the others).
+  the same size, for consistency. ADDED 30 Oct (user request): a gold people
+  icon after it like the other titles, the same icon as the Queues tab in the
+  bottom bar. NOT committed yet.
 - ALERT BAR ON EVERY PAGE (user request: "fixed through the screens"):
   `components/app/AlertBanner.vue`, under the header in `layouts/default.vue`
   (same look as the old Home banner, cut to two lines); header and alert
