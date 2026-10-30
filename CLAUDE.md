@@ -2438,10 +2438,42 @@ heavy libraries) apply everywhere.
   gold); "Opening night film" (the Opening Movie's 1 Nov screening: poster,
   title, day · time, venue, director, "About the film →" to its page);
   "Opening night starts in" with days / hours / mins / secs (seconds in light
-  gold; `components/festival/HeroCountdown.vue`); "See the programme".
+  gold; `components/festival/Countdown.vue`); "See the programme".
   NOTE: the countdown goes to FESTIVAL.openingNight (7:00 PM) but Lady's
   screening is 8:30 PM in the real schedule. Fine if 7 PM is the gala; else
   change `openingNight` in `packages/core/src/data/programme.ts`.
+  CHANGED 30 Oct (user request): NO CARD any more; the hero is edge to edge
+  and fills EXACTLY the first screen, from under the header (and the alert,
+  if one shows) down to the bottom bar, so everything from the date to "See
+  the programme" is visible without scrolling on any phone. Bigger: the date
+  (12 → about 15px), the headline (28–34 → up to about 40px, ALL CAPITALS
+  and extra bold: Manrope stops at 800, so a thin outline in the text's own
+  colour thickens it; user requests 30 Oct; the opening film's title is in
+  capitals too, like its "OPENING NIGHT FILM" label), the opening
+  film poster (104 × 156 → up to 167 × 250) and the countdown numbers (34 →
+  up to about 46px). Sizes scale with the room there is: on a short screen
+  everything shrinks a little, the poster most, and the venue / director
+  lines, then the "Opening night starts in" label, hide themselves. The art
+  sits further right (bleeds off the screen edge, soft fade on its left) to
+  leave more room for the headline. HOW: index.vue measures where the hero
+  starts and how tall the bottom bar is (`--fit-top`, `--fit-bottom`); CSS
+  sets the height from the screen height (`100svh`: the screen with the
+  browser's bars showing, so it doesn't jump while scrolling), and the sizes
+  inside use container units (classic.css, `.home-hero`).
+  THE ART (sharper, more vibrant): the only copy is the 450 × 622 picture
+  from the design file (it isn't on afriff.com; checked 30 Oct), which looks
+  soft when stretched on a phone. It's now a 900 × 1244 version (enlarged in
+  two smooth steps, sharpened, colours +28%, contrast +7%; 164 KB instead of
+  73 KB), same file name. For a truly sharp image, ask the designer / AFRIFF
+  for the ORIGINAL artwork file and replace home-keyart.jpg with it (about
+  900 px wide is enough).
+  TESTED (30 Oct, by Claude): typecheck; phone-sized browser on the dev app
+  at 390 × 844, 360 × 740, 390 × 664 (iPhone in Safari), 375 × 548 (iPhone
+  SE in Safari) and 412 × 915: the button ends above the bottom bar on all of
+  them, also with an urgent alert showing; the hero doesn't change height
+  while scrolling; festival-day and after-festival heroes unchanged; no
+  errors. NOT TESTED: real phones (incl. the iPhone Home Screen app, where
+  the notch and home bar take extra room: measured, so it should fit).
 - 1–7 NOV (`DailyHighlight.vue`): "TUESDAY 3 NOVEMBER" (no "Lagos"), "Day 3
   of 7" with a bar per day (past days dim gold, today light gold), "Today's
   highlights" + "See all" over the same filmstrip as before (whole posters,
