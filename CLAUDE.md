@@ -2471,6 +2471,17 @@ heavy libraries) apply everywhere.
   73 KB), same file name. For a truly sharp image, ask the designer / AFRIFF
   for the ORIGINAL artwork file and replace home-keyart.jpg with it (about
   900 px wide is enough).
+  CHANGED 30 Oct, later (user request): headline a little bigger (about 35
+  → 37px on a 390px-wide phone, 37 → 39px on a big one), sized from the room
+  inside the margins so it always stays on 3 lines (checked down to 320px
+  wide; the shortest screens keep their 25px minimum). A navy layer (the
+  page's own colour, so only the art darkens) now lies over the art: light
+  behind the headline, heavier from the opening film row down, plus a soft
+  shadow on the film's text, because "OPENING NIGHT FILM" was hard to read on
+  the bright art. Both in classic.css (`.home-hero-body`, `.home-hero
+  .hero-title`). Checked at 320 × 640, 360 × 740, 375 × 548, 390 × 664,
+  390 × 844 and 412 × 915: everything still fits above the bottom bar, also
+  with an alert showing. NOT committed yet.
   TESTED (30 Oct, by Claude): typecheck; phone-sized browser on the dev app
   at 390 × 844, 360 × 740, 390 × 664 (iPhone in Safari), 375 × 548 (iPhone
   SE in Safari) and 412 × 915: the button ends above the bottom bar on all of
@@ -2494,7 +2505,7 @@ heavy libraries) apply everywhere.
   QUEUES now uses the same title piece (`PageTitle`), so it's in capitals at
   the same size, for consistency. ADDED 30 Oct (user request): a gold people
   icon after it like the other titles, the same icon as the Queues tab in the
-  bottom bar. NOT committed yet.
+  bottom bar. Committed (9eb5f76, merged in pull request #20).
 - ALERT BAR ON EVERY PAGE (user request: "fixed through the screens"):
   `components/app/AlertBanner.vue`, under the header in `layouts/default.vue`
   (same look as the old Home banner, cut to two lines); header and alert
