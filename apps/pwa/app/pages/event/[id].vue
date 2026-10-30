@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ArrowUpRightIcon, CheckIcon, ChevronLeftIcon, ClockIcon, NavigationIcon, PlusIcon, TicketIcon } from 'lucide-vue-next'
-import { EVENT_TYPES, eventById, isMultiDay } from '@afriff/core/data/events'
+import { EVENT_TYPES, eventById, isAfcm, isMultiDay, speakerNames } from '@afriff/core/data/events'
 import { venueById } from '@afriff/core/data/programme'
 import { dateParts, directionsUrl, initials, timeLabel, toMinutes } from '@afriff/core/utils/format'
 import { useFestival } from '~/lib/store'
 
-// EVENT PAGE: masterclasses, workshops, market days, galas, parties.
+// EVENT PAGE: masterclasses, workshops, market days and AFCM sessions, galas, parties.
 const route = useRoute()
 const router = useRouter()
 const event = computed(() => eventById(String(route.params.id)))
@@ -26,6 +26,7 @@ const info = computed(() => {
   return {
     type: EVENT_TYPES[e.type],
     multi,
+    afcm: isAfcm(e),
     p,
     venue: e.venue ? venueById(e.venue) ?? null : null,
     duration: h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`,
@@ -106,12 +107,18 @@ function back() {
           <NavigationIcon :size="16" /> Directions
         </a>
       </div>
-      <p class="muted small" style="margin-top: 10px">Times and rooms are samples until AFRIFF publishes the schedule.</p>
+      <!-- AFCM sessions' times are from AFCM's own graphics -->
+      <p v-if="!info.afcm" class="muted small" style="margin-top: 10px">Times and rooms are samples until AFRIFF publishes the schedule.</p>
     </section>
 
     <section v-if="event.speaker" class="section">
       <h2 class="section-title">With</h2>
-      <div class="speaker">
+      <!-- an AFCM panel: everyone on it, then who moderates -->
+      <template v-if="info.afcm">
+        <SpeakerFaces :names="speakerNames(event)" list />
+        <p v-if="event.speakerRole" class="muted small" style="margin-top: 10px">{{ event.speakerRole }}</p>
+      </template>
+      <div v-else class="speaker">
         <div class="initials-tile">{{ initials(event.speaker.replace(/\(.*\)/, '')) }}</div>
         <div class="speaker-text">
           <span class="director-name">{{ event.speaker }}</span>

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useEventListener, useResizeObserver } from '@vueuse/core'
-import { AwardIcon, ChevronRightIcon, GraduationCapIcon, MapPinIcon, TicketIcon } from 'lucide-vue-next'
+import { AwardIcon, BriefcaseIcon, ChevronRightIcon, GraduationCapIcon, MapPinIcon, TicketIcon } from 'lucide-vue-next'
 import { FESTIVAL, SCREENINGS, filmById, venueById } from '@afriff/core/data/programme'
-import { EVENTS, EVENT_TYPES, isMultiDay } from '@afriff/core/data/events'
+import { EVENTS, EVENT_TYPES, isAfcm, isMultiDay } from '@afriff/core/data/events'
 import { dateParts, queueLabel, timeLabel } from '@afriff/core/utils/format'
 import { queueAt, useLiveClock } from '~/lib/queues'
 import { lagosDate } from '@afriff/core/utils/now'
-import { dayInfo, festivalPhase, venueShort, type UpcomingItem } from '~/lib/today'
+import { dayInfo, festivalPhase, venuePlace, venueShort, type UpcomingItem } from '~/lib/today'
 import type { FestivalEvent, Film, ItemStatus, Screening } from '@afriff/core/types/festival'
 import { openProgrammeDay } from '~/lib/programmeMemory'
 import { useFestival } from '~/lib/store'
@@ -66,12 +66,15 @@ const openingFilm = computed(() => {
 // ---------- Shortcuts to things the bottom bar doesn't reach ----------
 const howTo = ref(false)
 const NuxtLink = resolveComponent('NuxtLink')
+// AFCM shortcut and tab only once there are AFCM sessions in the data (published)
+const hasAfcm = EVENTS.some(isAfcm)
 const shortcuts = [
   { label: 'Venues', icon: MapPinIcon, to: '/venues' },
   { label: 'How to attend', icon: TicketIcon, action: () => { howTo.value = true } },
   { label: 'Events', icon: GraduationCapIcon, to: '/programme/events' },
+  { label: 'AFCM', icon: BriefcaseIcon, to: '/programme?type=afcm' },
   { label: 'Jury', icon: AwardIcon, to: '/jury' },
-]
+].filter((s) => hasAfcm || s.label !== 'AFCM')
 
 // ---------- Opening day (before) / Today (during) ----------
 const openingDay = FESTIVAL.days[0]!
@@ -86,7 +89,34 @@ const openingList = computed(() => {
 })
 const todayInfo = computed(() => (phase.value === 'during' ? dayInfo(today.value, t.value) : null))
 const dayRows = computed(() => (todayInfo.value ? todayInfo.value.upcoming.slice(0, 4) : openingList.value))
+// Two tabs: Films (the list above) and AFCM, the market's panels and fireside
+// chats on the next day that has any (today while the festival's on).
+const dayTab = ref<'films' | 'afcm'>('films')
+const afcmDay = computed(() => {
+  const from = phase.value === 'during' ? today.value : openingDay
+  return [...new Set(EVENTS.filter(isAfcm).map((e) => e.date))].sort().find((d) => d >= from) ?? null
+})
+const afcmAll = computed(() => EVENTS.filter((e) => isAfcm(e) && e.date === afcmDay.value && e.status !== 'cancelled')
+  .sort((a, b) => a.time.localeCompare(b.time)))
+const at = (day: string, hhmm: string) => new Date(`${day}T${hhmm}:00+01:00`).getTime()
+const afcmLeft = computed(() => afcmAll.value.filter((e) => at(e.date, e.end) > t.value)) // not over yet
+const afcmEarlier = computed(() => afcmAll.value.length - afcmLeft.value.length)
+const afcmRows = computed(() => afcmLeft.value.slice(0, 4).map((e) => ({ e, live: at(e.date, e.time) <= t.value })))
+// "Twinwaters, Oniru · 10 AM – 3:30 PM": where the day's sessions are and when they start and end
+const afcmWhere = computed(() => {
+  const list = afcmAll.value
+  if (!list.length) return ''
+  const place = venuePlace(list[0]!.venue) || list[0]!.place
+  const short = (hhmm: string) => timeLabel(hhmm).replace(':00 ', ' ')
+  const end = list.reduce((m, e) => (e.end > m ? e.end : m), list[0]!.end)
+  return `${place} · ${short(list[0]!.time)} – ${short(end)}`
+})
+
 const dayHeading = computed(() => {
+  if (dayTab.value === 'afcm' && afcmDay.value) {
+    const p = dateParts(afcmDay.value)
+    return { title: afcmDay.value === today.value ? 'Today' : 'Market sessions', meta: `${p.day} ${p.date} ${p.month}` }
+  }
   const p = dateParts(phase.value === 'during' ? today.value : openingDay)
   return { title: phase.value === 'during' ? 'Today' : 'Opening day', meta: `${p.day} ${p.date} ${p.month}` }
 })
@@ -122,7 +152,8 @@ function rowInfo(x: UpcomingItem): DayRow {
 const strip = computed(() => {
   const byTime = (a: FestivalEvent, b: FestivalEvent) => (a.date + a.time).localeCompare(b.date + b.time)
   const learn = EVENTS.filter((e) => EVENT_TYPES[e.type].group === 'learn').sort(byTime)
-  const other = EVENTS.filter((e) => EVENT_TYPES[e.type].group !== 'learn' && !isMultiDay(e) && e.type !== 'market').sort(byTime)
+  // (the AFCM market and its sessions have their own tab and shortcut)
+  const other = EVENTS.filter((e) => EVENT_TYPES[e.type].group !== 'learn' && !isMultiDay(e) && e.type !== 'market' && !isAfcm(e)).sort(byTime)
   return [...learn, ...other]
 })
 </script>
@@ -189,13 +220,33 @@ const strip = computed(() => {
     </nav>
     <HowToAttendSheet v-model:open="howTo" />
 
-    <!-- Opening day (before) / Today (during) -->
+    <!-- Opening day (before) / Today (during), with an AFCM tab for the market's sessions -->
     <section v-if="phase !== 'after'" class="section">
       <div class="section-head">
         <h2 class="section-title">{{ dayHeading.title }} <span class="section-date">{{ dayHeading.meta }}</span></h2>
-        <NuxtLink to="/programme" class="link" @click="phase === 'during' && openProgrammeDay(today)">See all <ChevronRightIcon :size="18" /></NuxtLink>
+        <NuxtLink v-if="dayTab === 'afcm'" :to="afcmDay ? `/programme?type=afcm&day=${afcmDay}` : '/programme?type=afcm'" class="link">See all <ChevronRightIcon :size="18" /></NuxtLink>
+        <NuxtLink v-else to="/programme" class="link" @click="phase === 'during' && openProgrammeDay(today)">See all <ChevronRightIcon :size="18" /></NuxtLink>
       </div>
-      <p v-if="phase === 'during' && dayRows.length === 0" class="muted">
+      <div v-if="hasAfcm" class="seg small" role="tablist" aria-label="What's on">
+        <button type="button" role="tab" :aria-selected="dayTab === 'films'" :class="{ on: dayTab === 'films' }" @click="dayTab = 'films'">
+          <span class="gold-dot" /> Films
+        </button>
+        <button type="button" role="tab" :aria-selected="dayTab === 'afcm'" :class="{ on: dayTab === 'afcm' }" @click="dayTab = 'afcm'">
+          <span class="afcm-dot" /> AFCM
+        </button>
+      </div>
+
+      <template v-if="dayTab === 'afcm'">
+        <p v-if="!afcmDay" class="muted">The AFCM market sessions are over for this year.</p>
+        <template v-else>
+          <p class="muted small afcm-sub">{{ afcmWhere }}<span v-if="afcmEarlier"> · {{ afcmEarlier }} earlier today</span></p>
+          <p v-if="afcmRows.length === 0" class="muted">That's it for today's sessions.</p>
+          <div v-else class="rows">
+            <EventRow v-for="x in afcmRows" :key="x.e.id" :event="x.e" :live="x.live" />
+          </div>
+        </template>
+      </template>
+      <p v-else-if="phase === 'during' && dayRows.length === 0" class="muted">
         Nothing else starts today.
         <NuxtLink v-if="todayInfo?.tomorrow" to="/programme" class="link gold-link" @click="openProgrammeDay(todayInfo.tomorrow)">See tomorrow</NuxtLink>
       </p>

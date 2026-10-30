@@ -1,5 +1,8 @@
 // EVENTS: everything that isn't a film screening (masterclasses, workshops,
-// the AFCM market, galas, awards, networking).
+// the AFCM market and its sessions, galas, awards, networking).
+// The AFCM sessions (types 'afcm-panel' / 'afcm-fireside') live only in the
+// database, with their posters in Firebase Storage (loaded by
+// scripts/afcm/load-afcm.mjs); none are built in.
 // Facts (titles, speakers, dates of market/gala/awards/party) from
 // afriff.com on 19 Oct 2026. Descriptions and bios are short summaries
 // written for this app. TIMES AND ROOMS ARE SAMPLES until AFRIFF publishes them.
@@ -13,6 +16,8 @@ export const EVENT_TYPES: Record<EventType, { label: string; group: EventGroup }
   workshop: { label: 'Workshop', group: 'learn' },
   market: { label: 'Market', group: 'industry' },
   panel: { label: 'Panel', group: 'industry' },
+  'afcm-panel': { label: 'AFCM panel', group: 'industry' },
+  'afcm-fireside': { label: 'AFCM fireside chat', group: 'industry' },
   gala: { label: 'Gala', group: 'celebrate' },
   awards: { label: 'Awards', group: 'celebrate' },
   party: { label: 'Party', group: 'celebrate' },
@@ -198,6 +203,10 @@ export let EVENTS: FestivalEvent[] = SHIPPED_EVENTS.map(cleanEvent);
 
 export const eventById = (id: string | null | undefined) => EVENTS.find((e) => e.id === id);
 export const isMultiDay = (e: Pick<FestivalEvent, 'date' | 'endDate'>) => Boolean(e.endDate && e.endDate !== e.date);
+// A session of the AFCM market (panel or fireside chat): shown apart from films and other events
+export const isAfcm = (e: Pick<FestivalEvent, 'type'>) => e.type === 'afcm-panel' || e.type === 'afcm-fireside';
+// Speakers listed with commas (AFCM panels), one name each
+export const speakerNames = (e: Pick<FestivalEvent, 'speaker'>) => (e.speaker || '').split(',').map((n) => n.trim()).filter(Boolean);
 // Single-day events on a given day (multi-day ones are shown under "All week")
 export const eventsOn = (date: string) => EVENTS.filter((e) => !isMultiDay(e) && e.date === date).sort((a, b) => a.time.localeCompare(b.time));
 
