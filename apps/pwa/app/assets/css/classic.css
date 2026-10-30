@@ -197,18 +197,23 @@
   mask-image: radial-gradient(ellipse 82% 78% at 60% 40%, #000 66%, transparent 100%), linear-gradient(90deg, transparent 0%, #000 34%), linear-gradient(180deg, #000 62%, transparent 100%);
   mask-composite: intersect;
 }
+/* a navy layer over the art (the page's own colour, so only the art darkens),
+   heavier from the opening film row down so its label and text read clearly */
 .home-hero-body {
   position: relative; height: 100%;
+  background: linear-gradient(180deg, rgb(6 10 39 / 0.3) 0%, rgb(6 10 39 / 0.42) 22%, rgb(6 10 39 / 0.72) 34%, rgb(6 10 39 / 0.72) 100%);
   display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; row-gap: clamp(10px, 3cqh, 26px);
   padding: clamp(10px, 2.4cqh, 20px) 16px clamp(12px, 2.6cqh, 20px);
 }
 .home-hero .hero-eyebrow { margin-bottom: clamp(6px, 1.4cqh, 12px); font-size: clamp(13px, 2.4cqh, 16px); }
-/* capitals, extra bold: Manrope stops at 800, so a thin outline in the text's own colour thickens it */
+/* capitals, extra bold: Manrope stops at 800, so a thin outline in the text's own colour thickens it.
+   Width part: the longest line ("ON THE BIG SCREEN") is ~9.45 × the font size, so
+   (width − margins) ÷ 9.7 is as big as it gets while staying on 3 lines on any phone */
 .home-hero .hero-title {
-  font-size: clamp(24px, min(9cqw, 5.9cqh), 42px); font-weight: 800; line-height: 1.06; letter-spacing: -0.5px; text-transform: uppercase;
+  font-size: clamp(25px, min((100cqw - 32px) / 9.7, 6.3cqh), 45px); font-weight: 800; line-height: 1.06; letter-spacing: -0.5px; text-transform: uppercase;
   -webkit-text-stroke: 0.035em currentColor;
 }
-.home-hero :is(.home-hero-head .hero-eyebrow, .hero-title) { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55); }
+.home-hero :is(.home-hero-head .hero-eyebrow, .hero-title, .opening-film-text) { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55); }
 /* opening night film: poster + what, when, where; fewer lines when there's little room */
 .home-hero-film { min-height: 0; container-type: size; }
 .opening-film { display: flex; align-items: center; gap: 16px; height: 100%; }
