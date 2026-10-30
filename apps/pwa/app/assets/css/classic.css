@@ -171,32 +171,60 @@
 .hero-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold-light); margin-bottom: 8px; }
 .hero-title { font-size: 28px; line-height: 1.15; font-weight: 800; letter-spacing: -0.8px; }
 .hero-title span { color: var(--gold-light); }
-/* before the festival: the key art top-right, faded into the card; text stays above it */
-.hero-art {
-  position: absolute; top: -12px; right: -30px; width: 280px; height: 320px;
-  object-fit: cover; object-position: 50% 10%; pointer-events: none;
-  -webkit-mask-image: radial-gradient(ellipse 78% 72% at 55% 42%, #000 55%, transparent 100%), linear-gradient(180deg, #000 55%, transparent 100%);
+/* BEFORE THE FESTIVAL (pages/index.vue): no card, edge to edge, exactly the
+   first screen, from under the header to the bottom bar (--fit-top /
+   --fit-bottom are measured on the page). Inside, sizes scale with that height
+   (cqh) and the width (cqw), so the date, headline, poster, countdown and
+   "See the programme" all fit on a small phone and grow on a tall one. The
+   opening film row takes whatever room is left: its poster grows or shrinks. */
+.home-hero {
+  position: relative; overflow: hidden; container-type: size;
+  margin: -20px -16px 0;
+  height: calc(100vh - var(--fit-top, 123px) - var(--fit-bottom, 73px));
+  height: calc(100svh - var(--fit-top, 123px) - var(--fit-bottom, 73px));
+  min-height: 280px;
+}
+/* the key art top-right, bleeding off the screen edge, faded into the page */
+.home-hero-art {
+  position: absolute; top: 0; right: -60px; width: min(74cqw, 330px, 50cqh); height: auto; aspect-ratio: 900 / 1244;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 82% 78% at 60% 40%, #000 66%, transparent 100%), linear-gradient(90deg, transparent 0%, #000 34%), linear-gradient(180deg, #000 62%, transparent 100%);
   -webkit-mask-composite: source-in;
-  mask-image: radial-gradient(ellipse 78% 72% at 55% 42%, #000 55%, transparent 100%), linear-gradient(180deg, #000 55%, transparent 100%);
+  mask-image: radial-gradient(ellipse 82% 78% at 60% 40%, #000 66%, transparent 100%), linear-gradient(90deg, transparent 0%, #000 34%), linear-gradient(180deg, #000 62%, transparent 100%);
   mask-composite: intersect;
 }
-.hero > :not(.hero-art) { position: relative; }
-.hero:has(.hero-art) :is(.hero-eyebrow, .hero-title) { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45); }
-/* opening night film: poster + what, when, where */
-.opening-film { display: flex; gap: 16px; margin-top: 24px; }
-.poster.poster-opening { width: 104px; height: 156px; border-radius: var(--radius-sm); }
-.opening-film-text { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
-.opening-film-text .hero-eyebrow { margin-bottom: 0; }
-.opening-film-title { font-size: 20px; font-weight: 800; line-height: 1.15; letter-spacing: -0.4px; }
-.opening-film-meta { color: var(--muted); font-size: 14px; line-height: 1.45; }
+.home-hero-body {
+  position: relative; height: 100%;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; row-gap: clamp(10px, 3cqh, 26px);
+  padding: clamp(10px, 2.4cqh, 20px) 16px clamp(12px, 2.6cqh, 20px);
+}
+.home-hero .hero-eyebrow { margin-bottom: clamp(6px, 1.4cqh, 12px); font-size: clamp(13px, 2.4cqh, 16px); }
+/* capitals, extra bold: Manrope stops at 800, so a thin outline in the text's own colour thickens it */
+.home-hero .hero-title {
+  font-size: clamp(26px, min(10cqw, 6.5cqh), 46px); font-weight: 800; line-height: 1.06; letter-spacing: -0.6px; text-transform: uppercase;
+  -webkit-text-stroke: 0.035em currentColor;
+}
+.home-hero :is(.home-hero-head .hero-eyebrow, .hero-title) { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55); }
+/* opening night film: poster + what, when, where; fewer lines when there's little room */
+.home-hero-film { min-height: 0; container-type: size; }
+.opening-film { display: flex; align-items: center; gap: 16px; height: 100%; }
+.poster.poster-opening { height: min(100%, 250px); width: auto; aspect-ratio: 2 / 3; border-radius: var(--radius-sm); }
+.opening-film-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.opening-film-text .hero-eyebrow { margin-bottom: 0; font-size: 12px; }
+.opening-film-title { font-size: clamp(18px, 6cqw, 24px); font-weight: 800; line-height: 1.15; letter-spacing: -0.2px; text-transform: uppercase; }
+.opening-film-meta { color: var(--muted); font-size: 14px; line-height: 1.4; }
 .opening-film-more { margin-top: 4px; color: var(--gold-light); font-size: 15px; font-weight: 700; }
+@container (max-height: 150px) { .opening-film-meta.extra { display: none; } }
+@container (max-height: 104px) { .opening-film-text .hero-eyebrow, .opening-film-more { display: none; } }
+/* very short screens (e.g. an iPhone SE in Safari with an alert showing): the countdown keeps its numbers, loses its label */
+@container (max-height: 360px) { .home-hero .countdown-label { display: none; } }
 .hero-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; color: var(--muted); font-size: 15px; }
 .hero-meta span { display: inline-flex; align-items: center; gap: 8px; }
 .hero-meta svg { color: var(--gold-light); }
 .hero-rule { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
 .hero-sub { color: var(--muted); font-size: 16px; }
-.countdown { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
-.countdown-label { color: var(--muted); font-size: 14px; }
+.countdown { display: flex; flex-direction: column; gap: 8px; }
+.countdown-label { color: var(--muted); font-size: 15px; }
 /* ticking countdown (Countdown.vue): days / hours / mins / secs, seconds in light gold; one line in My plan */
 .timer { display: flex; align-items: flex-start; padding: 12px 0 10px; border-block: 1px solid var(--border); }
 .timer-unit { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -211,7 +239,13 @@
 .timer.small .timer-colon { font-size: 18px; }
 .timer-inline { font-size: 13px; font-weight: 700; color: var(--gold-light); }
 .timer-inline strong { font-variant-numeric: tabular-nums; }
+/* the opening-night countdown, bigger, scaling with the screen */
+.home-hero .timer { padding: clamp(8px, 1.8cqh, 14px) 0; }
+.home-hero .timer-n { font-size: clamp(30px, min(12cqw, 7.4cqh), 52px); letter-spacing: -1px; }
+.home-hero .timer-l { font-size: 12px; }
+.home-hero .timer-colon { font-size: clamp(22px, min(8cqw, 5cqh), 36px); }
 .hero-cta { width: 100%; margin-top: 20px; }
+.home-hero .hero-cta { margin-top: 0; height: clamp(46px, 8cqh, 54px); }
 
 /* Daily highlight (Home banner during the festival) */
 .hl { padding: 18px 16px 20px; }

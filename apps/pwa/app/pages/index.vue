@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useEventListener, useResizeObserver } from '@vueuse/core'
 import { AwardIcon, ChevronRightIcon, GraduationCapIcon, MapPinIcon, TicketIcon } from 'lucide-vue-next'
 import { FESTIVAL, SCREENINGS, filmById, venueById } from '@afriff/core/data/programme'
 import { EVENTS, EVENT_TYPES, isMultiDay } from '@afriff/core/data/events'
@@ -18,13 +19,35 @@ import keyArt from '~/assets/images/home-keyart.jpg'
 // (The urgent alert is under the header on every page: AlertBanner.vue.)
 // Hero laid out like the designer's screens (afriff-screens-html/afriff-home-*.html)
 // in the app's own look: before the festival the key art, headline, opening
-// night film and countdown; 1–7 Nov the daily highlight (DailyHighlight.vue).
+// night film and countdown, filling the first screen; 1–7 Nov the daily
+// highlight (DailyHighlight.vue).
 useHead({ title: 'AFRIFF 2026' })
 
 const { isScheduled, toggleScheduled } = useFestival()
 const t = useLiveClock(60000) // redraw every minute: "Next up" and Today move on
 const phase = computed(() => festivalPhase(t.value))
 const today = computed(() => lagosDate(new Date(t.value)))
+
+// ---------- Before the festival, the hero fills the first screen ----------
+// From under the header (and the alert, when there is one) down to the bottom
+// bar, so everything from the date to "See the programme" shows without
+// scrolling on any phone. The sizes inside scale with that height
+// (classic.css, .home-hero). Measured here: where the hero starts and how tall
+// the bottom bar is; the screen height itself comes from CSS (100svh: the
+// screen with the browser's bars showing, so it doesn't jump while scrolling).
+const heroEl = ref<HTMLElement | null>(null)
+const fit = reactive({ top: 0, bottom: 0 })
+function measureHero() {
+  const el = heroEl.value
+  if (!el) return
+  fit.top = Math.round(el.getBoundingClientRect().top + window.scrollY)
+  fit.bottom = document.querySelector<HTMLElement>('.bottom-nav')?.offsetHeight ?? 0
+}
+const fitStyle = computed(() => (fit.top ? { '--fit-top': `${fit.top}px`, '--fit-bottom': `${fit.bottom}px` } : {}))
+onMounted(measureHero)
+useEventListener('resize', measureHero, { passive: true })
+// the header, alert, offline bar and sponsor ribbon above it can change height
+useResizeObserver(() => document.querySelector<HTMLElement>('.app'), measureHero)
 
 // ---------- Countdown to opening night (Countdown ticks every second) ----------
 const openingAt = new Date(FESTIVAL.openingNight).getTime()
@@ -106,29 +129,36 @@ const strip = computed(() => {
 
 <template>
   <div class="page">
-    <!-- Before the festival: key art, headline, opening night film, countdown -->
-    <section v-if="phase === 'before'" class="hero">
-      <img :src="keyArt" alt="" class="hero-art" decoding="async" />
-      <p class="hero-eyebrow">1–7 November 2026</p>
-      <h2 class="hero-title">Seven days of <span>African stories</span> on the big screen</h2>
+    <!-- Before the festival: key art, headline, opening night film, countdown; fills the first screen -->
+    <section v-if="phase === 'before'" ref="heroEl" class="home-hero" :style="fitStyle">
+      <img :src="keyArt" alt="" class="home-hero-art" decoding="async" fetchpriority="high" />
+      <div class="home-hero-body">
+        <div class="home-hero-head">
+          <p class="hero-eyebrow">1–7 November 2026</p>
+          <h1 class="hero-title">Seven days of <span>African stories</span> on the big screen</h1>
+        </div>
 
-      <NuxtLink v-if="openingFilm" :to="`/film/${openingFilm.film.id}`" class="opening-film">
-        <FilmPoster :film="openingFilm.film" class="poster-opening" />
-        <span class="opening-film-text">
-          <span class="hero-eyebrow">Opening night film</span>
-          <span class="opening-film-title">{{ openingFilm.film.title }}</span>
-          <span class="opening-film-meta">
-            {{ openingFilm.when }}<template v-if="openingFilm.venue"><br />{{ openingFilm.venue }}</template><template v-if="openingFilm.film.director"><br />Dir. {{ openingFilm.film.director }}</template>
-          </span>
-          <span class="opening-film-more">About the film →</span>
-        </span>
-      </NuxtLink>
+        <!-- takes the room that's left: the poster grows or shrinks with the screen -->
+        <div class="home-hero-film">
+          <NuxtLink v-if="openingFilm" :to="`/film/${openingFilm.film.id}`" class="opening-film">
+            <FilmPoster :film="openingFilm.film" class="poster-opening" />
+            <span class="opening-film-text">
+              <span class="hero-eyebrow">Opening night film</span>
+              <span class="opening-film-title">{{ openingFilm.film.title }}</span>
+              <span class="opening-film-meta">{{ openingFilm.when }}</span>
+              <span v-if="openingFilm.venue" class="opening-film-meta extra">{{ openingFilm.venue }}</span>
+              <span v-if="openingFilm.film.director" class="opening-film-meta extra">Dir. {{ openingFilm.film.director }}</span>
+              <span class="opening-film-more">About the film →</span>
+            </span>
+          </NuxtLink>
+        </div>
 
-      <div v-if="!openingStarted" class="countdown">
-        <span class="countdown-label">Opening night starts in</span>
-        <Countdown :to="openingAt" days label="Opening night starts in" />
+        <div v-if="!openingStarted" class="countdown">
+          <span class="countdown-label">Opening night starts in</span>
+          <Countdown :to="openingAt" days label="Opening night starts in" />
+        </div>
+        <NuxtLink to="/programme" class="btn btn-gold hero-cta">See the programme</NuxtLink>
       </div>
-      <NuxtLink to="/programme" class="btn btn-gold hero-cta">See the programme</NuxtLink>
     </section>
 
     <!-- 1–7 Nov: the daily highlight -->
