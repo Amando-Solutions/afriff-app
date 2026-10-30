@@ -10,4 +10,5 @@ dist/
 functions/
 # poster files for scripts/posters (they live in Firebase Storage)
 AFRIFF-posters/
+AFCM-posters/
 scripts/

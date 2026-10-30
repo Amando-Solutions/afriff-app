@@ -1,0 +1,391 @@
+{
+  "source": "AFCM session graphics (one per session, in AFCM-posters/), via the AFCM preview build, 30 Oct 2026",
+  "shared": {
+    "venue": "twinwaters",
+    "place": "AFCM",
+    "tag": "Industry",
+    "access": "AFCM market badge",
+    "link": {
+      "label": "Badges on afcm-market.com",
+      "url": "https://www.afcm-market.com"
+    },
+    "about": {
+      "panel": "A panel session at the AFRIFF Film & Content Market (AFCM).",
+      "fireside": "A fireside chat at the AFRIFF Film & Content Market (AFCM)."
+    }
+  },
+  "sessions": [
+    {
+      "id": "afcm-d2-s1",
+      "kind": "panel",
+      "day": "2026-11-02",
+      "start": "11:00",
+      "end": "12:00",
+      "title": "Frames of the Future: Africa's Creative Intelligence",
+      "speakers": [
+        "Hannatu Musa Musawa",
+        "Chioma Ude",
+        "Kene Okwuosa",
+        "Atinuke Babatunde",
+        "Hakeem Kae-Kazim",
+        "Mariam Ogaziechi"
+      ],
+      "moderator": "Baba Agba",
+      "poster": "day2-s1-frames-of-the-future.jpg"
+    },
+    {
+      "id": "afcm-d2-s2",
+      "kind": "panel",
+      "day": "2026-11-02",
+      "start": "12:00",
+      "end": "13:00",
+      "title": "Beyond Nollywood: Positioning African Stories for Global Audiences",
+      "speakers": [
+        "Funke Akindele",
+        "Djimon Hounsou",
+        "Ramsey Nouah",
+        "Joel Chikapa-Phiri",
+        "Adebola Williams",
+        "Timi Adeyeba"
+      ],
+      "moderator": "Seyitan Atigarin",
+      "poster": "day2-s2-beyond-nollywood.jpg"
+    },
+    {
+      "id": "afcm-d2-s3",
+      "kind": "panel",
+      "day": "2026-11-02",
+      "start": "13:30",
+      "end": "14:30",
+      "title": "Africa in Partnership: Co-producing Our Stories, Distributing Our Films",
+      "speakers": [
+        "Juliet Ibrahim",
+        "Vincho Nchogu",
+        "Ruth Nkweti",
+        "Josh Olaoluwa",
+        "Alexandra Amon"
+      ],
+      "moderator": "Franciar",
+      "poster": "day2-s3-africa-in-partnership.jpg"
+    },
+    {
+      "id": "afcm-d2-s4",
+      "kind": "panel",
+      "day": "2026-11-02",
+      "start": "14:30",
+      "end": "15:30",
+      "title": "Canada–Nigeria Co-production: What Can We Make Together?",
+      "speakers": [
+        "Miryam Charles",
+        "Sabine Daniel",
+        "Katia Cafe-Febrissy",
+        "Henri Pardo"
+      ],
+      "moderator": "Linda Osifo",
+      "poster": "day2-s4-canada-nigeria-coproduction.jpg"
+    },
+    {
+      "id": "afcm-d2-s5",
+      "kind": "fireside",
+      "day": "2026-11-02",
+      "start": "15:30",
+      "end": "16:30",
+      "title": "The Art of Becoming: Craft, Identity and Reinvention",
+      "speakers": [
+        "Meagan Good Majors",
+        "Jennifer Okafor-Iwuchukwu"
+      ],
+      "moderator": "",
+      "poster": "day2-s5-art-of-becoming-meagan-good.jpg"
+    },
+    {
+      "id": "afcm-d3-s1",
+      "kind": "panel",
+      "day": "2026-11-03",
+      "start": "10:00",
+      "end": "11:00",
+      "title": "Film Is Business: Building Sustainable Production Companies",
+      "speakers": [
+        "Kunle Afolayan",
+        "Joy Odiete",
+        "Zulumoke Oyibo",
+        "Tencha Christopher"
+      ],
+      "moderator": "Asurf Oluwaseyi",
+      "poster": "day3-s1-film-is-business.jpg"
+    },
+    {
+      "id": "afcm-d3-s2",
+      "kind": "panel",
+      "day": "2026-11-03",
+      "start": "11:00",
+      "end": "12:00",
+      "title": "Unlocking European Co-productions and Distribution Networks: Taking African Stories to the World",
+      "speakers": [
+        "Mathias Holtz",
+        "Enricka Denis"
+      ],
+      "moderator": "",
+      "poster": "day3-s2-european-coproductions.jpg"
+    },
+    {
+      "id": "afcm-d3-s3",
+      "kind": "panel",
+      "day": "2026-11-03",
+      "start": "12:00",
+      "end": "13:00",
+      "title": "Financing the Creative and Film Industries: Institutional Financing and Private Sector",
+      "speakers": [
+        "Samer Abdul Samad",
+        "Ann Mareme Atay",
+        "Folajimi Alli-Balogun",
+        "Victor Orozco",
+        "Renos Vakis"
+      ],
+      "moderator": "Nnamdi Okafor",
+      "poster": "day3-s3-financing-creative-industries.jpg"
+    },
+    {
+      "id": "afcm-d3-s4",
+      "kind": "panel",
+      "day": "2026-11-03",
+      "start": "13:30",
+      "end": "14:30",
+      "title": "Women Leading Africa's Creative Future",
+      "speakers": [
+        "Ini Edo",
+        "Toyin Abraham",
+        "Iyabo Ojo",
+        "Sheila Nortley",
+        "Tsheipo Chikapa Phiri"
+      ],
+      "moderator": "Nancy Isime",
+      "poster": "day3-s4-women-leading.jpg"
+    },
+    {
+      "id": "afcm-d3-s5",
+      "kind": "fireside",
+      "day": "2026-11-03",
+      "start": "14:30",
+      "end": "15:30",
+      "title": "The Art of Becoming: Craft, Identity and Reinvention",
+      "speakers": [
+        "Jonathan Majors",
+        "Jennifer Okafor-Iwuchukwu"
+      ],
+      "moderator": "",
+      "poster": "day3-s5-art-of-becoming-jonathan-majors.jpg"
+    },
+    {
+      "id": "afcm-d4-s1",
+      "kind": "panel",
+      "day": "2026-11-04",
+      "start": "10:00",
+      "end": "11:00",
+      "title": "The Vertical Film Revolution: Disrupting Traditional Cinema & What's Next?",
+      "speakers": [
+        "Jemilah Alghali",
+        "Ifeoma Are",
+        "Akin Pelumi Okelola",
+        "Teniola Sturfman"
+      ],
+      "moderator": "Daniel Etim-Effiong",
+      "poster": "day4-s1-vertical-film-revolution.jpg"
+    },
+    {
+      "id": "afcm-d4-s2",
+      "kind": "panel",
+      "day": "2026-11-04",
+      "start": "11:00",
+      "end": "12:00",
+      "title": "Is AI Filmmaking Replacing Originals?",
+      "speakers": [
+        "Issa Sissoko",
+        "Leticia Bertrand",
+        "Opeyemi Akintunde",
+        "Ice Nweke"
+      ],
+      "moderator": "Obinna Okerekeocha",
+      "poster": "day4-s2-ai-filmmaking.jpg"
+    },
+    {
+      "id": "afcm-d4-s3",
+      "kind": "panel",
+      "day": "2026-11-04",
+      "start": "12:00",
+      "end": "13:00",
+      "title": "Animating Africa: From African Imagination to Global Screens",
+      "speakers": [
+        "Shofela Coker",
+        "Nissi Ogulu",
+        "Ferdy Adimefe",
+        "Adeoyin Okuboyejo",
+        "Uzoma Dunkwu"
+      ],
+      "moderator": "Ebuka Ude",
+      "poster": "day4-s3-animating-africa.jpg"
+    },
+    {
+      "id": "afcm-d4-s5",
+      "kind": "panel",
+      "day": "2026-11-04",
+      "start": "12:00",
+      "end": "13:00",
+      "title": "The Making of a Nollywood Blockbuster: Ordinary People",
+      "speakers": [
+        "Ramsey Nouah",
+        "Moses Inwang",
+        "Mitchelle Dede",
+        "Shawn Faqua",
+        "Chidi Mokeme"
+      ],
+      "moderator": "Odera Collins",
+      "poster": "day4-s5-nollywood-blockbuster-ordinary-people.jpg"
+    },
+    {
+      "id": "afcm-d4-s4",
+      "kind": "fireside",
+      "day": "2026-11-04",
+      "start": "13:30",
+      "end": "14:30",
+      "title": "Beyond the Frame: African Identity, Hollywood and the Power of Our Stories",
+      "speakers": [
+        "Djimon Hounsou",
+        "Richard Mofe-Damijo"
+      ],
+      "moderator": "",
+      "poster": "day4-s4-beyond-the-frame.jpg"
+    },
+    {
+      "id": "afcm-d5-s1",
+      "kind": "panel",
+      "day": "2026-11-05",
+      "start": "10:00",
+      "end": "10:50",
+      "title": "The Creator Economy: YouTube, TikTok & Independent Distribution",
+      "speakers": [
+        "Bimbo Ademoye",
+        "Stan Nze",
+        "Uche Montana",
+        "Blessing Obasi-Nze",
+        "Frederick Leonard"
+      ],
+      "moderator": "Tope Olowoniyan",
+      "poster": "day5-s1-creator-economy.jpg"
+    },
+    {
+      "id": "afcm-d5-s2",
+      "kind": "panel",
+      "day": "2026-11-05",
+      "start": "11:00",
+      "end": "11:50",
+      "title": "Can African Faith-Based Cinema Turn into a Booming Commercial Market?",
+      "speakers": [
+        "Mike Bamiloye Jr",
+        "Moses Babatope",
+        "Kunle Falodun",
+        "Eliora Eberechukwu",
+        "Ololade Okedare"
+      ],
+      "moderator": "Dr. Macfoy",
+      "poster": "day5-s2-faith-based-cinema.jpg"
+    },
+    {
+      "id": "afcm-d5-s3",
+      "kind": "panel",
+      "day": "2026-11-05",
+      "start": "12:00",
+      "end": "12:50",
+      "title": "Who Owns the Story? Copyright, Intellectual Property & AI",
+      "speakers": [
+        "Tayo Elesin",
+        "Andrew Cutrow",
+        "Olumide Osundolire",
+        "Elvira Salleras",
+        "Lovelyn Aniekwe"
+      ],
+      "moderator": "",
+      "poster": "day5-s3-who-owns-the-story.jpg"
+    },
+    {
+      "id": "afcm-d5-s4",
+      "kind": "panel",
+      "day": "2026-11-05",
+      "start": "14:00",
+      "end": "14:50",
+      "title": "The Billion-Dollar Story: Positioning African Cinema as a Global Contender",
+      "speakers": [
+        "Funke Akindele",
+        "Yaya DaCosta",
+        "Blessing Uzzi",
+        "Ifeoma Chukwuogo",
+        "Dexter Davis"
+      ],
+      "moderator": "Eku Edewor",
+      "poster": "day5-s4-billion-dollar-story.jpg"
+    },
+    {
+      "id": "afcm-d5-s5",
+      "kind": "panel",
+      "day": "2026-11-05",
+      "start": "15:00",
+      "end": "15:50",
+      "title": "African Youth Creators Hub",
+      "speakers": [
+        "Funke Akindele",
+        "Taaooma",
+        "Adeoluwa Prince Enioluwa",
+        "Bae U",
+        "Hero Daniels"
+      ],
+      "moderator": "Shanks",
+      "poster": "day5-s5-african-youth-creators-hub.jpg"
+    },
+    {
+      "id": "afcm-d5-s6",
+      "kind": "panel",
+      "day": "2026-11-05",
+      "start": "16:00",
+      "end": "16:50",
+      "title": "The Making of a Nollywood Blockbuster: Call of My Life",
+      "speakers": [
+        "Blessing Uzzi",
+        "Uzoamaka Power",
+        "Andrew Yaw Bunting"
+      ],
+      "moderator": "",
+      "poster": "day5-s6-nollywood-blockbuster-call-of-my-life.jpg"
+    },
+    {
+      "id": "afcm-d6-s1",
+      "kind": "panel",
+      "day": "2026-11-06",
+      "start": "10:00",
+      "end": "10:50",
+      "title": "Africa 2035: Predicting the Next Decade of Cinema",
+      "speakers": [
+        "Niyi Akinmolayan",
+        "Mary Remmy Njoku",
+        "Ladun Awobokun",
+        "Bukky George-Taylor",
+        "Shuaibu Husseini"
+      ],
+      "moderator": "Chineze Anyaene",
+      "poster": "day6-s1-africa-2035.jpg"
+    },
+    {
+      "id": "afcm-d6-s3",
+      "kind": "fireside",
+      "day": "2026-11-06",
+      "start": "12:00",
+      "end": "12:50",
+      "title": "Styling the Diaspora: The Business of Styling Stars from Lagos to Hollywood",
+      "speakers": [
+        "Ama K. Abrebese",
+        "Latasha Ngwube"
+      ],
+      "moderator": "",
+      "poster": "day6-s3-styling-the-diaspora.jpg"
+    }
+  ]
+}
